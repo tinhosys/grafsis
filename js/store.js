@@ -82,25 +82,6 @@ const INITIAL_PRODUCTS = [
   }
 ];
 
-const INITIAL_CLIENTS = [
-  {
-    id: '99999999-9999-4999-8999-999999999999',
-    nome: 'Supermercado Progresso Ltda',
-    apelido: 'Marcos Progresso',
-    cpf_cnpj: '12.345.678/0001-90',
-    telefone_whatsapp: '11999998888',
-    email: 'compras@progresso.com.br',
-    cep: '01310-100',
-    cidade: 'São Paulo',
-    uf: 'SP',
-    endereco: 'Av. Paulista, 1000 - Bela Vista',
-    referencia: 'Em frente ao Metrô Trianon-Masp',
-    plus_code: '87G8C822+4X',
-    foto_url: '',
-    observacoes: 'Cliente VIP - entrega sempre na doca 2'
-  }
-];
-
 class GrafsisStore {
   constructor() {
     this.supabaseClient = null;
@@ -113,7 +94,7 @@ class GrafsisStore {
       this.saveLocal(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
     }
     if (!localStorage.getItem(STORAGE_KEYS.CLIENTS)) {
-      this.saveLocal(STORAGE_KEYS.CLIENTS, INITIAL_CLIENTS);
+      this.saveLocal(STORAGE_KEYS.CLIENTS, []);
     }
     if (!localStorage.getItem(STORAGE_KEYS.SUPPLIERS)) {
       this.saveLocal(STORAGE_KEYS.SUPPLIERS, []);
@@ -135,8 +116,8 @@ class GrafsisStore {
         this.supabaseClient = window.supabase.createClient(config.url, config.key);
         console.log('[Supabase] Cliente conectado com sucesso:', config.url);
         this.updateSyncBadge(true);
-        // Sincroniza em segundo plano
-        this.syncAllWithCloud();
+        // Sincroniza em segundo plano ao iniciar
+        setTimeout(() => this.syncAllWithCloud(), 300);
       } catch (err) {
         console.warn('[Supabase] Falha ao inicializar cliente:', err);
         this.updateSyncBadge(false);
@@ -151,16 +132,16 @@ class GrafsisStore {
     if (badge) {
       if (connected) {
         badge.innerHTML = `
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <button onclick="window.store.syncAllWithCloud()" title="Clique para forçar sincronização agora" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition shadow-sm">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Nuvem Conectada
-          </span>
+            Nuvem Sincronizada ↻
+          </button>
         `;
       } else {
         badge.innerHTML = `
           <button onclick="app.navigate('settings')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition">
             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            Configurar Nuvem (Chave)
+            Configurar Nuvem
           </button>
         `;
       }
@@ -185,11 +166,17 @@ class GrafsisStore {
     }
   }
 
-  // Sincronização Completa com o Supabase
+  // Sincronização Bidirecional Completa com o Supabase
   async syncAllWithCloud() {
     if (!this.supabaseClient || this.isSyncing) return;
     this.isSyncing = true;
+    console.log('[Supabase Sync] Iniciando sincronização bidirecional...');
+
     try {
+      // 1. Enviar registros locais pré-existentes para a nuvem
+      await this.pushAllLocalRecords();
+
+      // 2. Puxar todos os registros da nuvem para atualizar o dispositivo
       await Promise.all([
         this.pullTable('clientes', STORAGE_KEYS.CLIENTS),
         this.pullTable('fornecedores', STORAGE_KEYS.SUPPLIERS),
@@ -198,7 +185,8 @@ class GrafsisStore {
         this.pullTable('financeiro_lancamentos', STORAGE_KEYS.FINANCE),
         window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
       ]);
-      console.log('[Supabase Sync] Sincronização completa finalizada.');
+
+      console.log('[Supabase Sync] Sincronização concluída com sucesso!');
       if (window.app && window.app.currentTab) {
         window.app.navigate(window.app.currentTab);
       }
@@ -207,6 +195,29 @@ class GrafsisStore {
     } finally {
       this.isSyncing = false;
     }
+  }
+
+  async pushAllLocalRecords() {
+    const clients = this.getClients();
+    for (const c of clients) {
+      if (!isValidUUID(c.id)) c.id = grafsisUUID();
+      await this.pushRecord('clientes', c);
+    }
+    this.saveLocal(STORAGE_KEYS.CLIENTS, clients);
+
+    const products = this.getProducts();
+    for (const p of products) {
+      if (!isValidUUID(p.id)) p.id = grafsisUUID();
+      await this.pushRecord('produtos', p);
+    }
+    this.saveLocal(STORAGE_KEYS.PRODUCTS, products);
+
+    const suppliers = this.getSuppliers();
+    for (const s of suppliers) {
+      if (!isValidUUID(s.id)) s.id = grafsisUUID();
+      await this.pushRecord('fornecedores', s);
+    }
+    this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
   }
 
   async pullTable(tableName, storageKey) {
@@ -218,7 +229,6 @@ class GrafsisStore {
         return;
       }
       if (data && Array.isArray(data)) {
-        // Mesclar dados locais e remotos
         const local = this.getLocal(storageKey);
         const map = new Map();
         local.forEach(item => map.set(item.id, item));
@@ -234,11 +244,16 @@ class GrafsisStore {
   async pushRecord(tableName, record) {
     if (!this.supabaseClient) return;
     try {
-      const { error } = await this.supabaseClient.from(tableName).upsert(record);
+      const clean = { ...record };
+      if (!clean.id || !isValidUUID(clean.id)) {
+        clean.id = grafsisUUID();
+        record.id = clean.id;
+      }
+      const { error } = await this.supabaseClient.from(tableName).upsert(clean);
       if (error) {
         console.warn(`[Supabase] Erro ao enviar para ${tableName}:`, error.message);
       } else {
-        console.log(`[Supabase] Registro sincronizado em ${tableName}:`, record.id);
+        console.log(`[Supabase] Registro sincronizado em ${tableName}:`, clean.id);
       }
     } catch (err) {
       console.warn(`[Supabase] Falha ao enviar para ${tableName}:`, err);
