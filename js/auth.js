@@ -1,5 +1,5 @@
 /* ==============================================================================
-   GRAFSIS - Módulo de Autenticação e Controle de Acesso (RBAC)
+   GRAFSIS - Módulo de Autenticação, Usuários & Controle de Acesso (RBAC)
    Perfis: ADMIN, GERENTE, VENDAS, PRODUCAO
    ============================================================================== */
 
@@ -70,10 +70,50 @@ const ROLE_PERMISSIONS = {
 };
 
 const DEFAULT_USERS = [
-  { id: 'usr-1', login: 'admin', nome: 'Administrador do Sistema', pin: '1234', role: ROLES.ADMIN, ativo: true },
-  { id: 'usr-2', login: 'gerente', nome: 'Gerência Operacional', pin: '1234', role: ROLES.GERENTE, ativo: true },
-  { id: 'usr-3', login: 'vendas', nome: 'Equipe Comercial', pin: '1234', role: ROLES.VENDAS, ativo: true },
-  { id: 'usr-4', login: 'producao', nome: 'Oficina & Produção', pin: '1234', role: ROLES.PRODUCAO, ativo: true }
+  {
+    id: 'a0000000-0000-4000-8000-000000000001',
+    login: 'admin',
+    nome: 'Administrador do Sistema',
+    senha: '1234',
+    pin: '1234',
+    role: ROLES.ADMIN,
+    ativo: true,
+    data_cadastro: '2026-01-01T00:00:00Z',
+    data_ultimo_acesso: new Date().toISOString()
+  },
+  {
+    id: 'a0000000-0000-4000-8000-000000000002',
+    login: 'gerente',
+    nome: 'Gerência Operacional',
+    senha: '1234',
+    pin: '1234',
+    role: ROLES.GERENTE,
+    ativo: true,
+    data_cadastro: '2026-01-01T00:00:00Z',
+    data_ultimo_acesso: null
+  },
+  {
+    id: 'a0000000-0000-4000-8000-000000000003',
+    login: 'vendas',
+    nome: 'Equipe Comercial',
+    senha: '1234',
+    pin: '1234',
+    role: ROLES.VENDAS,
+    ativo: true,
+    data_cadastro: '2026-01-01T00:00:00Z',
+    data_ultimo_acesso: null
+  },
+  {
+    id: 'a0000000-0000-4000-8000-000000000004',
+    login: 'producao',
+    nome: 'Oficina & Produção',
+    senha: '1234',
+    pin: '1234',
+    role: ROLES.PRODUCAO,
+    ativo: true,
+    data_cadastro: '2026-01-01T00:00:00Z',
+    data_ultimo_acesso: null
+  }
 ];
 
 class GrafsisAuth {
@@ -95,13 +135,14 @@ class GrafsisAuth {
 
   getUsers() {
     try {
-      return JSON.parse(localStorage.getItem(this.STORAGE_USERS_KEY) || '[]');
+      const list = JSON.parse(localStorage.getItem(this.STORAGE_USERS_KEY) || '[]');
+      return list.length ? list : DEFAULT_USERS;
     } catch {
       return DEFAULT_USERS;
     }
   }
 
-  saveUsers(users) {
+  saveUsersLocal(users) {
     localStorage.setItem(this.STORAGE_USERS_KEY, JSON.stringify(users));
   }
 
@@ -133,21 +174,116 @@ class GrafsisAuth {
     return !!permissions[action];
   }
 
-  login(login, pin) {
+  login(login, senhaOuPin) {
     const users = this.getUsers();
-    const found = users.find(u => u.login.toLowerCase() === login.trim().toLowerCase() && u.pin === pin.trim());
+    const l = login.trim().toLowerCase();
+    const s = senhaOuPin.trim();
+
+    const found = users.find(u => 
+      u.login.toLowerCase() === l && ((u.senha && u.senha === s) || (u.pin && u.pin === s))
+    );
+
     if (found) {
       if (!found.ativo) {
-        return { success: false, message: 'Usuário desativado pelo Administrador.' };
+        return { success: false, message: 'Usuário desativado. Contate o Administrador.' };
       }
+      // Atualiza data do último acesso
+      found.data_ultimo_acesso = new Date().toISOString();
+      this.saveUser(found);
       this.setCurrentUser(found);
       return { success: true, user: found };
     }
-    return { success: false, message: 'Login ou PIN/Senha incorretos.' };
+    return { success: false, message: 'Login ou Senha incorretos.' };
   }
 
   logout() {
     this.openLoginModal();
+  }
+
+  async saveUser(user) {
+    const users = this.getUsers();
+    if (!user.id) {
+      user.id = typeof grafsisUUID === 'function' ? grafsisUUID() : 'usr-' + Date.now();
+      user.data_cadastro = user.data_cadastro || new Date().toISOString();
+      users.unshift(user);
+    } else {
+      const index = users.findIndex(u => u.id === user.id);
+      if (index >= 0) users[index] = user;
+      else users.unshift(user);
+    }
+    this.saveUsersLocal(users);
+
+    // Sincroniza com Supabase se conectado
+    if (window.store && window.store.supabaseClient) {
+      try {
+        await window.store.supabaseClient.from('usuarios').upsert({
+          id: user.id,
+          nome: user.nome,
+          login: user.login,
+          senha: user.senha || '1234',
+          pin: user.pin || '1234',
+          role: user.role,
+          ativo: user.ativo,
+          data_cadastro: user.data_cadastro,
+          data_ultimo_acesso: user.data_ultimo_acesso
+        });
+      } catch (err) {
+        console.warn('[Supabase] Falha ao sincronizar usuário:', err);
+      }
+    }
+    return user;
+  }
+
+  async deleteUser(id) {
+    let users = this.getUsers();
+    users = users.filter(u => u.id !== id);
+    this.saveUsersLocal(users);
+
+    if (window.store && window.store.supabaseClient) {
+      try {
+        await window.store.supabaseClient.from('usuarios').delete().eq('id', id);
+      } catch (err) {
+        console.warn('[Supabase] Falha ao deletar usuário:', err);
+      }
+    }
+  }
+
+  async changePassword(userId, currentPassword, newPassword) {
+    const users = this.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return { success: false, message: 'Usuário não encontrado.' };
+
+    const curr = (user.senha || user.pin || '1234').trim();
+    if (currentPassword.trim() !== curr) {
+      return { success: false, message: 'A senha atual está incorreta.' };
+    }
+
+    user.senha = newPassword.trim();
+    user.pin = newPassword.trim();
+    await this.saveUser(user);
+    this.setCurrentUser(user);
+    return { success: true, message: 'Senha alterada com sucesso!' };
+  }
+
+  async syncUsersWithCloud(supabaseClient) {
+    if (!supabaseClient) return;
+    try {
+      const { data, error } = await supabaseClient.from('usuarios').select('*');
+      if (error) {
+        console.warn('[Supabase] Erro ao sincronizar tabela usuarios:', error.message);
+        return;
+      }
+      if (data && data.length) {
+        const local = this.getUsers();
+        const map = new Map();
+        local.forEach(u => map.set(u.id, u));
+        data.forEach(u => map.set(u.id, u));
+        const merged = Array.from(map.values());
+        this.saveUsersLocal(merged);
+      }
+    } catch (e) {
+      console.warn('[Supabase] Erro ao carregar usuarios remotos:', e);
+    }
   }
 
   openLoginModal() {
@@ -198,6 +334,8 @@ class GrafsisAuth {
     const users = this.getUsers();
     const found = users.find(u => u.role === role);
     if (found) {
+      found.data_ultimo_acesso = new Date().toISOString();
+      this.saveUser(found);
       this.setCurrentUser(found);
       this.closeLoginModal();
       window.app.updateUserHeader();
