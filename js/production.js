@@ -1,4 +1,4 @@
-window.productionModule = {
+﻿window.productionModule = {
   phases: [
     { id: 'orcamento', name: '0. Orçamento', badge: 'bg-indigo-100 text-indigo-800' },
     { id: 'prevenda', name: '1. Pré-Venda (Arte em Aprovação)', badge: 'bg-amber-100 text-amber-800' },
@@ -100,6 +100,36 @@ window.productionModule = {
     const orderId = e.dataTransfer.getData('text/plain');
     if (orderId) {
       window.store.updateOrderStatus(orderId, newPhaseId);
+      
+      const order = window.store.getOrders().find(o => o.id === orderId);
+      if (newPhaseId === 'entregue' && order && !order.estoque_baixado) {
+        const products = window.store.getProducts();
+        order.itens.forEach(it => {
+          if(it.produto_id) {
+            const p = products.find(prod => prod.id === it.produto_id);
+            if(p) {
+              if (p.tipo_cobranca === 'm2') p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.area_m2) * parseFloat(it.quantidade));
+              else if (p.tipo_cobranca === 'linear') p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.largura_x) * parseFloat(it.quantidade));
+              else p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - parseFloat(it.quantidade);
+              window.store.saveProduct(p);
+            }
+          }
+        });
+        order.estoque_baixado = true;
+        
+        // Deduct Ink
+        const s = window.store.getSettings();
+        const yieldM2 = parseFloat(s.inkEcoYield) || 1200;
+        let totalArea = 0;
+        order.itens.forEach(it => { if(it.tipo_calculo === 'm2') totalArea += (parseFloat(it.area_m2) * parseFloat(it.quantidade)); });
+        if(totalArea > 0 && s.inkEcoStock !== undefined) {
+          s.inkEcoStock = Math.max(0, parseFloat(s.inkEcoStock) - (totalArea / yieldM2));
+          window.store.save('grafsis_settings', s);
+        }
+        const allOrders = window.store.getOrders();
+        const oIdx = allOrders.findIndex(o => o.id === order.id);
+        if(oIdx > -1) { allOrders[oIdx] = order; window.store.save('grafsis_orders', allOrders); }
+      }
       this.render();
     }
   },
@@ -111,7 +141,47 @@ window.productionModule = {
     if (currentIndex < this.phases.length - 1) {
       const nextPhase = this.phases[currentIndex + 1].id;
       window.store.updateOrderStatus(orderId, nextPhase);
+      
+      // Stock Deduction when advancing to "entregue" (Concluído)
+      if (nextPhase === 'entregue' && !order.estoque_baixado) {
+        const products = window.store.getProducts();
+        order.itens.forEach(it => {
+          if(it.produto_id) {
+            const p = products.find(prod => prod.id === it.produto_id);
+            if(p) {
+              if (p.tipo_cobranca === 'm2') {
+                // deduct Area
+                p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.area_m2) * parseFloat(it.quantidade));
+              } else if (p.tipo_cobranca === 'linear') {
+                // deduct linear meters
+                p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.largura_x) * parseFloat(it.quantidade));
+              } else {
+                p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - parseFloat(it.quantidade);
+              }
+              window.store.saveProduct(p);
+            }
+          }
+        });
+        order.estoque_baixado = true;
+        
+        // Deduct Ink
+        const s = window.store.getSettings();
+        const yieldM2 = parseFloat(s.inkEcoYield) || 1200;
+        let totalArea = 0;
+        order.itens.forEach(it => { if(it.tipo_calculo === 'm2') totalArea += (parseFloat(it.area_m2) * parseFloat(it.quantidade)); });
+        if(totalArea > 0 && s.inkEcoStock !== undefined) {
+          s.inkEcoStock = Math.max(0, parseFloat(s.inkEcoStock) - (totalArea / yieldM2));
+          window.store.save('grafsis_settings', s);
+        }
+        
+        // Also update order to save the flag
+        const allOrders = window.store.getOrders();
+        const oIdx = allOrders.findIndex(o => o.id === order.id);
+        if(oIdx > -1) { allOrders[oIdx] = order; window.store.save('grafsis_orders', allOrders); }
+      }
       this.render();
     }
   }
 };
+
+

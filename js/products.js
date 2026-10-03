@@ -21,7 +21,7 @@ window.productsModule = {
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
               Calculadora Rápida m²
             </button>
-            <button onclick="productsModule.openModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition">
+            <button onclick="productsModule.openInkModal()" class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg shadow-sm transition mr-2">💧 Controle de Tintas</button><button onclick="productsModule.openModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition">
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
               Novo Produto
             </button>
@@ -207,6 +207,11 @@ window.productsModule = {
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Estoque Mínimo</label>
                 <input type="number" step="0.1" name="estoque_minimo" value="${product ? product.estoque_minimo : '20'}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               </div>
+              <div class="md:col-span-2 p-3 bg-slate-50 border rounded-lg" id="div-larguras" style="${product && product.tipo_cobranca === 'm2' ? '' : 'display:none;'}">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Larguras de Bobina Disponíveis em Estoque (metros)</label>
+                <input type="text" name="larguras_bobinas" value="${product && product.larguras_bobinas ? product.larguras_bobinas : '1.06, 1.27, 1.37, 1.52'}" placeholder="Ex: 1.00, 1.20, 1.60" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <span class="text-[10px] text-slate-500">Separado por vírgulas. Usado para sugerir a bobina com menor perda na produção.</span>
+              </div>
 
               <div class="md:col-span-2">
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Foto do Produto / Acabamento (URL ou Arquivo)</label>
@@ -232,6 +237,8 @@ window.productsModule = {
   },
 
   adjustUnit(type) {
+    const divLarguras = document.getElementById('div-larguras');
+    if(divLarguras) divLarguras.style.display = type === 'm2' ? 'block' : 'none';
     // Automático
   },
 
@@ -268,6 +275,7 @@ window.productsModule = {
       custo_base: parseFloat(form.custo_base.value) || 0,
       estoque_atual: parseFloat(form.estoque_atual.value) || 0,
       estoque_minimo: parseFloat(form.estoque_minimo.value) || 0,
+      larguras_bobinas: form.larguras_bobinas ? form.larguras_bobinas.value.trim() : '',
       unidade_medida: unit,
       foto_url: form.foto_url.value.trim(),
       descricao: form.descricao.value.trim()
@@ -351,6 +359,7 @@ window.productsModule = {
                 <p class="text-xs text-blue-700 font-medium">Área Total Fracionada:</p>
                 <p class="text-lg font-extrabold text-blue-900" id="calc-res-area">3.000 m²</p>
                 <p class="text-[11px] text-blue-600" id="calc-res-sub">1 peça(s) de 1.20m x 2.50m</p>
+                <div id="calc-res-sugestao" class="mt-2 text-[10px] font-semibold text-amber-700 bg-amber-50 p-1.5 rounded border border-amber-200 hidden"></div>
               </div>
               <div class="text-right">
                 <p class="text-xs text-blue-700 font-medium">Valor Total:</p>
@@ -401,6 +410,49 @@ window.productsModule = {
 
     document.getElementById('calc-res-area').innerText = `${totalArea.toFixed(3)} m²`;
     document.getElementById('calc-res-sub').innerText = `${qty} peça(s) de ${width.toFixed(2)}m x ${height.toFixed(2)}m`;
+    
+    // Suggest Roll logic
+    const sel = document.getElementById('calc-product');
+    const opt = sel.options[sel.selectedIndex];
+    const prodId = sel.value;
+    const prod = window.store.getProducts().find(p => p.id === prodId);
+    const sugEl = document.getElementById('calc-res-sugestao');
+    
+    if (prod && prod.tipo_cobranca === 'm2' && prod.larguras_bobinas) {
+      const rollsStr = prod.larguras_bobinas.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+      if (rollsStr.length > 0) {
+        let bestRoll = null;
+        let minWaste = Infinity;
+        let orientation = '';
+
+        for (const r of rollsStr) {
+          // Normal: width along the roll width
+          if (width <= r) {
+            const wasteW = r - width;
+            const wasteArea = wasteW * height;
+            if (wasteArea < minWaste) { minWaste = wasteArea; bestRoll = r; orientation = 'Normal'; }
+          }
+          // Rotated: height along the roll width
+          if (height <= r) {
+            const wasteW = r - height;
+            const wasteArea = wasteW * width;
+            if (wasteArea < minWaste) { minWaste = wasteArea; bestRoll = r; orientation = 'Rotacionado'; }
+          }
+        }
+        
+        if (bestRoll) {
+          sugEl.style.display = 'block';
+          sugEl.innerHTML = `💡 <b>Produção:</b> Usar bobina <b>${bestRoll.toFixed(2)}m</b> (${orientation}).<br>Perda aprox: <b>${minWaste.toFixed(2)}m²</b> por peça.`;
+        } else {
+          sugEl.style.display = 'block';
+          sugEl.innerHTML = `⚠️ Peça maior que todas as bobinas (${prod.larguras_bobinas}). Necessário emenda!`;
+        }
+      } else {
+        sugEl.style.display = 'none';
+      }
+    } else {
+      sugEl.style.display = 'none';
+    }
     document.getElementById('calc-res-total').innerText = `R$ ${totalValue.toFixed(2)}`;
   },
 
@@ -430,4 +482,89 @@ window.productsModule = {
       }
     });
   }
+,
+  openInkModal() {
+    const modalHtml = `
+      <div id="ink-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
+          <div class="flex justify-between items-center pb-3 border-b">
+            <div>
+              <h2 class="text-xl font-black text-purple-800">💧 Controle de Tintas & Insumos</h2>
+              <p class="text-xs text-slate-500">Cálculo de rendimento e custo por m² impresso</p>
+            </div>
+            <button onclick="document.getElementById('ink-modal').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+          </div>
+
+          <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <h3 class="font-bold text-slate-800 text-sm mb-3">Tinta Eco-Solvente (CMYK)</h3>
+              <div class="mb-3">
+                <label class="block font-semibold mb-1 text-xs">Estoque Atual (Kits / Litros)</label>
+                <input type="number" step="0.1" id="ink-eco-stock" value="${window.store.getSettings().inkEcoStock || 0}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded font-bold text-blue-700 bg-blue-50">
+              </div>
+              <div class="space-y-2 text-xs">
+                <div>
+                  <label class="block font-semibold mb-1">Custo do Kit 4L (R$)</label>
+                  <input type="number" id="ink-eco-price" value="${window.store.getSettings().inkEcoPrice || 280}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1">Rendimento Esperado (m² por Kit)</label>
+                  <input type="number" id="ink-eco-yield" value="${window.store.getSettings().inkEcoYield || 1200}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
+                </div>
+                <div class="pt-2 border-t mt-2">
+                  <span class="block text-slate-500 font-semibold uppercase text-[10px]">Custo Calculado por m²</span>
+                  <span class="text-lg font-black text-purple-700" id="ink-eco-res">R$ 0,23</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <h3 class="font-bold text-slate-800 text-sm mb-3">Tinta Sublimática (CMYK)</h3>
+              <div class="mb-3">
+                <label class="block font-semibold mb-1 text-xs">Estoque Atual (Kits / Litros)</label>
+                <input type="number" step="0.1" id="ink-sub-stock" value="${window.store.getSettings().inkSubStock || 0}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded font-bold text-blue-700 bg-blue-50">
+              </div>
+              <div class="space-y-2 text-xs">
+                <div>
+                  <label class="block font-semibold mb-1">Custo do Kit 4L (R$)</label>
+                  <input type="number" id="ink-sub-price" value="${window.store.getSettings().inkSubPrice || 180}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1">Rendimento Esperado (m² por Kit)</label>
+                  <input type="number" id="ink-sub-yield" value="${window.store.getSettings().inkSubYield || 800}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
+                </div>
+                <div class="pt-2 border-t mt-2">
+                  <span class="block text-slate-500 font-semibold uppercase text-[10px]">Custo Calculado por m²</span>
+                  <span class="text-lg font-black text-purple-700" id="ink-sub-res">R$ 0,22</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t text-right">
+            <button onclick="document.getElementById('ink-modal').remove()" class="px-5 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.calcInk();
+  },
+  
+  calcInk() {
+    const ecoP = parseFloat(document.getElementById('ink-eco-price').value) || 0;
+    const ecoY = parseFloat(document.getElementById('ink-eco-yield').value) || 1;
+    const subP = parseFloat(document.getElementById('ink-sub-price').value) || 0;
+    const subY = parseFloat(document.getElementById('ink-sub-yield').value) || 1;
+    document.getElementById('ink-eco-res').innerText = 'R$ ' + (ecoP / ecoY).toFixed(2);
+    let s = window.store.getSettings();
+    s.inkEcoPrice = ecoP; s.inkEcoYield = ecoY; s.inkSubPrice = subP; s.inkSubYield = subY;
+    s.inkEcoStock = parseFloat(document.getElementById('ink-eco-stock').value) || 0;
+    s.inkSubStock = parseFloat(document.getElementById('ink-sub-stock').value) || 0;
+    window.store.save('grafsis_settings', s);
+    document.getElementById('ink-sub-res').innerText = 'R$ ' + (subP / subY).toFixed(2);
+  }
 };
+
+
+

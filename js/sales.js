@@ -234,7 +234,7 @@
     const total = area * qty * price;
 
     this.activeItems.push({
-      produto_nome: prodNome, descricao: desc, tipo_calculo: type, largura_x: w, comprimento_y: h,
+      produto_id: prodSelect.value, produto_nome: prodNome, descricao: desc, tipo_calculo: type, largura_x: w, comprimento_y: h,
       quantidade: qty, preco_unitario: price, area_m2: area, valor_total: total
     });
     document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
@@ -403,6 +403,7 @@
       this.render();
     }
   },;
+
 
 
 
