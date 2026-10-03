@@ -43,7 +43,6 @@
     document.getElementById("orders-list").innerHTML = this.renderOrdersTable(orders.filter(o => o.status_fase === phase));
   },
   createOrderForClient(clientId) { this.openModal({ clientId }); },
-}
   openModal(params = {}) {
     const clients = window.store.getClients();
     const products = window.store.getProducts();
@@ -206,7 +205,6 @@
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     this.recalcTotals();
   },
-}
   handleProdSelect(select) {
     const opt = select.options[select.selectedIndex];
     if (opt.value) {
@@ -402,16 +400,8 @@
       document.getElementById('protocol-modal-wrap').remove();
       this.render();
     }
-  };
+  }
 
 
-
-
-
-
-
-
-
-
-
+};
 
