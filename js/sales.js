@@ -43,6 +43,24 @@
     document.getElementById("orders-list").innerHTML = this.renderOrdersTable(orders.filter(o => o.status_fase === phase));
   },
   createOrderForClient(clientId) { this.openModal({ clientId }); },
+    getNextOrderId() {
+    const orders = window.store.getOrders();
+    const yy = new Date().getFullYear().toString().slice(-2);
+    let maxSeq = 0;
+    orders.forEach(o => {
+      if (o.numero && String(o.numero).startsWith(yy)) {
+        const seq = parseInt(String(o.numero).slice(2), 10);
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    });
+    return yy + String(maxSeq + 1).padStart(4, '0');
+  },
+  updateDateFromDays() {
+    const days = parseInt(document.getElementById('dias-entrega').value) || 0;
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    document.getElementsByName('previsao_entrega')[0].value = date.toISOString().split('T')[0];
+  },
   openModal(params = {}) {
     const clients = window.store.getClients();
     const products = window.store.getProducts();
@@ -50,159 +68,174 @@
     const order = isEdit ? window.store.getOrders().find(o => o.id === params.orderId) : null;
     this.activeItems = order ? JSON.parse(JSON.stringify(order.itens || [])) : [];
     if (params.preItem) { this.activeItems.push(params.preItem); }
+    
+    const displayId = isEdit ? order.numero : this.getNextOrderId();
 
-    const modalHtml = `
-      <div id="order-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl max-h-[95vh] overflow-y-auto">
-          <div class="flex justify-between items-center pb-4 border-b">
-            <div>
-              <h2 class="text-xl font-bold text-slate-800">${isEdit ? 'Editar Pedido #' + order.numero : 'Novo Orcamento / Pedido de Venda'}</h2>
-              <p class="text-[10px] text-blue-600 font-bold uppercase mt-1">Vendedor: ${window.app?.currentUser?.nome || "Vendedor"}</p>
-              <p class="text-xs text-slate-500">Calculo fracionado de m2 (Largura X x Comprimento Y) e metro linear</p>
-            </div>
-            <button onclick="document.getElementById('order-modal').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+    const formHtml = `
+      <div class="space-y-4 max-w-6xl mx-auto pb-10">
+        <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div>
+            <button onclick="salesModule.render()" class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1 mb-2">
+              &larr; Voltar para Lista
+            </button>
+            <h2 class="text-2xl font-black text-slate-800">${isEdit ? 'Editar Pedido' : 'Nova Venda / Orcamento'}</h2>
+            <p class="text-[10px] text-blue-600 font-bold uppercase mt-1">Vendedor: ${window.app?.currentUser?.nome || "Vendedor"}</p>
           </div>
+          <div class="text-right">
+            <span class="block text-xs font-bold text-slate-500 uppercase">ID DA VENDA</span>
+            <span class="text-3xl font-black text-slate-900">#${displayId}</span>
+          </div>
+        </div>
 
-          <form id="order-form" onsubmit="salesModule.saveOrder(event, '${order ? order.id : ''}')" class="mt-4 space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <div>
+        <div class="bg-white rounded-xl w-full p-6 shadow-sm border border-slate-200">
+          <form id="order-form" onsubmit="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="md:col-span-2">
                 <label class="block text-xs font-semibold mb-1">Cliente *</label>
-                <select name="cliente_id" required class="w-full p-2 border rounded-lg text-sm bg-white">
-                  <option value="">Selecione...</option>
+                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800">
+                  <option value="">Selecione o Cliente...</option>
                   ${clients.map(c => `<option value="${c.id}" ${(order && order.cliente_id === c.id) || params.clientId === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-semibold mb-1">Fase da Producao</label>
-                <select name="status_fase" class="w-full p-2 border rounded-lg text-sm bg-white">
-                  <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>0. OrÃ§amento</option>
-                  <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>1. PrÃ©-venda (Arte em AprovaÃ§Ã£o)</option>
-                  <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>2. Venda / ProduÃ§Ã£o</option>
-                  <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>3. Entregue / ConcluÃ­do</option>
+                <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold text-slate-700">
+                  <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>0. Orcamento</option>
+                  <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>1. Pre-venda (Arte)</option>
+                  <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>2. Venda / Producao</option>
+                  <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>3. Entregue / Concluido</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold mb-1">Tipo de Operação</label>
-                <select name="tipo_operacao" class="w-full p-2 border rounded-lg text-sm bg-white">
+                <label class="block text-xs font-semibold mb-1">Tipo de Operacao</label>
+                <select name="tipo_operacao" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
                   <option value="venda" ${order && order.tipo_operacao === 'venda' ? 'selected' : ''}>Venda</option>
-                  <option value="pre-venda" ${order && order.tipo_operacao === 'pre-venda' ? 'selected' : ''}>Pré-Venda</option>
-                  <option value="orcamento" ${order && order.tipo_operacao === 'orcamento' ? 'selected' : ''}>Orçamento</option>
-                  <option value="patrocinio" ${order && order.tipo_operacao === 'patrocinio' ? 'selected' : ''}>Patrocínio (100% Desc)</option>
+                  <option value="pre-venda" ${order && order.tipo_operacao === 'pre-venda' ? 'selected' : ''}>Pre-Venda</option>
+                  <option value="orcamento" ${order && order.tipo_operacao === 'orcamento' ? 'selected' : ''}>Orcamento</option>
+                  <option value="patrocinio" ${order && order.tipo_operacao === 'patrocinio' ? 'selected' : ''}>Patrocinio</option>
                 </select>
               </div>
-              <div>
-                <label class="block text-xs font-semibold mb-1">Previsão Entrega</label>
-                <input type="date" name="previsao_entrega" value="${order ? (order.previsao_entrega || '') : ''}" class="w-full p-2 border rounded-lg text-sm bg-white">
+              <div class="md:col-span-2 grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-semibold mb-1 text-slate-700">Prazo (Dias)</label>
+                  <input type="number" id="dias-entrega" min="0" oninput="salesModule.updateDateFromDays()" placeholder="Ex: 5" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold mb-1">Previsao Entrega</label>
+                  <input type="date" name="previsao_entrega" value="${order ? (order.previsao_entrega || '') : new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                </div>
               </div>
             </div>
 
-            <!-- Adicionar Item Fracionado -->
-            <div class="border rounded-xl p-3 bg-white">
-              <h3 class="text-xs font-bold text-slate-700 uppercase mb-2">Adicionar Item Fracionado (m2 ou linear)</h3>
-              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-slate-50 p-2 rounded-lg text-xs">
+            <div class="border border-slate-300 rounded-xl p-4 bg-white mt-4">
+              <h3 class="text-sm font-bold text-slate-800 uppercase mb-3 border-b pb-2">Itens do Pedido</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
                 <div class="sm:col-span-4">
-                  <label class="block font-semibold mb-0.5">Produto Base</label>
-                  <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-1.5 border rounded bg-white">
-                    <option value="">Selecione...</option>
+                  <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
+                  <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
+                    <option value="">Selecione o Produto...</option>
                     ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
                   </select>
                 </div>
                 <div class="sm:col-span-8">
-                  <label class="block font-semibold mb-0.5">Descricao / Acabamentos</label>
-                  <input type="text" id="item-desc" placeholder="Ex: Banner com bainha e ilhos" class="w-full p-1.5 border rounded bg-white">
+                  <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
+                  <input type="text" id="item-desc" placeholder="Ex: Adesivo com recorte" class="w-full p-2 border border-slate-300 rounded bg-white">
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block font-semibold mb-0.5">Tipo</label>
-                  <select id="item-type" onchange="salesModule.toggleDimensionInputs()" class="w-full p-1.5 border rounded bg-white">
+                  <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
+                  <select id="item-type" onchange="salesModule.toggleDimensionInputs()" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
                     <option value="m2">m2 (X x Y)</option>
                     <option value="linear">Linear</option>
                     <option value="unidade">Unitario</option>
                   </select>
                 </div>
                 <div class="sm:col-span-2" id="div-width">
-                  <label class="block font-semibold mb-0.5">Largura X (m)</label>
-                  <input type="number" step="0.01" id="item-width" value="1.00" class="w-full p-1.5 border rounded bg-white">
+                  <label class="block font-semibold mb-1 text-slate-700">Largura X (m)</label>
+                  <input type="number" step="0.01" id="item-width" value="1.00" class="w-full p-2 border border-slate-300 rounded bg-white font-mono">
                 </div>
                 <div class="sm:col-span-2" id="div-height">
-                  <label class="block font-semibold mb-0.5">Compr. Y (m)</label>
-                  <input type="number" step="0.01" id="item-height" value="1.00" class="w-full p-1.5 border rounded bg-white">
+                  <label class="block font-semibold mb-1 text-slate-700">Compr. Y (m)</label>
+                  <input type="number" step="0.01" id="item-height" value="1.00" class="w-full p-2 border border-slate-300 rounded bg-white font-mono">
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block font-semibold mb-0.5">Qtd</label>
-                  <input type="number" step="1" id="item-qty" value="1" min="1" class="w-full p-1.5 border rounded bg-white">
+                  <label class="block font-semibold mb-1 text-slate-700">Qtd</label>
+                  <input type="number" step="1" id="item-qty" value="1" min="1" class="w-full p-2 border border-slate-300 rounded bg-white font-bold text-center">
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block font-semibold mb-0.5">Preco Unit.</label>
-                  <input type="number" step="0.01" id="item-price" value="0.00" class="w-full p-1.5 border rounded bg-white">
+                  <label class="block font-semibold mb-1 text-slate-700">Preco Unit.</label>
+                  <input type="number" step="0.01" id="item-price" value="0.00" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-blue-700 font-bold">
                 </div>
                 <div class="sm:col-span-2 flex items-end">
-                  <button type="button" onclick="salesModule.addItemToOrder()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded">+ Inserir</button>
+                  <button type="button" onclick="salesModule.addItemToOrder()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow-sm text-sm">+ INSERIR</button>
                 </div>
               </div>
-
-              <div class="mt-3 overflow-x-auto">
-                <table class="w-full text-xs text-left">
-                  <thead class="bg-slate-100 text-slate-500 uppercase">
-                    <tr><th class="p-2">Item</th><th class="p-2">Dimensoes</th><th class="p-2">Qtd</th><th class="p-2">Area (m2)</th><th class="p-2">Preco</th><th class="p-2">Total</th><th class="p-2 text-right">Acao</th></tr>
+              <div class="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
+                    <tr><th class="p-3">Produto & Item</th><th class="p-3">Dimensoes</th><th class="p-3 text-center">Qtd</th><th class="p-3">Area</th><th class="p-3">Preco</th><th class="p-3 text-right">Total</th><th class="p-3 text-center">Acao</th></tr>
                   </thead>
                   <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
                 </table>
               </div>
             </div>
 
-            <!-- Fotos e Totais -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div class="bg-slate-50 p-3 rounded-xl border">
-                <label class="block text-xs font-semibold mb-1">Foto da Arte / Layout (URL ou Arquivo)</label>
-                <input type="text" name="foto_arte_url" id="order-arte-url" value="${order ? (order.foto_arte_url || '') : ''}" placeholder="Link da imagem da arte" class="w-full p-1.5 border rounded text-xs bg-white mb-2">
-                <input type="file" accept="image/*" onchange="salesModule.handleArteUpload(this)" class="text-xs">
-                <label class="block text-xs font-semibold mt-3 mb-1">Observacoes Tecnicas</label>
-                <textarea name="observacoes" rows="2" placeholder="Sangria, tipo de impressao, tintas..." class="w-full p-1.5 border rounded text-xs bg-white">${order ? (order.observacoes || '') : ''}</textarea>
-              </div>
-
-              <div class="bg-blue-50/70 p-3 rounded-xl border border-blue-200 flex flex-col justify-between">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Producao</h3>
                 <div>
-                  <div class="flex justify-between text-xs py-1"><span>Subtotal:</span><strong id="order-subtotal">R$ 0,00</strong></div>
-                  <div class="flex justify-between items-center text-xs py-1">
-                    <span>Desconto (R$):</span>
-                    <input type="number" step="0.01" name="desconto" id="order-discount" oninput="salesModule.recalcTotals()" value="${order ? (order.desconto || 0) : 0}" class="w-24 p-1 border rounded text-right bg-white">
-                  </div>
-                  <div class="flex justify-between items-center text-sm font-black text-blue-900 border-t pt-2 mt-2">
-                    <span>Total Final:</span>
-                    <span id="order-total-final" class="text-xl text-blue-700">R$ 0,00</span>
-                  </div>
+                  <label class="block text-xs font-semibold mb-1 text-slate-700">Foto da Arte / Link do Drive</label>
+                  <input type="text" name="foto_arte_url" value="${order ? (order.foto_arte_url || '') : ''}" placeholder="Link da imagem" class="w-full p-2 border rounded-lg text-sm mb-1 bg-white">
+                  <input type="file" accept="image/*" onchange="salesModule.handleArteUpload(this)" class="text-xs">
+                  <input type="hidden" id="order-arte-url" name="foto_arte_url" value="${order ? (order.foto_arte_url || '') : ''}">
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs mt-3">
+                <div>
+                  <label class="block text-xs font-semibold mb-1 text-slate-700">Observacoes Tecnicas</label>
+                  <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
+                </div>
+              </div>
+              <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
+                  <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0.00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm font-semibold text-slate-600">Desconto (R$):</span>
+                  <input type="number" step="0.01" id="order-discount" value="${order ? (order.desconto || 0) : 0}" oninput="salesModule.recalcTotals()" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white">
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t border-blue-200">
+                  <span class="text-lg font-black text-blue-900">Total Final:</span>
+                  <span class="text-2xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0.00</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-blue-100">
                   <div>
-                    <label class="block font-semibold mb-0.5">Forma Pagto</label>
-                    <select name="forma_pagamento" class="w-full p-1 border rounded bg-white">
-                      <option value="Pix">Pix</option>
-                      <option value="Cartao de Credito">Cartao Credito</option>
-                      <option value="Dinheiro">Dinheiro</option>
-                      <option value="Boleto Faturado">Boleto</option>
+                    <label class="block text-xs font-bold mb-1 text-slate-700">Forma Pagto Inicial</label>
+                    <select name="forma_pagamento" class="w-full p-2 border rounded-lg text-sm font-semibold">
+                      <option value="Pix" ${order && order.forma_pagamento === 'Pix' ? 'selected' : ''}>Pix</option>
+                      <option value="Dinheiro" ${order && order.forma_pagamento === 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                      <option value="Cartao de Credito" ${order && order.forma_pagamento === 'Cartao de Credito' ? 'selected' : ''}>Cartao</option>
                     </select>
                   </div>
                   <div>
-                    <label class="block font-semibold mb-0.5">Status Pagto</label>
-                    <select name="status_pagamento" class="w-full p-1 border rounded bg-white">
-                      <option value="pendente">Pendente</option>
-                      <option value="parcial">Sinal 50%</option>
-                      <option value="pago">Quitado</option>
+                    <label class="block text-xs font-bold mb-1 text-slate-700">Status Recebimento</label>
+                    <select name="status_pagamento" class="w-full p-2 border rounded-lg text-sm font-semibold">
+                      <option value="pendente" ${order && order.status_pagamento === 'pendente' ? 'selected' : ''}>Pendente (0%)</option>
+                      <option value="parcial" ${order && order.status_pagamento === 'parcial' ? 'selected' : ''}>Sinal (50%)</option>
+                      <option value="pago" ${order && order.status_pagamento === 'pago' ? 'selected' : ''}>Pago (100%)</option>
                     </select>
                   </div>
                 </div>
               </div>
             </div>
-
-            <div class="pt-3 border-t flex justify-end gap-2">
-              <button type="button" onclick="document.getElementById('order-modal').remove()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancelar</button>
-              <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
+            <div class="pt-6 mt-4 border-t flex justify-end gap-3">
+              <button type="button" onclick="salesModule.render()" class="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+              <button type="submit" class="px-8 py-3 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
             </div>
           </form>
         </div>
       </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById("view-container").innerHTML = formHtml;
     this.recalcTotals();
   },
   handleProdSelect(select) {
@@ -223,6 +256,10 @@
   addItemToOrder() {
     const desc = document.getElementById('item-desc').value.trim();
     if (!desc) { alert('Informe a descricao do item'); return; }
+    const prodSelect = document.getElementById('item-prod-select');
+    if (!prodSelect.value) { alert('Selecione um Produto Base'); return; }
+    const opt = prodSelect.options[prodSelect.selectedIndex];
+    const prodNome = opt.text.split(' (R$')[0];
     const type = document.getElementById('item-type').value;
     const w = parseFloat(document.getElementById('item-width').value) || 1;
     const h = parseFloat(document.getElementById('item-height').value) || 1;
@@ -276,13 +313,14 @@
       reader.readAsDataURL(file);
     }
   },
-  saveOrder(e, id) {
+  saveOrder(e, id, geradoNumero) {
     e.preventDefault();
     if (this.activeItems.length === 0) { alert('Adicione pelo menos um item'); return; }
     const form = e.target;
     const { subtotal, discount, finalTotal } = this.recalcTotals();
     const orderData = {
       id: id || undefined,
+      numero: geradoNumero,
       cliente_id: form.cliente_id.value,
       tipo_operacao: form.tipo_operacao ? form.tipo_operacao.value : 'venda',
       vendedor: window.app?.currentUser?.nome || "Vendedor",
@@ -309,7 +347,6 @@
         cliente_id: orderData.cliente_id
       });
     }
-    document.getElementById('order-modal').remove();
     this.render();
   },
   editModal(id) { this.openModal({ orderId: id }); },
@@ -404,4 +441,6 @@
 
 
 };
+
+
 
