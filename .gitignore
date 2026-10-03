@@ -1,0 +1,18 @@
+# Arquivos e pastas do Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Caches e arquivos temporários
+*.log
+*.tmp
+*.bak
+
+# Ambientes e Editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Backups locais
+backup_*.json
