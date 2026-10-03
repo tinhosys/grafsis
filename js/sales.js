@@ -1,4 +1,4 @@
-﻿window.salesModule = {
+window.salesModule = {
   activeItems: [],
   render() {
     const orders = window.store.getOrders();
@@ -24,10 +24,9 @@
     }).join("") + `</tbody></table></div>`;
   },
   getPhaseBadge(phase) {
-    const labels = { orcamento: "Orcamento", aprovacao_layout: "Layout", producao: "Producao", acabamento: "Acabamento", qualidade: "Qualidade", pronto: "Pronto", entregue: "Entregue" };
-    return `<span class="px-2 py-0.5 rounded text-xs font-semibold badge-${phase}">${labels[phase] || phase}</span>`;
-  }
-}
+    const labels = { orcamento: "0. Orçamento", prevenda: "1. Pré-Venda (Arte)", venda: "2. Venda/Produção", entregue: "3. Entregue" };
+    return `<span class="px-2 py-0.5 rounded text-[11px] uppercase font-bold badge-${phase}">${labels[phase] || phase}</span>`;
+  },
   search(term) {
     const orders = window.store.getOrders();
     const t = term.toLowerCase().trim();
@@ -76,13 +75,10 @@
               <div>
                 <label class="block text-xs font-semibold mb-1">Fase da Producao</label>
                 <select name="status_fase" class="w-full p-2 border rounded-lg text-sm bg-white">
-                  <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>1. Orcamento / Pre-Venda</option>
-                  <option value="aprovacao_layout" ${order && order.status_fase === 'aprovacao_layout' ? 'selected' : ''}>2. Criacao & Layout</option>
-                  <option value="producao" ${order && order.status_fase === 'producao' ? 'selected' : ''}>3. Fila Impressao / Recorte</option>
-                  <option value="acabamento" ${order && order.status_fase === 'acabamento' ? 'selected' : ''}>4. Acabamento / Montagem</option>
-                  <option value="qualidade" ${order && order.status_fase === 'qualidade' ? 'selected' : ''}>5. Controle de Qualidade</option>
-                  <option value="pronto" ${order && order.status_fase === 'pronto' ? 'selected' : ''}>6. Pronto p/ Retirada</option>
-                  <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>7. Entregue</option>
+                  <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>0. Orçamento</option>
+                  <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>1. Pré-venda (Arte em Aprovação)</option>
+                  <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>2. Venda / Produção</option>
+                  <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>3. Entregue / Concluído</option>
                 </select>
               </div>
               <div>
@@ -394,5 +390,5 @@
       document.getElementById('protocol-modal-wrap').remove();
       this.render();
     }
-  }
-};
+  },;
+
