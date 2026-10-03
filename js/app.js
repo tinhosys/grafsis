@@ -20,6 +20,25 @@ window.app = {
       badgeEl.className = `text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${permissions.badgeColor}`;
     }
 
+    // Branding Dinâmico (Multi-tenant)
+    if (window.store) {
+      const settings = window.store.getSettings();
+      const tenantNameEl = document.getElementById('header-tenant-name');
+      const tenantLogoImg = document.getElementById('header-logo-img');
+      const tenantLogoContainer = document.getElementById('header-logo-container');
+      
+      if (tenantNameEl) {
+        tenantNameEl.textContent = settings.tenantName || 'Top Digital';
+      }
+      if (tenantLogoImg && tenantLogoContainer) {
+        const logoUrl = settings.tenantLogo || 'assets/demo-top-digital.png';
+        tenantLogoImg.src = logoUrl;
+        
+        // Se a logo for muito longa ou precisar de ajustes, pode-se tratar aqui. 
+        // Vamos apenas garantir que ela aparece.
+      }
+    }
+
     // Controle de abas por perfil
     document.querySelectorAll('#nav-tabs-container .nav-link').forEach(link => {
       const tab = link.getAttribute('data-tab');
@@ -149,6 +168,37 @@ window.app = {
             </button>
             <button onclick="app.testSupabaseConnection()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
               Testar Conexão
+            </button>
+          </div>
+        </div>
+
+        <!-- Personalização de Marca (White Label) -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
+              Personalização da Gráfica (White Label)
+            </h2>
+          </div>
+          
+          <p class="text-xs text-slate-500">
+            Defina o nome e a logomarca da sua empresa. Esses dados aparecerão no topo do sistema e em relatórios.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Gráfica / Cliente</label>
+              <input type="text" id="set-tenant-name" value="${settings.tenantName || ''}" placeholder="Ex: Top Digital" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">URL da Logomarca (PNG/JPG)</label>
+              <input type="text" id="set-tenant-logo" value="${settings.tenantLogo || ''}" placeholder="assets/demo-top-digital.png" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button onclick="app.saveTenantSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm transition">
+              Salvar Marca
             </button>
           </div>
         </div>
@@ -393,11 +443,25 @@ window.app = {
     if (window.GRAFSIS_CONFIG) {
       window.GRAFSIS_CONFIG.setSupabaseConfig(url, key);
     }
-    window.store.saveSettings({ supabaseUrl: url, supabaseKey: key });
+    const settings = window.store.getSettings();
+    window.store.saveSettings({ ...settings, supabaseUrl: url, supabaseKey: key });
     this.updateUserHeader();
     this.renderSettings();
     alert('Configurações salvas! Sincronizando com o Supabase...');
     window.store.syncAllWithCloud();
+  },
+
+  saveTenantSettings() {
+    const name = document.getElementById('set-tenant-name').value.trim();
+    const logo = document.getElementById('set-tenant-logo').value.trim();
+    
+    const settings = window.store.getSettings();
+    settings.tenantName = name;
+    settings.tenantLogo = logo;
+    
+    window.store.saveSettings(settings);
+    this.updateUserHeader();
+    alert('Marca da gráfica salva com sucesso!');
   },
 
   async testSupabaseConnection() {
