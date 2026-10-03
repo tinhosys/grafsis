@@ -4,6 +4,7 @@
    ============================================================================== */
 
 const ROLES = {
+  PROPRIETARIO: 'PROPRIETARIO',
   ADMIN: 'ADMIN',
   GERENTE: 'GERENTE',
   VENDAS: 'VENDAS',
@@ -11,6 +12,21 @@ const ROLES = {
 };
 
 const ROLE_PERMISSIONS = {
+  PROPRIETARIO: {
+    name: 'Proprietário (Master)',
+    level: 5,
+    badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings'],
+    canCreateOrders: true,
+    canViewCosts: true,
+    canEditPrices: true,
+    canViewFinance: true,
+    canManageSuppliers: true,
+    canManageSettings: true,
+    canManageUsers: true,
+    canDeleteRecords: true,
+    canGivePatrocinio: true // Exclusivo
+  },
   ADMIN: {
     name: 'Administrador',
     level: 4,

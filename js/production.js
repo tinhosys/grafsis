@@ -1,12 +1,9 @@
-﻿window.productionModule = {
+window.productionModule = {
   phases: [
-    { id: 'orcamento', name: '1. Orçamento / Pré-Venda', badge: 'bg-indigo-100 text-indigo-800' },
-    { id: 'aprovacao_layout', name: '2. Criação & Layout', badge: 'bg-amber-100 text-amber-800' },
-    { id: 'producao', name: '3. Fila Impressão/Recorte', badge: 'bg-blue-100 text-blue-800' },
-    { id: 'acabamento', name: '4. Acabamento / Montagem', badge: 'bg-fuchsia-100 text-fuchsia-800' },
-    { id: 'qualidade', name: '5. Controle de Qualidade', badge: 'bg-orange-100 text-orange-800' },
-    { id: 'pronto', name: '6. Pronto p/ Retirada', badge: 'bg-emerald-100 text-emerald-800' },
-    { id: 'entregue', name: '7. Entregue / Concluído', badge: 'bg-slate-200 text-slate-800' }
+    { id: 'orcamento', name: '0. Orçamento', badge: 'bg-indigo-100 text-indigo-800' },
+    { id: 'prevenda', name: '1. Pré-Venda (Arte em Aprovação)', badge: 'bg-amber-100 text-amber-800' },
+    { id: 'venda', name: '2. Venda / Produção', badge: 'bg-blue-100 text-blue-800' },
+    { id: 'entregue', name: '3. Entregue / Concluído', badge: 'bg-emerald-100 text-emerald-800' }
   ],
 
   render() {

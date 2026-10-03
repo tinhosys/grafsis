@@ -1,4 +1,4 @@
-window.app = {
+﻿window.app = {
   currentTab: 'production',
 
   init() {
@@ -452,11 +452,11 @@ window.app = {
   },
 
   saveTenantSettings() {
-    const name = document.getElementById('set-tenant-name').value.trim();
+    const name = document.getElementById('set-tenant-name').value.trim(); const tid = document.getElementById('set-tenant-id')?.value.trim();
     const logo = document.getElementById('set-tenant-logo').value.trim();
     
     const settings = window.store.getSettings();
-    settings.tenantName = name;
+    settings.tenantName = name; settings.tenantId = tid;
     settings.tenantLogo = logo;
     
     window.store.saveSettings(settings);
@@ -499,3 +499,4 @@ window.app = {
 window.addEventListener('DOMContentLoaded', () => {
   window.app.init();
 });
+

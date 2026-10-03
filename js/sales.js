@@ -1,4 +1,4 @@
-window.salesModule = {
+﻿window.salesModule = {
   activeItems: [],
   render() {
     const orders = window.store.getOrders();
@@ -24,7 +24,7 @@ window.salesModule = {
     }).join("") + `</tbody></table></div>`;
   },
   getPhaseBadge(phase) {
-    const labels = { orcamento: "0. Orçamento", prevenda: "1. Pré-Venda (Arte)", venda: "2. Venda/Produção", entregue: "3. Entregue" };
+    const labels = { orcamento: "0. OrÃ§amento", prevenda: "1. PrÃ©-Venda (Arte)", venda: "2. Venda/ProduÃ§Ã£o", entregue: "3. Entregue" };
     return `<span class="px-2 py-0.5 rounded text-[11px] uppercase font-bold badge-${phase}">${labels[phase] || phase}</span>`;
   },
   search(term) {
@@ -58,6 +58,7 @@ window.salesModule = {
           <div class="flex justify-between items-center pb-4 border-b">
             <div>
               <h2 class="text-xl font-bold text-slate-800">${isEdit ? 'Editar Pedido #' + order.numero : 'Novo Orcamento / Pedido de Venda'}</h2>
+              <p class="text-[10px] text-blue-600 font-bold uppercase mt-1">Vendedor: ${window.app?.currentUser?.nome || "Vendedor"}</p>
               <p class="text-xs text-slate-500">Calculo fracionado de m2 (Largura X x Comprimento Y) e metro linear</p>
             </div>
             <button onclick="document.getElementById('order-modal').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
@@ -75,14 +76,23 @@ window.salesModule = {
               <div>
                 <label class="block text-xs font-semibold mb-1">Fase da Producao</label>
                 <select name="status_fase" class="w-full p-2 border rounded-lg text-sm bg-white">
-                  <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>0. Orçamento</option>
-                  <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>1. Pré-venda (Arte em Aprovação)</option>
-                  <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>2. Venda / Produção</option>
-                  <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>3. Entregue / Concluído</option>
+                  <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>0. OrÃ§amento</option>
+                  <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>1. PrÃ©-venda (Arte em AprovaÃ§Ã£o)</option>
+                  <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>2. Venda / ProduÃ§Ã£o</option>
+                  <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>3. Entregue / ConcluÃ­do</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold mb-1">Previsao Entrega</label>
+                <label class="block text-xs font-semibold mb-1">Tipo de Operação</label>
+                <select name="tipo_operacao" class="w-full p-2 border rounded-lg text-sm bg-white">
+                  <option value="venda" ${order && order.tipo_operacao === 'venda' ? 'selected' : ''}>Venda</option>
+                  <option value="pre-venda" ${order && order.tipo_operacao === 'pre-venda' ? 'selected' : ''}>Pré-Venda</option>
+                  <option value="orcamento" ${order && order.tipo_operacao === 'orcamento' ? 'selected' : ''}>Orçamento</option>
+                  <option value="patrocinio" ${order && order.tipo_operacao === 'patrocinio' ? 'selected' : ''}>Patrocínio (100% Desc)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Previsão Entrega</label>
                 <input type="date" name="previsao_entrega" value="${order ? (order.previsao_entrega || '') : ''}" class="w-full p-2 border rounded-lg text-sm bg-white">
               </div>
             </div>
@@ -200,7 +210,7 @@ window.salesModule = {
   handleProdSelect(select) {
     const opt = select.options[select.selectedIndex];
     if (opt.value) {
-      document.getElementById('item-desc').value = opt.text.split(' (R$')[0];
+      document.getElementById('item-desc').value = ""; document.getElementById('item-prod-select').setAttribute("data-nome", opt.text.split(" (R$")[0]);
       const type = opt.getAttribute('data-type');
       document.getElementById('item-type').value = type;
       document.getElementById('item-price').value = opt.getAttribute('data-price');
@@ -224,7 +234,7 @@ window.salesModule = {
     const total = area * qty * price;
 
     this.activeItems.push({
-      descricao: desc, tipo_calculo: type, largura_x: w, comprimento_y: h,
+      produto_nome: prodNome, descricao: desc, tipo_calculo: type, largura_x: w, comprimento_y: h,
       quantidade: qty, preco_unitario: price, area_m2: area, valor_total: total
     });
     document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
@@ -276,6 +286,8 @@ window.salesModule = {
     const orderData = {
       id: id || undefined,
       cliente_id: form.cliente_id.value,
+      tipo_operacao: form.tipo_operacao ? form.tipo_operacao.value : 'venda',
+      vendedor: window.app?.currentUser?.nome || "Vendedor",
       status_fase: form.status_fase.value,
       previsao_entrega: form.previsao_entrega.value,
       foto_arte_url: form.foto_arte_url.value,
@@ -311,7 +323,7 @@ window.salesModule = {
     if (!order) return;
     const client = window.store.getClients().find(c => c.id === order.cliente_id);
     if (!client || !client.telefone_whatsapp) { alert('Cliente sem WhatsApp'); return; }
-    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlá ' + client.nome + '!%0A';
+    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlÃ¡ ' + client.nome + '!%0A';
     order.itens.forEach((it, i) => {
       msg += (i+1) + '. ' + it.descricao + ' | R$ ' + Number(it.valor_total).toFixed(2) + '%0A';
     });
@@ -391,4 +403,7 @@ window.salesModule = {
       this.render();
     }
   },;
+
+
+
 
