@@ -20,7 +20,7 @@
     return `<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto"><table class="w-full text-left text-sm text-slate-600"><thead class="bg-slate-50 text-xs uppercase text-slate-400 font-semibold border-b"><tr><th class="p-3">Codigo</th><th class="p-3">Cliente</th><th class="p-3">Valor</th><th class="p-3">Fase</th><th class="p-3 text-right">Acoes</th></tr></thead><tbody>` +
     orders.map(o => {
       const cl = clients.find(c => c.id === o.cliente_id) || { nome: "Consumidor" };
-      return `<tr class="border-b hover:bg-slate-50"><td class="p-3 font-mono font-bold text-blue-600">#${o.numero}</td><td class="p-3 font-semibold">${cl.nome}</td><td class="p-3 font-bold">R$ ${Number(o.valor_final||0).toFixed(2)}</td><td class="p-3">${this.getPhaseBadge(o.status_fase)}</td><td class="p-3 text-right"><button onclick="salesModule.openProtocolModal(\x27${o.id}\x27)" class="text-emerald-600 px-2 font-bold">Protocolo</button><button onclick="salesModule.sendWhatsAppOrder(\x27${o.id}\x27)" class="text-green-600 px-2 font-bold">WhatsApp</button><button onclick="salesModule.delete(\x27${o.id}\x27)" class="text-red-500 px-2 font-bold">Excluir</button></td></tr>`;
+      return `<tr class="border-b hover:bg-slate-50"><td class="p-3 font-mono font-bold text-blue-600">#${o.numero}</td><td class="p-3 font-semibold">${cl.nome}</td><td class="p-3 font-bold">R$ ${Number(o.valor_final||0).toFixed(2)}</td><td class="p-3">${this.getPhaseBadge(o.status_fase)}</td><td class="p-3 text-right"><button onclick="salesModule.openProtocolModal(\x27${o.id}\x27)" class="text-emerald-600 px-2 font-bold">OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${o.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">💰 Caixa</button><button onclick="salesModule.sendWhatsAppOrder(\x27${o.id}\x27)" class="text-green-600 px-2 font-bold">WhatsApp</button><button onclick="salesModule.delete(\x27${o.id}\x27)" class="text-red-500 px-2 font-bold">Excluir</button></td></tr>`;
     }).join("") + `</tbody></table></div>`;
   },
   getPhaseBadge(phase) {
@@ -381,7 +381,7 @@
             <button onclick="document.getElementById('protocol-modal-wrap').remove()" class="px-4 py-2 text-xs text-slate-600">Fechar</button>
             <div class="flex gap-2">
               <button onclick="salesModule.confirmDelivery('${order.id}')" class="px-4 py-2 text-xs bg-emerald-600 text-white rounded font-bold">Marcar Entregue</button>
-              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir Protocolo</button>
+              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${o.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">💰 Caixa</button>
             </div>
           </div>
         </div>
@@ -403,6 +403,8 @@
       this.render();
     }
   },;
+
+
 
 
 

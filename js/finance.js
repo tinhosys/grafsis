@@ -169,4 +169,132 @@
       this.render();
     }
   }
+,
+  openCashierModal(orderId) {
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Consumidor' };
+    const allFinance = window.store.getFinance();
+    const payments = allFinance.filter(f => f.pedido_id === orderId && f.tipo === 'recebimento');
+    const totalPaid = payments.reduce((a, b) => a + (parseFloat(b.valor)||0), 0);
+    const balance = order.valor_final - totalPaid;
+
+    const modalHtml = `
+      <div id="cashier-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
+          <div class="flex justify-between items-center pb-3 border-b">
+            <div>
+              <h2 class="text-xl font-black text-slate-800">Caixa - Recebimentos Parciais</h2>
+              <p class="text-xs text-slate-500 font-bold uppercase">Pedido #${order.numero} - ${client.nome}</p>
+            </div>
+            <button onclick="document.getElementById('cashier-modal').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 mt-4 text-center">
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span class="block text-[10px] font-bold text-slate-500 uppercase">Valor Total</span>
+              <span class="text-lg font-black text-slate-800">R$ ${Number(order.valor_final).toFixed(2)}</span>
+            </div>
+            <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+              <span class="block text-[10px] font-bold text-emerald-600 uppercase">Já Pago</span>
+              <span class="text-lg font-black text-emerald-700" id="cashier-total-paid">R$ ${totalPaid.toFixed(2)}</span>
+            </div>
+            <div class="bg-rose-50 p-3 rounded-xl border border-rose-200">
+              <span class="block text-[10px] font-bold text-rose-600 uppercase">Saldo Devedor</span>
+              <span class="text-lg font-black text-rose-700" id="cashier-balance">R$ ${balance.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="mt-4 border rounded-xl overflow-hidden">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-100 text-slate-500 uppercase">
+                <tr><th class="p-2">Data</th><th class="p-2">Forma Pgto</th><th class="p-2 font-mono text-right">Valor</th><th class="p-2 text-center">Ações</th></tr>
+              </thead>
+              <tbody id="cashier-payments-tbody">
+                ${payments.length === 0 ? '<tr><td colspan="4" class="p-3 text-center text-slate-400">Nenhum pagamento registrado</td></tr>' : ''}
+                ${payments.map(p => `
+                  <tr class="border-t">
+                    <td class="p-2 font-mono">${new Date(p.data_pagamento).toLocaleDateString('pt-BR')}</td>
+                    <td class="p-2 font-bold">${p.forma_pagamento}</td>
+                    <td class="p-2 font-mono text-emerald-600 font-bold text-right">R$ ${Number(p.valor).toFixed(2)}</td>
+                    <td class="p-2 text-center"><button onclick="financeModule.deletePayment('${p.id}', '${orderId}')" class="text-red-500 hover:text-red-700 font-bold" title="Estornar">&times;</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          ${balance > 0 ? `
+            <div class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <h3 class="text-sm font-bold text-slate-800 mb-2">Registrar Novo Pagamento</h3>
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold mb-1">Forma de Pagto</label>
+                  <select id="new-pay-form" class="w-full p-2 border rounded bg-white text-sm">
+                    <option value="Pix">Pix</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                    <option value="Cartão de Débito">Cartão de Débito</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Boleto">Boleto</option>
+                    <option value="Transferência">Transferência Bancária</option>
+                    <option value="Permuta / Patrocínio">Permuta / Patrocínio</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold mb-1">Valor Recebido</label>
+                  <input type="number" id="new-pay-value" step="0.01" max="${balance}" value="${balance.toFixed(2)}" class="w-full p-2 border rounded bg-white text-sm font-bold text-emerald-700">
+                </div>
+                <div class="flex items-end">
+                  <button onclick="financeModule.addPayment('${orderId}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded shadow-sm text-sm">Confirmar Pagto</button>
+                </div>
+              </div>
+            </div>
+          ` : `
+            <div class="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+              <span class="font-black text-emerald-700 uppercase">✓ Pedido Totalmente Quitado</span>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+    
+    const existing = document.getElementById('cashier-modal');
+    if (existing) existing.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  addPayment(orderId) {
+    const val = parseFloat(document.getElementById('new-pay-value').value);
+    const form = document.getElementById('new-pay-form').value;
+    if (!val || val <= 0) return alert('Valor inválido');
+    
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId);
+    
+    window.store.saveFinanceEntry({
+      tipo: 'recebimento',
+      descricao: 'Recibo Parcial/Total - Pedido #' + order.numero,
+      valor: val,
+      data_vencimento: new Date().toISOString().slice(0, 10),
+      data_pagamento: new Date().toISOString(),
+      forma_pagamento: form,
+      status: 'pago',
+      pedido_id: orderId,
+      cliente_id: order.cliente_id
+    });
+    
+    this.openCashierModal(orderId);
+    if(window.salesModule) window.salesModule.render();
+  },
+
+  deletePayment(paymentId, orderId) {
+    if(confirm('Tem certeza que deseja estornar este pagamento?')) {
+      window.store.deleteFinanceEntry(paymentId);
+      this.openCashierModal(orderId);
+      if(window.salesModule) window.salesModule.render();
+    }
+  }
 };
