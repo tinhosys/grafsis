@@ -535,17 +535,36 @@
         <td class="p-2 text-right"><button type="button" onclick="salesModule.removeItem(${idx})" class="text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded">&times;</button></td>
       </tr>
     `).join('');
-  },  recalcTotals() {
+    },
+  recalcTotals(source = 'val') {
     const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
-    const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
-    const finalTotal = Math.max(0, subtotal - discount);
+    let descVal = parseFloat(document.getElementById('order-discount')?.value) || 0;
+    let descPerc = parseFloat(document.getElementById('order-discount-perc')?.value) || 0;
+    
+    if (source === 'perc') {
+      descVal = subtotal * (descPerc / 100);
+      const valEl = document.getElementById('order-discount');
+      if (valEl) valEl.value = descVal.toFixed(2);
+    } else if (source === 'val' && subtotal > 0) {
+      descPerc = (descVal / subtotal) * 100;
+      const percEl = document.getElementById('order-discount-perc');
+      if (percEl) percEl.value = descPerc.toFixed(2);
+    }
+
+    const finalTotal = Math.max(0, subtotal - descVal);
     if (document.getElementById('order-subtotal')) {
       document.getElementById('order-subtotal').innerText = 'R$ ' + subtotal.toFixed(2);
       document.getElementById('order-total-final').innerText = 'R$ ' + finalTotal.toFixed(2);
     }
-    return { subtotal, discount, finalTotal };
+    
+    const valorRecebido = parseFloat(document.getElementById('order-valor-recebido')?.value) || 0;
+    if (valorRecebido > 0 || finalTotal > 0) {
+      if (this.updateFinanceSummary) this.updateFinanceSummary(valorRecebido, finalTotal);
+    }
+    
+    return { subtotal, discount: descVal, finalTotal };
   },
-    handleArteUpload(input) {
+      handleArteUpload(input) {
     if(!input.files || input.files.length === 0) return;
     const file = input.files[0];
     if (file.size > 1.5 * 1024 * 1024) {
@@ -560,9 +579,6 @@
       alert("Imagem da arte anexada com sucesso e pronta para salvar!");
     };
     reader.readAsDataURL(file);
-  };
-      reader.readAsDataURL(file);
-    }
   },
   saveOrder(e, id, geradoNumero) {
     e.preventDefault();
