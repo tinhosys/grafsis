@@ -12,6 +12,20 @@ const ROLES = {
 };
 
 const ROLE_PERMISSIONS = {
+  ADMIN: {
+    name: 'Administrador',
+    level: 6,
+    badgeColor: 'bg-red-100 text-red-700 border-red-200',
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings', 'owner'],
+    canCreateOrders: true,
+    canViewCosts: true,
+    canEditPrices: true,
+    canViewFinance: true,
+    canManageSuppliers: true,
+    canManageSettings: true,
+    canManageUsers: true,
+    canDeleteRecords: true
+  },
   PROPRIETARIO: {
     name: 'Proprietário (Master)',
     level: 5,
@@ -25,25 +39,11 @@ const ROLE_PERMISSIONS = {
     canManageSettings: true,
     canManageUsers: true,
     canDeleteRecords: true,
-    canGivePatrocinio: true // Exclusivo
-  },
-  ADMIN: {
-    name: 'Administrador',
-    level: 4,
-    badgeColor: 'bg-red-100 text-red-700 border-red-200',
-    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings', 'owner'],
-    canCreateOrders: true,
-    canViewCosts: true,
-    canEditPrices: true,
-    canViewFinance: true,
-    canManageSuppliers: true,
-    canManageSettings: true,
-    canManageUsers: true,
-    canDeleteRecords: true
+    canGivePatrocinio: true
   },
   GERENTE: {
     name: 'Gerente Geral',
-    level: 3,
+    level: 4,
     badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
     tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance'],
     canCreateOrders: true,
@@ -57,7 +57,7 @@ const ROLE_PERMISSIONS = {
   },
   VENDAS: {
     name: 'Comercial & Vendas',
-    level: 2,
+    level: 3,
     badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
     tabs: ['sales', 'production', 'products', 'clients'],
     canCreateOrders: true,
@@ -71,8 +71,22 @@ const ROLE_PERMISSIONS = {
   },
   PRODUCAO: {
     name: 'Operador de Produção',
-    level: 1,
+    level: 2,
     badgeColor: 'bg-amber-100 text-amber-700 border-amber-200',
+    tabs: ['production'],
+    canCreateOrders: false,
+    canViewCosts: false,
+    canEditPrices: false,
+    canViewFinance: false,
+    canManageSuppliers: false,
+    canManageSettings: false,
+    canManageUsers: false,
+    canDeleteRecords: false
+  },
+  EXTERNO: {
+    name: 'Acesso Externo',
+    level: 1,
+    badgeColor: 'bg-teal-100 text-teal-700 border-teal-200',
     tabs: ['production'],
     canCreateOrders: false,
     canViewCosts: false,
@@ -366,5 +380,6 @@ class GrafsisAuth {
 }
 
 window.authModule = new GrafsisAuth();
+
 
 
