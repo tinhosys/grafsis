@@ -83,7 +83,7 @@
           </div>
           <div class="text-right">
             <span class="block text-xs font-bold text-slate-500 uppercase">ID DA VENDA</span>
-            <span class="text-3xl font-black text-slate-900">#${displayId}</span>
+            <span class="text-3xl font-black text-slate-900">#${displayId}</span><input type="hidden" id="current-display-id" value="${displayId}">
           </div>
         </div>
 
@@ -195,10 +195,11 @@
                 <div>
                   <label class="block text-xs font-semibold mb-1 text-slate-700">Fase Atual da Producao</label>
                   <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-yellow-100 font-bold text-slate-800">
-                    <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>0. Orcamento (Nao aprovado)</option>
-                    <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>1. Pre-venda (Aguardando Arte/Cliente)</option>
-                    <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>2. Venda / Producao (Liberado)</option>
-                    <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>3. Entregue / Concluido</option>
+                    <option value="orcamento" ${order && order.status_fase === 'orcamento' ? 'selected' : ''}>1. Orcamento</option>
+                    <option value="prevenda" ${order && order.status_fase === 'prevenda' ? 'selected' : ''}>2. Pre-Venda (Aprovacao)</option>
+                    <option value="venda" ${order && order.status_fase === 'venda' ? 'selected' : ''}>3. Venda Efetivada</option>
+                    <option value="producao" ${order && order.status_fase === 'producao' ? 'selected' : ''}>4. Producao / Acabamento</option>
+                    <option value="entregue" ${order && order.status_fase === 'entregue' ? 'selected' : ''}>5. Expedicao / Entrega</option>
                   </select>
                 </div>
                 <div>
@@ -272,6 +273,9 @@
     const price = parseFloat(document.getElementById('item-price').value) || 0;
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = area * price;
+    const orderIdStr = document.getElementById('current-display-id')?.value || '000000';
+    const seq = String(this.activeItems.length + 1).padStart(2, '0');
+    const generatedItemId = orderIdStr + seq;
     const total = piecePrice * qty;
     
     const displayPiece = document.getElementById('item-piece-price');
@@ -302,7 +306,7 @@
       <tr class="border-b">
         <td class="p-2">
           ${it.arte_url ? `<a href="${it.arte_url}" target="_blank" class="block w-8 h-8 rounded bg-slate-200 float-left mr-2 bg-cover bg-center border border-slate-300" style="background-image: url('${it.arte_url}')" title="Ver Layout"></a>` : `<div class="block w-8 h-8 rounded bg-slate-100 float-left mr-2 border border-slate-200 flex items-center justify-center text-[8px] text-slate-400">N/A</div>`}
-          <div class="font-bold text-xs text-slate-800">${it.produto_nome || ''}</div>
+          <div class="font-bold text-xs text-slate-800"><span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1">#${it.item_id || '----'}</span>${it.produto_nome || ''}</div>
           <div class="text-[10px] text-slate-500">${it.descricao}</div>
         </td>
         <td class="p-2 font-mono text-[11px]">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
@@ -352,7 +356,7 @@
       valor_total: subtotal,
       desconto: discount,
       valor_final: finalTotal,
-      itens: this.activeItems
+      itens: this.activeItems, historico: historico
     };
     const saved = window.store.saveOrder(orderData);
     if (orderData.status_pagamento !== 'pago') {
@@ -368,7 +372,67 @@
     }
     this.render();
   },
-  editModal(id) { this.openModal({ orderId: id }); },
+  editModal(id) { this.renderOrderForm({ orderId: id }); },
+  quickView(orderId) {
+    const order = window.store.getOrders().find(o => o.id === orderId);
+    if (!order) return;
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Desconhecido' };
+    
+    const phaseNames = {
+      'orcamento': '1. Orcamento',
+      'prevenda': '2. Pre-Venda',
+      'venda': '3. Venda Efetivada',
+      'producao': '4. Producao / Acabamento',
+      'entregue': '5. Expedicao / Entrega'
+    };
+
+    const histHtml = (order.historico || []).map(h => `
+      <div class="flex items-start mb-2">
+        <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2"></div>
+        <div>
+          <p class="text-xs font-bold text-slate-800 uppercase">${phaseNames[h.fase] || h.fase}</p>
+          <p class="text-[10px] text-slate-500">${new Date(h.data).toLocaleString()} - por ${h.usuario}</p>
+        </div>
+      </div>
+    `).join('');
+
+    const modalHtml = `
+      <div id="quick-view-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+            <h3 class="font-black text-lg text-slate-800">Pedido #${order.numero}</h3>
+            <button onclick="document.getElementById('quick-view-modal').remove()" class="text-slate-400 hover:text-red-500 font-bold text-xl">&times;</button>
+          </div>
+          <div class="p-4 overflow-y-auto flex-1">
+            <p class="text-xs font-bold text-slate-500 uppercase">Cliente</p>
+            <p class="text-sm font-bold text-slate-800 mb-4">${client.nome}</p>
+            
+            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Itens (${order.itens?.length || 0})</p>
+            <div class="space-y-2 mb-4">
+              ${(order.itens || []).map(it => `
+                <div class="bg-slate-50 p-2 rounded border text-xs flex justify-between items-center">
+                  <div>
+                    <span class="font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1">#${it.item_id || '----'}</span>
+                    <strong>${it.produto_nome}</strong> - ${it.quantidade}x
+                  </div>
+                  <strong class="text-blue-700 font-mono">R$ ${Number(it.valor_total).toFixed(2)}</strong>
+                </div>
+              `).join('')}
+            </div>
+
+            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Historico de Fases</p>
+            <div class="bg-slate-50 p-3 rounded border">
+              ${histHtml || '<p class="text-xs text-slate-400">Sem historico registrado.</p>'}
+            </div>
+          </div>
+          <div class="p-4 border-t bg-slate-50 text-right">
+            <button onclick="document.getElementById('quick-view-modal').remove()" class="px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300 text-sm">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
   delete(id) {
     if (confirm('Excluir este pedido?')) { window.store.deleteOrder(id); this.render(); }
   },
@@ -478,9 +542,13 @@
 
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
+    const orderIdStr = document.getElementById('current-display-id')?.value || '000000';
+    const seq = String(this.activeItems.length + 1).padStart(2, '0');
+    const generatedItemId = orderIdStr + seq;
     const total = piecePrice * qty;
 
     this.activeItems.push({
+      item_id: generatedItemId,
       produto_id: prodSelect.value, 
       produto_nome: prodNome, 
       descricao: desc, 
@@ -510,7 +578,7 @@
       <tr class="border-b">
         <td class="p-2">
           ${it.arte_url ? `<a href="${it.arte_url}" target="_blank" class="block w-8 h-8 rounded bg-slate-200 float-left mr-2 bg-cover bg-center border border-slate-300" style="background-image: url('${it.arte_url}')" title="Ver Layout"></a>` : `<div class="block w-8 h-8 rounded bg-slate-100 float-left mr-2 border border-slate-200 flex items-center justify-center text-[8px] text-slate-400">N/A</div>`}
-          <div class="font-bold text-xs text-slate-800">${it.produto_nome || ''}</div>
+          <div class="font-bold text-xs text-slate-800"><span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1">#${it.item_id || '----'}</span>${it.produto_nome || ''}</div>
           <div class="text-[10px] text-slate-500">${it.descricao}</div>
         </td>
         <td class="p-2 font-mono text-[11px]">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
@@ -560,7 +628,7 @@
       valor_total: subtotal,
       desconto: discount,
       valor_final: finalTotal,
-      itens: this.activeItems
+      itens: this.activeItems, historico: historico
     };
     const saved = window.store.saveOrder(orderData);
     if (orderData.status_pagamento !== 'pago') {
@@ -576,7 +644,67 @@
     }
     this.render();
   },
-  editModal(id) { this.openModal({ orderId: id }); },
+  editModal(id) { this.renderOrderForm({ orderId: id }); },
+  quickView(orderId) {
+    const order = window.store.getOrders().find(o => o.id === orderId);
+    if (!order) return;
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Desconhecido' };
+    
+    const phaseNames = {
+      'orcamento': '1. Orcamento',
+      'prevenda': '2. Pre-Venda',
+      'venda': '3. Venda Efetivada',
+      'producao': '4. Producao / Acabamento',
+      'entregue': '5. Expedicao / Entrega'
+    };
+
+    const histHtml = (order.historico || []).map(h => `
+      <div class="flex items-start mb-2">
+        <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2"></div>
+        <div>
+          <p class="text-xs font-bold text-slate-800 uppercase">${phaseNames[h.fase] || h.fase}</p>
+          <p class="text-[10px] text-slate-500">${new Date(h.data).toLocaleString()} - por ${h.usuario}</p>
+        </div>
+      </div>
+    `).join('');
+
+    const modalHtml = `
+      <div id="quick-view-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+            <h3 class="font-black text-lg text-slate-800">Pedido #${order.numero}</h3>
+            <button onclick="document.getElementById('quick-view-modal').remove()" class="text-slate-400 hover:text-red-500 font-bold text-xl">&times;</button>
+          </div>
+          <div class="p-4 overflow-y-auto flex-1">
+            <p class="text-xs font-bold text-slate-500 uppercase">Cliente</p>
+            <p class="text-sm font-bold text-slate-800 mb-4">${client.nome}</p>
+            
+            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Itens (${order.itens?.length || 0})</p>
+            <div class="space-y-2 mb-4">
+              ${(order.itens || []).map(it => `
+                <div class="bg-slate-50 p-2 rounded border text-xs flex justify-between items-center">
+                  <div>
+                    <span class="font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1">#${it.item_id || '----'}</span>
+                    <strong>${it.produto_nome}</strong> - ${it.quantidade}x
+                  </div>
+                  <strong class="text-blue-700 font-mono">R$ ${Number(it.valor_total).toFixed(2)}</strong>
+                </div>
+              `).join('')}
+            </div>
+
+            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Historico de Fases</p>
+            <div class="bg-slate-50 p-3 rounded border">
+              ${histHtml || '<p class="text-xs text-slate-400">Sem historico registrado.</p>'}
+            </div>
+          </div>
+          <div class="p-4 border-t bg-slate-50 text-right">
+            <button onclick="document.getElementById('quick-view-modal').remove()" class="px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300 text-sm">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
   delete(id) {
     if (confirm('Excluir este pedido?')) { window.store.deleteOrder(id); this.render(); }
   },
@@ -665,5 +793,6 @@
       this.render();
     }
   }
+
 
 
