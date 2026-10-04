@@ -1,4 +1,4 @@
-/* ==============================================================================
+﻿/* ==============================================================================
    GRAFSIS - Módulo de Autenticação, Usuários & Controle de Acesso (RBAC)
    Perfis: ADMIN, GERENTE, VENDAS, PRODUCAO
    ============================================================================== */
@@ -16,7 +16,7 @@ const ROLE_PERMISSIONS = {
     name: 'Proprietário (Master)',
     level: 5,
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings'],
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings', 'owner'],
     canCreateOrders: true,
     canViewCosts: true,
     canEditPrices: true,
@@ -31,7 +31,7 @@ const ROLE_PERMISSIONS = {
     name: 'Administrador',
     level: 4,
     badgeColor: 'bg-red-100 text-red-700 border-red-200',
-    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings'],
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings', 'owner'],
     canCreateOrders: true,
     canViewCosts: true,
     canEditPrices: true,
@@ -366,3 +366,5 @@ class GrafsisAuth {
 }
 
 window.authModule = new GrafsisAuth();
+
+
