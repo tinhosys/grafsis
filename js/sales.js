@@ -45,14 +45,14 @@
   },
   getPhaseBadge(phase) {
     const badges = {
-      'orcamento': '<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase">1. Orcamento</span>',
-      'aguardando_arte': '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-[10px] font-bold uppercase">2. Aguardando Arte</span>',
-      'aprovacao': '<span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-[10px] font-bold uppercase">3. Aprovacao</span>',
-      'liberado': '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-[10px] font-bold uppercase">4. Liberado Producao</span>',
-      'impressao': '<span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-[10px] font-bold uppercase">5. Impressao</span>',
-      'acabamento': '<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-[10px] font-bold uppercase">6. Acabamento</span>',
-      'qualidade': '<span class="px-2 py-1 bg-pink-100 text-pink-800 rounded text-[10px] font-bold uppercase">7. Qualidade</span>',
-      'entregue': '<span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold uppercase">8. Expedicao</span>'
+      'orcamento': '<span class="px-2 py-1 bg-yellow-400 text-yellow-900 rounded text-[10px] font-black uppercase">1. ORCAMENTO</span>',
+      'prevenda': '<span class="px-2 py-1 bg-emerald-500 text-white rounded text-[10px] font-black uppercase">2. PRE-VENDA</span>',
+      'aprovacao': '<span class="px-2 py-1 bg-pink-400 text-white rounded text-[10px] font-black uppercase">3. APROVACAO</span>',
+      'liberado': '<span class="px-2 py-1 bg-blue-500 text-white rounded text-[10px] font-black uppercase">4. LIBERADO O.S.</span>',
+      'producao': '<span class="px-2 py-1 bg-indigo-500 text-white rounded text-[10px] font-black uppercase">5. EM PRODUCAO</span>',
+      'acabamento': '<span class="px-2 py-1 bg-purple-500 text-white rounded text-[10px] font-black uppercase">6. ACABAMENTO</span>',
+      'embalagem': '<span class="px-2 py-1 bg-orange-500 text-white rounded text-[10px] font-black uppercase">7. EMBALAGEM</span>',
+      'entregue': '<span class="px-2 py-1 bg-slate-800 text-white rounded text-[10px] font-black uppercase">8. EXPEDICAO</span>'
     };
     return badges[phase] || badges['orcamento'];
   },  createOrderForClient(clientId) { this.openModal({ clientId }); },
@@ -411,14 +411,14 @@
     const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Desconhecido' };
     
     const phaseNames = {
-      'orcamento': '1. Orcamento',
-      'aguardando_arte': '2. Aguardando Arte',
-      'aprovacao': '3. Aprovacao',
-      'liberado': '4. Liberado Producao',
-      'impressao': '5. Impressao',
-      'acabamento': '6. Acabamento',
-      'qualidade': '7. Qualidade',
-      'entregue': '8. Expedicao'
+      'orcamento': '1. ORCAMENTO / PEDIDO',
+      'prevenda': '2. PRE-VENDA',
+      'aprovacao': '3. APROVACAO DO CLIENTE',
+      'liberado': '4. LIBERADO ORDEM DE SERVICO',
+      'producao': '5. EM PRODUCAO',
+      'acabamento': '6. ACABAMENTO',
+      'embalagem': '7. EMBALAGEM',
+      'entregue': '8. EXPEDICAO / ENTREGA'
     };
 
     const histHtml = (order.historico || []).map(h => `
@@ -559,6 +559,8 @@
 
 
 };
+
+
 
 
 

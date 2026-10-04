@@ -1,13 +1,13 @@
 ﻿window.productionModule = {
   phases: [
-    { id: 'orcamento', name: '1. Orcamento', badge: 'bg-slate-100 text-slate-800 border-t-4 border-slate-400' },
-    { id: 'aguardando_arte', name: '2. Aguardando Arte / Pre', badge: 'bg-yellow-100 text-yellow-800 border-t-4 border-yellow-400' },
-    { id: 'aprovacao', name: '3. Aprovacao do Cliente', badge: 'bg-orange-100 text-orange-800 border-t-4 border-orange-400' },
-    { id: 'liberado', name: '4. Liberado / Producao', badge: 'bg-blue-100 text-blue-800 border-t-4 border-blue-400' },
-    { id: 'impressao', name: '5. Impressao', badge: 'bg-indigo-100 text-indigo-800 border-t-4 border-indigo-400' },
-    { id: 'acabamento', name: '6. Acabamento', badge: 'bg-purple-100 text-purple-800 border-t-4 border-purple-400' },
-    { id: 'qualidade', name: '7. Controle Qualidade', badge: 'bg-pink-100 text-pink-800 border-t-4 border-pink-400' },
-    { id: 'entregue', name: '8. Expedicao / Entrega', badge: 'bg-emerald-100 text-emerald-800 border-t-4 border-emerald-400' }
+    { id: 'orcamento', name: 'FASE 1<br>ORCAMENTO / PEDIDO', badge: 'bg-yellow-400 text-yellow-900', inactive: 'bg-yellow-50 text-yellow-700 border-yellow-300' },
+    { id: 'prevenda', name: 'FASE 2<br>PRE-VENDA', badge: 'bg-emerald-500 text-white', inactive: 'bg-emerald-50 text-emerald-700 border-emerald-300' },
+    { id: 'aprovacao', name: 'FASE 3<br>APROVACAO', badge: 'bg-pink-400 text-white', inactive: 'bg-pink-50 text-pink-700 border-pink-300' },
+    { id: 'liberado', name: 'FASE 4<br>LIBERADO O.S.', badge: 'bg-blue-500 text-white', inactive: 'bg-blue-50 text-blue-700 border-blue-300' },
+    { id: 'producao', name: 'FASE 5<br>EM PRODUCAO', badge: 'bg-indigo-500 text-white', inactive: 'bg-indigo-50 text-indigo-700 border-indigo-300' },
+    { id: 'acabamento', name: 'FASE 6<br>ACABAMENTO', badge: 'bg-purple-500 text-white', inactive: 'bg-purple-50 text-purple-700 border-purple-300' },
+    { id: 'embalagem', name: 'FASE 7<br>EMBALAGEM', badge: 'bg-orange-500 text-white', inactive: 'bg-orange-50 text-orange-700 border-orange-300' },
+    { id: 'entregue', name: 'FASE 8<br>EXPEDICAO / ENTREGA', badge: 'bg-slate-800 text-white', inactive: 'bg-slate-100 text-slate-700 border-slate-300' }
   ],
   currentTab: 'orcamento',
   
@@ -19,18 +19,18 @@
     // Create the tabs
     const tabsHtml = this.phases.map(p => {
       const isActive = this.currentTab === p.id;
-      const baseClass = isActive ? 'bg-blue-600 text-white shadow-md transform -translate-y-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+      const baseClass = isActive ? `${p.badge} shadow-md transform -translate-y-1 scale-105 z-10` : `${p.inactive} hover:bg-opacity-80 border-t-4 border-x`;
       const phaseOrders = orders.filter(o => o.status_fase === p.id);
       
       return `
         <button 
           onclick="productionModule.currentTab = '${p.id}'; productionModule.render()"
-          ondragover="productionModule.allowDrop(event); event.target.classList.add('ring-2', 'ring-blue-400');"
-          ondragleave="event.target.classList.remove('ring-2', 'ring-blue-400');"
-          ondrop="event.target.classList.remove('ring-2', 'ring-blue-400'); productionModule.handleDrop(event, '${p.id}')"
-          class="flex-1 min-w-[120px] py-3 px-2 rounded-t-xl font-bold text-[11px] uppercase transition-all duration-200 border-b-0 border border-slate-200 ${baseClass} flex flex-col items-center justify-center gap-1">
+          ondragover="productionModule.allowDrop(event); event.currentTarget.classList.add('ring-4', 'ring-blue-400', 'z-20');"
+          ondragleave="event.currentTarget.classList.remove('ring-4', 'ring-blue-400', 'z-20');"
+          ondrop="event.currentTarget.classList.remove('ring-4', 'ring-blue-400', 'z-20'); productionModule.handleDrop(event, '${p.id}')"
+          class="flex-1 min-w-[120px] py-2 px-1 rounded-t-2xl font-black text-[10px] uppercase transition-all duration-200 border-b-0 ${baseClass} flex flex-col items-center justify-center gap-1">
           <span class="text-center line-clamp-2 leading-tight">${p.name}</span>
-          <span class="${isActive ? 'bg-white text-blue-600' : 'bg-slate-300 text-slate-700'} px-2 py-0.5 rounded-full text-[10px]">${phaseOrders.length}</span>
+          <span class="bg-white/90 text-slate-800 px-2 py-0.5 rounded-full text-[10px] shadow-sm">${phaseOrders.length}</span>
         </button>
       `;
     }).join('');
@@ -178,5 +178,7 @@
     }
   }
 };
+
+
 
 
