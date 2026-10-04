@@ -1,4 +1,4 @@
-﻿window.app = {
+window.app = {
   currentTab: 'production',
 
   init() {
@@ -102,13 +102,20 @@
       case 'settings':
         this.renderSettings();
         break;
+      case 'owner':
+        this.renderOwner();
+        break;
     }
   },
 
-  renderSettings() {
-    const isMasterAdmin = window.authModule.can('canManageSettings');
+
+  renderOwner() {
+    if (!window.authModule.can('canManageSettings')) {
+      document.getElementById('view-container').innerHTML = '<div class="p-8 text-center text-red-500 font-bold">Acesso Negado.</div>';
+      return;
+    }
+    const isMasterAdmin = true;
     const settings = window.store.getSettings();
-    const config = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : settings;
     const users = window.authModule.getUsers();
     const container = document.getElementById('view-container');
 
@@ -116,18 +123,12 @@
       <div class="max-w-4xl mx-auto space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 class="text-2xl font-bold text-slate-800">Painel de Configurações, Usuários & Nuvem</h1>
-            <p class="text-slate-500 text-sm">Gerencie a sincronização Supabase (PC & Celular) e controle de usuários da equipe</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="window.store.syncAllWithCloud()" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-200 transition shadow-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-              Sincronizar Nuvem Agora
-            </button>
+            <h1 class="text-2xl font-bold text-slate-800">Painel do Proprietário</h1>
+            <p class="text-slate-500 text-sm">Controle de Usuários, White Label e Dados da Gráfica</p>
           </div>
         </div>
 
-                <!-- Configurações da Empresa (Gráfica) -->
+<!-- Configurações da Empresa (Gráfica) -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
           <div class="flex items-center justify-between border-b pb-3">
             <h2 class="text-base font-bold text-slate-800">🏢 Configurações da Empresa (Sua Gráfica)</h2>
@@ -194,52 +195,8 @@
             ` : ''}
           </form>
         </div>
-        <!-- Conexão Supabase Cloud -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm0 5h16M4 12c0 2 1 3 3 3h10c2 0 3-1 3-3"></path></svg>
-              Conexão com Banco de Dados Nuvem (Supabase)
-            </h2>
-            <div id="settings-status-indicator">
-              ${window.store.supabaseClient ? `
-                <span class="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200 flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Conectado
-                </span>
-              ` : `
-                <span class="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-200 flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Desconectado / Local
-                </span>
-              `}
-            </div>
-          </div>
-          
-          <p class="text-xs text-slate-500">
-            A mesma chave deve estar salva para que <strong>PC e Celular</strong> acessem exatamente os mesmos clientes e pedidos instantaneamente.
-          </p>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Project URL</label>
-              <input type="text" id="set-url" value="${config.url || ''}" placeholder="https://exemplo.supabase.co" class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Anon / Public API Key</label>
-              <input type="password" id="set-key" value="${config.key || ''}" placeholder="Cole a chave anon copiada do Supabase..." class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
-            </div>
-          </div>
-
-          <div class="flex gap-2 pt-2">
-            <button onclick="app.saveSupabaseSettings()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition">
-              Salvar e Conectar
-            </button>
-            <button onclick="app.testSupabaseConnection()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
-              Testar Conexão
-            </button>
-          </div>
-        </div>
-
-        <!-- Personalização de Marca (White Label) -->
+        
+<!-- Personalização de Marca (White Label) -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -345,6 +302,77 @@
                 }).join('')}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        
+      </div>
+    `;
+  },
+  renderSettings() {
+    const isMasterAdmin = window.authModule.can('canManageSettings');
+    const settings = window.store.getSettings();
+    const config = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : settings;
+    const users = window.authModule.getUsers();
+    const container = document.getElementById('view-container');
+
+    container.innerHTML = `
+      <div class="max-w-4xl mx-auto space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-800">Sincronização Nuvem & Backup</h1>
+            <p class="text-slate-500 text-sm">Gerencie a sincronização Supabase (PC & Celular) e controle de usuários da equipe</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="window.store.syncAllWithCloud()" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-200 transition shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              Sincronizar Nuvem Agora
+            </button>
+          </div>
+        </div>
+
+                <!-- Conexão Supabase Cloud -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm0 5h16M4 12c0 2 1 3 3 3h10c2 0 3-1 3-3"></path></svg>
+              Conexão com Banco de Dados Nuvem (Supabase)
+            </h2>
+            <div id="settings-status-indicator">
+              ${window.store.supabaseClient ? `
+                <span class="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Conectado
+                </span>
+              ` : `
+                <span class="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-200 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Desconectado / Local
+                </span>
+              `}
+            </div>
+          </div>
+          
+          <p class="text-xs text-slate-500">
+            A mesma chave deve estar salva para que <strong>PC e Celular</strong> acessem exatamente os mesmos clientes e pedidos instantaneamente.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Project URL</label>
+              <input type="text" id="set-url" value="${config.url || ''}" placeholder="https://exemplo.supabase.co" class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Anon / Public API Key</label>
+              <input type="password" id="set-key" value="${config.key || ''}" placeholder="Cole a chave anon copiada do Supabase..." class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button onclick="app.saveSupabaseSettings()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition">
+              Salvar e Conectar
+            </button>
+            <button onclick="app.testSupabaseConnection()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
+              Testar Conexão
+            </button>
           </div>
         </div>
 
@@ -566,5 +594,7 @@
 window.addEventListener('DOMContentLoaded', () => {
   window.app.init();
 });
+
+
 
 
