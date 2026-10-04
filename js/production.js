@@ -114,7 +114,7 @@ window.productionModule = {
           </div>
         </div>
       </div>
-    ;
+    `;
   },
 
   handleDragStart(e, orderId) {
@@ -198,3 +198,6 @@ window.productionModule = {
     }
   }
 };
+
+
+
