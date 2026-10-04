@@ -10,7 +10,7 @@
           <h1 class="text-2xl font-black text-slate-800">Vendas & Pre-Vendas</h1>
           <p class="text-slate-500 text-sm">Emissao de orcamentos, vendas, layouts e protocolos</p>
         </div>
-        <button onclick="salesModule.renderOrderForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm">Novo Orcamento / Venda</button>
+        <button onclick="salesModule.openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm">Novo Orcamento / Venda</button>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table class="w-full text-sm text-left">
@@ -32,7 +32,7 @@
           <td class="p-4">${this.getPhaseBadge(o.status_fase)}</td>
           <td class="p-4 text-right space-x-2">
             <button onclick="salesModule.quickView('${o.id}')" class="text-slate-600 font-bold hover:underline">Ver</button>
-            <button onclick="salesModule.renderOrderForm({orderId: '${o.id}'})" class="text-blue-600 font-bold hover:underline">Editar</button>
+            <button onclick="salesModule.openModal({orderId: '${o.id}'})" class="text-blue-600 font-bold hover:underline">Editar</button>
             <button onclick="salesModule.openProtocolModal('${o.id}')" class="text-emerald-600 font-bold hover:underline">OS/Protocolo</button>
             <button onclick="financeModule.openCashierModal('${o.id}')" class="text-yellow-600 font-bold hover:underline bg-yellow-50 px-2 py-1 rounded">💰 Caixa</button>
             <button onclick="salesModule.delete('${o.id}')" class="text-red-500 font-bold hover:underline">Excluir</button>
@@ -523,6 +523,7 @@
           </div>
           <div class="mt-6 pt-4 border-t text-xs space-y-4">
             <p>Declaro que recebi os materiais e servicos acima relacionados em perfeito estado.</p>
+            ${window.store.getSettings().companyFooterMsg ? `<p class="text-[10px] text-slate-400 italic mb-2">${window.store.getSettings().companyFooterMsg}</p>` : ''}
             <div class="grid grid-cols-2 gap-4">
               <div><label class="block text-[11px] text-slate-500 no-print">Nome recebedor:</label><input type="text" id="prot-nome-rec" value="${order.protocolo_recebedor_nome||''}" placeholder="Nome legivel" class="w-full border-b pb-1 text-xs bg-transparent"></div>
               <div><label class="block text-[11px] text-slate-500 no-print">Documento (RG/CPF):</label><input type="text" id="prot-doc-rec" value="${order.protocolo_recebedor_doc||''}" placeholder="Doc" class="w-full border-b pb-1 text-xs bg-transparent"></div>
@@ -558,6 +559,8 @@
 
 
 };
+
+
 
 
 

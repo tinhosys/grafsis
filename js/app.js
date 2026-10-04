@@ -127,6 +127,73 @@
           </div>
         </div>
 
+                <!-- Configurações da Empresa (Gráfica) -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-center justify-between border-b pb-3">
+            <h2 class="text-base font-bold text-slate-800">🏢 Configurações da Empresa (Sua Gráfica)</h2>
+            ${isMasterAdmin ? '<span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">Modo Edição (ADM)</span>' : '<span class="text-xs text-slate-500">Apenas visualização</span>'}
+          </div>
+          <p class="text-xs text-slate-500">Estes dados aparecem no cabeçalho e rodapé dos orçamentos, ordens de serviço e recibos.</p>
+          
+          <form id="company-config-form" class="space-y-4" onsubmit="app.saveCompanyConfig(event)">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Razão Social / Nome Fantasia *</label>
+                <input type="text" id="comp-nome" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyName || ''}" ${isMasterAdmin ? 'required' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">CNPJ</label>
+                <input type="text" id="comp-cnpj" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyCnpj || ''}" ${isMasterAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Telefone Fixo</label>
+                <input type="text" id="comp-tel" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyPhone || ''}" ${isMasterAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Celular / WhatsApp *</label>
+                <input type="text" id="comp-cel" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyCell || ''}" ${isMasterAdmin ? 'required' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">E-mail</label>
+                <input type="email" id="comp-email" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyEmail || ''}" ${isMasterAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Endereço / Localização</label>
+                <input type="text" id="comp-end" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyAddress || ''}" ${isMasterAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Site / Portfólio</label>
+                <input type="url" id="comp-site" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companySite || ''}" ${isMasterAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Instagram (@)</label>
+                <input type="text" id="comp-insta" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white" value="${settings.companyInsta || ''}" ${isMasterAdmin ? '' : 'disabled'}>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">URL da Logomarca</label>
+                <input type="url" id="comp-logo" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white mb-2" value="${settings.companyLogo || ''}" ${isMasterAdmin ? '' : 'disabled'} placeholder="https://link-da-imagem.com/logo.png" oninput="document.getElementById('comp-logo-preview').src = this.value">
+                <div class="h-16 border rounded bg-slate-50 flex items-center justify-center overflow-hidden">
+                  <img id="comp-logo-preview" src="${settings.companyLogo || ''}" class="max-h-full max-w-full object-contain" onerror="this.src=''; this.alt='Sem Logo'">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Mensagem de Rodapé (Orçamentos)</label>
+                <textarea id="comp-msg" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white h-24" ${isMasterAdmin ? '' : 'disabled'}>${settings.companyFooterMsg || ''}</textarea>
+              </div>
+            </div>
+
+            ${isMasterAdmin ? `
+              <div class="flex justify-end pt-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-sm">
+                  Salvar Dados da Gráfica
+                </button>
+              </div>
+            ` : ''}
+          </form>
+        </div>
         <!-- Conexão Supabase Cloud -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
           <div class="flex items-center justify-between">
@@ -499,4 +566,5 @@
 window.addEventListener('DOMContentLoaded', () => {
   window.app.init();
 });
+
 

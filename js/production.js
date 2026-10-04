@@ -9,46 +9,61 @@
     { id: 'qualidade', name: '7. Controle Qualidade', badge: 'bg-pink-100 text-pink-800 border-t-4 border-pink-400' },
     { id: 'entregue', name: '8. Expedicao / Entrega', badge: 'bg-emerald-100 text-emerald-800 border-t-4 border-emerald-400' }
   ],
-
+  currentTab: 'orcamento',
+  
   render() {
     const orders = window.store.getOrders();
     const clients = window.store.getClients();
     const container = document.getElementById('view-container');
 
+    // Create the tabs
+    const tabsHtml = this.phases.map(p => {
+      const isActive = this.currentTab === p.id;
+      const baseClass = isActive ? 'bg-blue-600 text-white shadow-md transform -translate-y-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+      const phaseOrders = orders.filter(o => o.status_fase === p.id);
+      
+      return `
+        <button 
+          onclick="productionModule.currentTab = '${p.id}'; productionModule.render()"
+          ondragover="productionModule.allowDrop(event); event.target.classList.add('ring-2', 'ring-blue-400');"
+          ondragleave="event.target.classList.remove('ring-2', 'ring-blue-400');"
+          ondrop="event.target.classList.remove('ring-2', 'ring-blue-400'); productionModule.handleDrop(event, '${p.id}')"
+          class="flex-1 min-w-[120px] py-3 px-2 rounded-t-xl font-bold text-[11px] uppercase transition-all duration-200 border-b-0 border border-slate-200 ${baseClass} flex flex-col items-center justify-center gap-1">
+          <span class="text-center line-clamp-2 leading-tight">${p.name}</span>
+          <span class="${isActive ? 'bg-white text-blue-600' : 'bg-slate-300 text-slate-700'} px-2 py-0.5 rounded-full text-[10px]">${phaseOrders.length}</span>
+        </button>
+      `;
+    }).join('');
+
+    const activePhase = this.phases.find(p => p.id === this.currentTab) || this.phases[0];
+    const activeOrders = orders.filter(o => o.status_fase === activePhase.id);
+
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-4">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 class="text-2xl font-bold text-slate-800">Fases da Produção (Kanban)</h1>
-            <p class="text-slate-500 text-sm">Esteira de produção visual para comunicação visual, gráficas e estamparia</p>
+            <h1 class="text-2xl font-bold text-slate-800">Fases da Producao</h1>
+            <p class="text-slate-500 text-sm">Arraste os cards para as abas acima para trocar de fase</p>
           </div>
           <div class="flex gap-2">
-            <button onclick="salesModule.renderOrderForm()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm">
+            <button onclick="salesModule.openModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm">
               + Novo Pedido na Fila
             </button>
           </div>
         </div>
 
-        <div class="kanban-board">
-          ${this.phases.map(phase => {
-            const phaseOrders = orders.filter(o => o.status_fase === phase.id);
-            return `
-              <div class="kanban-col" ondragover="productionModule.allowDrop(event)" ondrop="productionModule.handleDrop(event, '${phase.id}')">
-                <div class="kanban-header ${phase.badge}">
-                  <span>${phase.name}</span>
-                  <span class="bg-white/80 px-2 py-0.5 rounded-full text-xs font-bold text-slate-700 shadow-sm">${phaseOrders.length}</span>
-                </div>
-                <div class="kanban-cards">
-                  ${phaseOrders.map(o => this.renderCard(o, clients)).join('')}
-                </div>
-              </div>
-            `;
-          }).join('')}
+        <div class="flex flex-wrap md:flex-nowrap w-full gap-1 border-b-2 border-blue-600">
+          ${tabsHtml}
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-b-xl p-4 min-h-[60vh]">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" ondragover="productionModule.allowDrop(event)" ondrop="productionModule.handleDrop(event, '${activePhase.id}')">
+            ${activeOrders.length === 0 ? `<div class="col-span-full py-12 text-center text-slate-400 font-bold">Nenhum pedido nesta fase.</div>` : activeOrders.map(o => this.renderCard(o, clients)).join('')}
+          </div>
         </div>
       </div>
     `;
   },
-
   renderCard(order, clients) {
     const client = clients.find(c => c.id === order.cliente_id) || { nome: 'Cliente não vinculado' };
     const totalArea = (order.itens || []).reduce((acc, it) => acc + (it.tipo_calculo === 'm2' ? (it.largura_x * it.comprimento_y * it.quantidade) : 0), 0);
@@ -163,3 +178,5 @@
     }
   }
 };
+
+
