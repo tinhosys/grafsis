@@ -72,7 +72,15 @@
       <div class="kanban-card" draggable="true" ondragstart="productionModule.handleDragStart(event, '${order.id}')">
         <div class="flex justify-between items-start">
           <span class="font-mono font-bold text-blue-600 text-xs">#${order.numero}</span>
+          ${(order.historico && order.historico.length > 0) ? `
+          <div class="text-[9px] text-slate-500 font-mono text-right bg-slate-50 border border-slate-100 px-2 py-1 rounded shadow-sm">
+            <div>${new Date(order.historico[order.historico.length - 1].data).toLocaleDateString('pt-BR')}</div>
+            <div>${new Date(order.historico[order.historico.length - 1].data).toLocaleTimeString('pt-BR')}</div>
+            <div class="font-black text-blue-600 uppercase mt-0.5">${order.historico[order.historico.length - 1].usuario}</div>
+          </div>
+          ` : `
           <span class="text-[10px] text-slate-400 font-mono">${order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'Sem prazo'}</span>
+          `}
         </div>
 
         <h4 class="font-bold text-slate-800 text-xs mt-1 truncate">${client.nome}</h4>
@@ -178,6 +186,8 @@
     }
   }
 };
+
+
 
 
 
