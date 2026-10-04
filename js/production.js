@@ -1,4 +1,4 @@
-ï»¿window.productionModule = {
+window.productionModule = {
   phases: [
     { id: 'orcamento', name: 'FASE 1<br>ORCAMENTO / PEDIDO', badge: 'bg-yellow-400 text-yellow-900', inactive: 'bg-yellow-50 text-yellow-700 border-yellow-300' },
     { id: 'prevenda', name: 'FASE 2<br>PRE-VENDA', badge: 'bg-emerald-500 text-white', inactive: 'bg-emerald-50 text-emerald-700 border-emerald-300' },
@@ -65,7 +65,7 @@
     `;
   },
   renderCard(order, clients) {
-    const client = clients.find(c => c.id === order.cliente_id) || { nome: 'Cliente nÃ£o vinculado' };
+    const client = clients.find(c => c.id === order.cliente_id) || { nome: 'Cliente não vinculado' };
     const totalArea = (order.itens || []).reduce((acc, it) => acc + (it.tipo_calculo === 'm2' ? (it.largura_x * it.comprimento_y * it.quantidade) : 0), 0);
 
     return `
@@ -86,8 +86,8 @@
         <h4 class="font-bold text-slate-800 text-xs mt-1 truncate">${client.nome}</h4>
         
         <div class="mt-2 space-y-1 text-[11px] text-slate-600">
-          <p class="font-medium text-slate-700 line-clamp-1">${order.itens && order.itens[0] ? order.itens[0].descricao : 'ServiÃ§o'}</p>
-          ${totalArea > 0 ? `<p class="font-mono text-purple-700 font-semibold">${totalArea.toFixed(2)} mÂ² no total</p>` : ''}
+          <p class="font-medium text-slate-700 line-clamp-1">${order.itens && order.itens[0] ? order.itens[0].descricao : 'Serviço'}</p>
+          ${totalArea > 0 ? `<p class="font-mono text-purple-700 font-semibold">${totalArea.toFixed(2)} m² no total</p>` : ''}
           ${order.itens && order.itens.length > 1 ? `<p class="text-slate-400">+ ${order.itens.length - 1} item(ns) adicionais</p>` : ''}
         </div>
 
@@ -99,18 +99,22 @@
 
         <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
           <span class="font-bold text-slate-800">R$ ${Number(order.valor_final||0).toFixed(2)}</span>
-          <div class="flex gap-1">
+          <div class="flex gap-1 items-center">
+            <button onclick="productionModule.returnPhase('${order.id}')" class="text-orange-500 hover:text-orange-600 font-semibold" title="Retornar Fase">
+              &larr; Retornar
+            </button>
+            <span class="text-slate-300">|</span>
             <button onclick="salesModule.openProtocolModal('${order.id}')" class="text-emerald-600 hover:text-emerald-700 font-semibold" title="Protocolo de Entrega">
               Protocolo
             </button>
             <span class="text-slate-300">|</span>
-            <button onclick="productionModule.advancePhase('${order.id}')" class="text-blue-600 hover:text-blue-700 font-semibold" title="AvanÃ§ar Fase">
-              AvanÃ§ar &rarr;
+            <button onclick="productionModule.advancePhase('${order.id}')" class="text-blue-600 hover:text-blue-700 font-semibold" title="Avançar Fase">
+              Avançar &rarr;
             </button>
           </div>
         </div>
       </div>
-    `;
+    ;
   },
 
   handleDragStart(e, orderId) {
@@ -122,46 +126,50 @@
     e.preventDefault();
   },
 
-  handleDrop(e, newPhaseId) {
+  async handleDrop(e, newPhaseId) {
     e.preventDefault();
     const orderId = e.dataTransfer.getData('text/plain');
     if (orderId) {
-      window.store.updateOrderStatus(orderId, newPhaseId);
+      await window.store.updateOrderStatus(orderId, newPhaseId);
       
       const order = window.store.getOrders().find(o => o.id === orderId);
       if (newPhaseId === 'entregue' && order && !order.estoque_baixado) {
-        const products = window.store.getProducts();
-        order.itens.forEach(it => {
-          if(it.produto_id) {
-            const p = products.find(prod => prod.id === it.produto_id);
-            if(p) {
-              if (p.tipo_cobranca === 'm2') p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.area_m2) * parseFloat(it.quantidade));
-              else if (p.tipo_cobranca === 'linear') p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.largura_x) * parseFloat(it.quantidade));
-              else p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - parseFloat(it.quantidade);
-              window.store.saveProduct(p);
-            }
-          }
-        });
-        order.estoque_baixado = true;
-        
-        // Deduct Ink
-        const s = window.store.getSettings();
-        const yieldM2 = parseFloat(s.inkEcoYield) || 1200;
-        let totalArea = 0;
-        order.itens.forEach(it => { if(it.tipo_calculo === 'm2') totalArea += (parseFloat(it.area_m2) * parseFloat(it.quantidade)); });
-        if(totalArea > 0 && s.inkEcoStock !== undefined) {
-          s.inkEcoStock = Math.max(0, parseFloat(s.inkEcoStock) - (totalArea / yieldM2));
-          window.store.save('grafsis_settings', s);
-        }
-        const allOrders = window.store.getOrders();
-        const oIdx = allOrders.findIndex(o => o.id === order.id);
-        if(oIdx > -1) { allOrders[oIdx] = order; window.store.save('grafsis_orders', allOrders); }
+        this.deductStock(order);
       }
       this.render();
     }
   },
 
-  advancePhase(orderId) {
+  deductStock(order) {
+    const products = window.store.getProducts();
+    order.itens.forEach(it => {
+      if(it.produto_id) {
+        const p = products.find(prod => prod.id === it.produto_id);
+        if(p) {
+          if (p.tipo_cobranca === 'm2') p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.area_m2) * parseFloat(it.quantidade));
+          else if (p.tipo_cobranca === 'linear') p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.largura_x) * parseFloat(it.quantidade));
+          else p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - parseFloat(it.quantidade);
+          window.store.saveProduct(p);
+        }
+      }
+    });
+    order.estoque_baixado = true;
+    
+    // Deduct Ink
+    const s = window.store.getSettings();
+    const yieldM2 = parseFloat(s.inkEcoYield) || 1200;
+    let totalArea = 0;
+    order.itens.forEach(it => { if(it.tipo_calculo === 'm2') totalArea += (parseFloat(it.area_m2) * parseFloat(it.quantidade)); });
+    if(totalArea > 0 && s.inkEcoStock !== undefined) {
+      s.inkEcoStock = Math.max(0, parseFloat(s.inkEcoStock) - (totalArea / yieldM2));
+      window.store.save('grafsis_settings', s);
+    }
+    const allOrders = window.store.getOrders();
+    const oIdx = allOrders.findIndex(o => o.id === order.id);
+    if(oIdx > -1) { allOrders[oIdx] = order; window.store.save('grafsis_orders', allOrders); }
+  },
+
+  async advancePhase(orderId) {
     const orders = window.store.getOrders();
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
@@ -169,26 +177,24 @@
     if (currentIndex < this.phases.length - 1) {
       const nextPhase = this.phases[currentIndex + 1].id;
       
-      order.historico = order.historico || [];
-      order.historico.push({
-        fase: nextPhase,
-        data: new Date().toISOString(),
-        usuario: window.app?.currentUser?.nome || 'Sistema'
-      });
-      order.status_fase = nextPhase;
+      await window.store.updateOrderStatus(orderId, nextPhase);
 
       if (nextPhase === 'entregue' && !order.estoque_baixado) {
         this.deductStock(order);
       }
-      
-      window.store.save('grafsis_orders', orders);
+      this.render();
+    }
+  },
+
+  async returnPhase(orderId) {
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const currentIndex = this.phases.findIndex(p => p.id === order.status_fase);
+    if (currentIndex > 0) {
+      const prevPhase = this.phases[currentIndex - 1].id;
+      await window.store.updateOrderStatus(orderId, prevPhase);
       this.render();
     }
   }
 };
-
-
-
-
-
-

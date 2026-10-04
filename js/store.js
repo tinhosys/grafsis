@@ -356,9 +356,17 @@ class GrafsisStore {
     const orders = this.getOrders();
     const order = orders.find(o => o.id === orderId);
     if (order) {
-      order.status_fase = newStatus;
-      if (newStatus === 'entregue' && !order.data_entrega) {
-        order.data_entrega = new Date().toISOString();
+      if (order.status_fase !== newStatus) {
+        order.historico = order.historico || [];
+        order.historico.push({
+          fase: newStatus,
+          data: new Date().toISOString(),
+          usuario: window.authModule ? window.authModule.getCurrentUser().nome || window.authModule.getCurrentUser().login : 'Sistema'
+        });
+        order.status_fase = newStatus;
+        if (newStatus === 'entregue' && !order.data_entrega) {
+          order.data_entrega = new Date().toISOString();
+        }
       }
       this.saveLocal(STORAGE_KEYS.ORDERS, orders);
       await this.pushRecord('pedidos', order);
