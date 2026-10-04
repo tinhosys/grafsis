@@ -209,12 +209,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Producao</h3>
-                <div>
-                  <label class="block text-xs font-semibold mb-1 text-slate-700">Foto da Arte / Link do Drive</label>
-                  <input type="text" name="foto_arte_url" value="${order ? (order.foto_arte_url || '') : ''}" placeholder="Link da imagem" class="w-full p-2 border rounded-lg text-sm mb-1 bg-white">
-                  <input type="file" accept="image/*" onchange="salesModule.handleArteUpload(this)" class="text-xs">
-                  <input type="hidden" id="order-arte-url" name="foto_arte_url" value="${order ? (order.foto_arte_url || '') : ''}">
-                </div>
+                
                 <div>
                   <label class="block text-xs font-semibold mb-1 text-slate-700">Observacoes Tecnicas</label>
                   <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
@@ -604,9 +599,12 @@
       arte_url: arteUrl
     });
         document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
-    document.getElementById('item-desc').value = '';
-    document.getElementById('item-prod-select').value = '';
-    document.getElementById('item-price').value = '0.00';
+          document.getElementById('item-desc').value = '';
+      document.getElementById('item-prod-select').value = '';
+      document.getElementById('item-price').value = '0.00';
+      document.getElementById('item-width').value = '1.00';
+      document.getElementById('item-height').value = '1.00';
+      document.getElementById('item-qty').value = '1';
           if(itemArteInput) itemArteInput.value = '';
       const arteBtn = document.getElementById('item-arte-btn');
       if(arteBtn) {
@@ -622,9 +620,12 @@
   removeItem(idx) {
     this.activeItems.splice(idx, 1);
         document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
-    document.getElementById('item-desc').value = '';
-    document.getElementById('item-prod-select').value = '';
-    document.getElementById('item-price').value = '0.00';
+          document.getElementById('item-desc').value = '';
+      document.getElementById('item-prod-select').value = '';
+      document.getElementById('item-price').value = '0.00';
+      document.getElementById('item-width').value = '1.00';
+      document.getElementById('item-height').value = '1.00';
+      document.getElementById('item-qty').value = '1';
           if(itemArteInput) itemArteInput.value = '';
       const arteBtn = document.getElementById('item-arte-btn');
       if(arteBtn) {
@@ -637,19 +638,56 @@
     this.recalcTotals('val');
     document.getElementById('item-prod-select').focus();
   },
-  renderActiveItemsHtml() {
+      viewItemDetails(idx) {
+      const it = this.activeItems[idx];
+      if(!it) return;
+      const modalHtml = `
+        <div id="item-details-modal" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="document.getElementById('item-details-modal').remove()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="font-black text-xl text-slate-800 mb-4 border-b pb-2">Detalhes do Item <span class="text-blue-600">#${it.item_id || 'N/A'}</span></h3>
+            
+            <div class="flex flex-col md:flex-row gap-4 mb-4">
+              <div class="w-full md:w-1/3 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg p-2 min-h-[150px]">
+                ${it.arte_url ? `<img src="${it.arte_url}" class="max-w-full max-h-[200px] object-contain rounded shadow-sm">` : `<span class="text-slate-400 text-sm text-center">Nenhuma arte<br>anexada</span>`}
+              </div>
+              <div class="w-full md:w-2/3 space-y-2 text-sm text-slate-700">
+                <p><strong class="text-slate-900">Produto:</strong> ${it.produto_nome}</p>
+                <p><strong class="text-slate-900">Detalhes:</strong> ${it.descricao}</p>
+                <p><strong class="text-slate-900">CÃ¡lculo:</strong> <span class="uppercase">${it.tipo_calculo}</span></p>
+                <p><strong class="text-slate-900">DimensÃµes:</strong> ${it.largura_x}m x ${it.comprimento_y}m</p>
+                <p><strong class="text-slate-900">Quantidade:</strong> ${it.quantidade}</p>
+                <p><strong class="text-slate-900">Ãrea Total:</strong> ${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toFixed(2) + (it.tipo_calculo === 'm2' ? ' mÂ²' : ' m') : '-'}</p>
+                <p><strong class="text-slate-900">Valor UnitÃ¡rio:</strong> R$ ${Number(it.preco_unitario).toFixed(2)}</p>
+                <div class="font-black text-green-700 text-lg border-t pt-2 mt-2 flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>R$ ${Number(it.valor_total).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="document.getElementById('item-details-modal').remove()" class="px-6 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-lg transition-colors">Fechar</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+    renderActiveItemsHtml() {
     if (this.activeItems.length === 0) return `<tr><td colspan="8" class="p-2 text-center text-slate-400">Nenhum item</td></tr>`;
     return this.activeItems.map((it, idx) => `
       <tr class="border-b hover:bg-slate-50 transition">
         <td class="p-2">
           ${it.arte_url ? `<a href="${it.arte_url}" target="_blank" class="block w-8 h-8 rounded bg-slate-200 float-left mr-2 bg-cover bg-center border border-slate-300" style="background-image: url('${it.arte_url}')" title="Ver Layout"></a>` : `<div class="block w-8 h-8 rounded bg-slate-100 float-left mr-2 border border-slate-200 flex items-center justify-center text-[8px] text-slate-400">N/A</div>`}
-          <div class="font-bold text-xs text-slate-800"><span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1">#${it.item_id || '----'}</span>${it.produto_nome || ''}</div>
+          <div class="font-bold text-xs text-slate-800"><span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1 cursor-pointer hover:bg-blue-200" onclick="salesModule.viewItemDetails(${idx})" title="Ver Detalhes do Item e Arte">#${it.item_id || '----'}</span>${it.produto_nome || ''}</div>
           <div class="text-[10px] text-slate-500">${it.descricao}</div>
         </td>
         <td class="p-2 font-mono text-[11px]">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
         <td class="p-2 font-bold text-center">${it.quantidade}</td>
         <td class="p-2 font-mono text-[11px] text-purple-700">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toFixed(2) + (it.tipo_calculo === 'm2' ? ' m2' : ' m') : '-'}</td>
-        <td class="p-2 font-mono text-[11px]">Base: R$ ${Number(it.preco_base || 0).toFixed(2)}<br>Peca: R$ ${Number(it.preco_unitario).toFixed(2)}</td>
+        <td class="p-2 font-mono text-[11px]">R$ ${Number(it.preco_unitario).toFixed(2)}</td>
         <td class="p-2 font-bold text-blue-700">R$ ${Number(it.valor_total).toFixed(2)}</td>
         <td class="p-2 text-right"><button type="button" onclick="salesModule.removeItem(${idx})" class="text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded">&times;</button></td>
       </tr>
