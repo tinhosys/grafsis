@@ -74,9 +74,9 @@ window.app = {
     this.currentTab = tab;
     document.querySelectorAll('.nav-link').forEach(link => {
       if (link.getAttribute('data-tab') === tab) {
-        link.className = 'nav-link flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white shadow-sm';
+        link.className = 'nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold rounded-lg bg-blue-50 text-blue-700 shadow-sm border-r-4 border-blue-600';
       } else {
-        link.className = 'nav-link flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition';
+        link.className = 'nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors';
       }
     });
 
@@ -174,8 +174,9 @@ window.app = {
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">URL da Logomarca</label>
-                <input type="url" id="comp-logo" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white mb-2" value="${settings.companyLogo || ''}" ${isMasterAdmin ? '' : 'disabled'} placeholder="https://link-da-imagem.com/logo.png" oninput="document.getElementById('comp-logo-preview').src = this.value">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Upload da Logomarca (Imagem)</label>
+                <input type="file" accept="image/*" id="comp-logo-file" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white mb-2" ${isMasterAdmin ? '' : 'disabled'} onchange="app.handleLogoUpload(this, 'comp-logo-preview', 'comp-logo-base64')">
+                <input type="hidden" id="comp-logo-base64" value="${settings.companyLogo || ''}">
                 <div class="h-16 border rounded bg-slate-50 flex items-center justify-center overflow-hidden">
                   <img id="comp-logo-preview" src="${settings.companyLogo || ''}" class="max-h-full max-w-full object-contain" onerror="this.src=''; this.alt='Sem Logo'">
                 </div>
@@ -215,8 +216,9 @@ window.app = {
               <input type="text" id="set-tenant-name" value="${settings.tenantName || ''}" placeholder="Ex: Top Digital" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">URL da Logomarca (PNG/JPG)</label>
-              <input type="text" id="set-tenant-logo" value="${settings.tenantLogo || ''}" placeholder="assets/demo-top-digital.png" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Upload da Logomarca (Imagem)</label>
+              <input type="file" accept="image/*" id="set-tenant-logo-file" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="app.handleLogoUpload(this, 'tenant-logo-preview', 'set-tenant-logo')">
+              <input type="hidden" id="set-tenant-logo" value="${settings.tenantLogo || ''}">
             </div>
           </div>
 
@@ -588,6 +590,47 @@ window.app = {
       };
       reader.readAsText(file);
     }
+  },
+
+  handleLogoUpload(input, previewId, hiddenInputId) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      alert("A imagem deve ter no máximo 2MB.");
+      input.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      const preview = document.getElementById(previewId);
+      const hidden = document.getElementById(hiddenInputId);
+      
+      if (preview) preview.src = base64;
+      if (hidden) hidden.value = base64;
+    };
+    reader.readAsDataURL(file);
+  },
+
+  saveCompanyConfig(e) {
+    e.preventDefault();
+    const settings = window.store.getSettings();
+    
+    settings.companyName = document.getElementById('comp-nome').value.trim();
+    settings.companyCnpj = document.getElementById('comp-cnpj').value.trim();
+    settings.companyPhone = document.getElementById('comp-tel').value.trim();
+    settings.companyCell = document.getElementById('comp-cel').value.trim();
+    settings.companyEmail = document.getElementById('comp-email').value.trim();
+    settings.companyAddress = document.getElementById('comp-end').value.trim();
+    settings.companySite = document.getElementById('comp-site').value.trim();
+    settings.companyInsta = document.getElementById('comp-insta').value.trim();
+    settings.companyLogo = document.getElementById('comp-logo-base64').value.trim();
+    settings.companyFooterMsg = document.getElementById('comp-msg').value.trim();
+    
+    window.store.saveSettings(settings);
+    alert('Dados da gráfica salvos com sucesso!');
   }
 };
 
