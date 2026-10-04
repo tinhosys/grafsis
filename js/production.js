@@ -1,9 +1,13 @@
 ﻿window.productionModule = {
   phases: [
-    { id: 'orcamento', name: '0. Orçamento', badge: 'bg-indigo-100 text-indigo-800' },
-    { id: 'prevenda', name: '1. Pré-Venda (Arte em Aprovação)', badge: 'bg-amber-100 text-amber-800' },
-    { id: 'venda', name: '2. Venda / Produção', badge: 'bg-blue-100 text-blue-800' },
-    { id: 'entregue', name: '3. Entregue / Concluído', badge: 'bg-emerald-100 text-emerald-800' }
+    { id: 'orcamento', name: '1. Orcamento', badge: 'bg-slate-100 text-slate-800 border-t-4 border-slate-400' },
+    { id: 'aguardando_arte', name: '2. Aguardando Arte / Pre', badge: 'bg-yellow-100 text-yellow-800 border-t-4 border-yellow-400' },
+    { id: 'aprovacao', name: '3. Aprovacao do Cliente', badge: 'bg-orange-100 text-orange-800 border-t-4 border-orange-400' },
+    { id: 'liberado', name: '4. Liberado / Producao', badge: 'bg-blue-100 text-blue-800 border-t-4 border-blue-400' },
+    { id: 'impressao', name: '5. Impressao', badge: 'bg-indigo-100 text-indigo-800 border-t-4 border-indigo-400' },
+    { id: 'acabamento', name: '6. Acabamento', badge: 'bg-purple-100 text-purple-800 border-t-4 border-purple-400' },
+    { id: 'qualidade', name: '7. Controle Qualidade', badge: 'bg-pink-100 text-pink-800 border-t-4 border-pink-400' },
+    { id: 'entregue', name: '8. Expedicao / Entrega', badge: 'bg-emerald-100 text-emerald-800 border-t-4 border-emerald-400' }
   ],
 
   render() {
@@ -19,7 +23,7 @@
             <p class="text-slate-500 text-sm">Esteira de produção visual para comunicação visual, gráficas e estamparia</p>
           </div>
           <div class="flex gap-2">
-            <button onclick="salesModule.openModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm">
+            <button onclick="salesModule.renderOrderForm()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm">
               + Novo Pedido na Fila
             </button>
           </div>
@@ -135,54 +139,27 @@
   },
 
   advancePhase(orderId) {
-    const order = window.store.getOrders().find(o => o.id === orderId);
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId);
     if (!order) return;
     const currentIndex = this.phases.findIndex(p => p.id === order.status_fase);
     if (currentIndex < this.phases.length - 1) {
       const nextPhase = this.phases[currentIndex + 1].id;
-      window.store.updateOrderStatus(orderId, nextPhase);
       
-      // Stock Deduction when advancing to "entregue" (Concluído)
+      order.historico = order.historico || [];
+      order.historico.push({
+        fase: nextPhase,
+        data: new Date().toISOString(),
+        usuario: window.app?.currentUser?.nome || 'Sistema'
+      });
+      order.status_fase = nextPhase;
+
       if (nextPhase === 'entregue' && !order.estoque_baixado) {
-        const products = window.store.getProducts();
-        order.itens.forEach(it => {
-          if(it.produto_id) {
-            const p = products.find(prod => prod.id === it.produto_id);
-            if(p) {
-              if (p.tipo_cobranca === 'm2') {
-                // deduct Area
-                p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.area_m2) * parseFloat(it.quantidade));
-              } else if (p.tipo_cobranca === 'linear') {
-                // deduct linear meters
-                p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - (parseFloat(it.largura_x) * parseFloat(it.quantidade));
-              } else {
-                p.estoque_atual = (parseFloat(p.estoque_atual) || 0) - parseFloat(it.quantidade);
-              }
-              window.store.saveProduct(p);
-            }
-          }
-        });
-        order.estoque_baixado = true;
-        
-        // Deduct Ink
-        const s = window.store.getSettings();
-        const yieldM2 = parseFloat(s.inkEcoYield) || 1200;
-        let totalArea = 0;
-        order.itens.forEach(it => { if(it.tipo_calculo === 'm2') totalArea += (parseFloat(it.area_m2) * parseFloat(it.quantidade)); });
-        if(totalArea > 0 && s.inkEcoStock !== undefined) {
-          s.inkEcoStock = Math.max(0, parseFloat(s.inkEcoStock) - (totalArea / yieldM2));
-          window.store.save('grafsis_settings', s);
-        }
-        
-        // Also update order to save the flag
-        const allOrders = window.store.getOrders();
-        const oIdx = allOrders.findIndex(o => o.id === order.id);
-        if(oIdx > -1) { allOrders[oIdx] = order; window.store.save('grafsis_orders', allOrders); }
+        this.deductStock(order);
       }
+      
+      window.store.save('grafsis_orders', orders);
       this.render();
     }
   }
 };
-
-
-
