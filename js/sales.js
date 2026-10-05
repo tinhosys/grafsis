@@ -1,4 +1,4 @@
-﻿window.salesModule = {
+window.salesModule = {
   activeItems: [],
   render() {
     const orders = window.store.getOrders();
@@ -28,7 +28,7 @@
         <tr class="hover:bg-slate-50 transition">
           <td class="p-4 font-mono font-bold text-blue-600">#${o.numero || o.id.substring(0,6)}</td>
           <td class="p-4 font-bold text-slate-800 uppercase">${cName}</td>
-          <td class="p-4 font-bold text-slate-800">R$ ${Number(o.valor_final).toFixed(2)}</td>
+          <td class="p-4 font-bold text-slate-800">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-4">${this.getPhaseBadge(o.status_fase)}</td>
           <td class="p-4 text-right space-x-2">
             <button onclick="salesModule.quickView('${o.id}')" class="text-slate-600 font-bold hover:underline">Ver</button>
@@ -219,7 +219,7 @@
                 <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
                 <div class="flex justify-between items-center">
                   <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
-                  <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0.00</span>
+                  <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0,00</span>
                 </div>
                                 <div class="flex justify-between items-center">
                   <span class="text-sm font-semibold text-slate-600">Desconto (%):</span>
@@ -231,7 +231,7 @@
                 </div>
                 <div class="flex justify-between items-center pt-2 border-t border-blue-200">
                   <span class="text-lg font-black text-blue-900">Total Final:</span>
-                  <span class="text-2xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0.00</span>
+                  <span class="text-2xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
                 </div>
                 <div class="mt-4 pt-4 border-t border-blue-100">
                   <button type="button" onclick="salesModule.openFinanceModal()" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition">
@@ -240,7 +240,7 @@
                   </button>
                   <div class="text-center mt-3 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
                     <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
-                    <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0.00 (0%)</span>
+                    <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
                     <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || 0) : 0}">
 <input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
 <input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
@@ -318,24 +318,65 @@
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
           const displayEl = document.getElementById('item-piece-price');
-      if(displayEl) displayEl.innerText = `R$ ${piecePrice.toFixed(2)}`;
+      if(displayEl) displayEl.innerText = `R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       const subtotalEl = document.getElementById('item-subtotal-price');
       if(subtotalEl) {
          const qty = parseInt(document.getElementById('item-qty').value) || 1;
-         subtotalEl.innerText = `R$ ${(piecePrice * qty).toFixed(2)}`;
+         subtotalEl.innerText = `R$ ${(piecePrice * qty).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       }
   },
-    openFinanceModal() {
+      numeroPorExtenso(v) {
+    const unidades = ["", "um", "dois", "trÃªs", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+    const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+    const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+    const milhares = ["", "mil", "milhÃµes", "bilhÃµes"];
+    if (v === 0) return "zero reais";
+    let reais = Math.floor(v);
+    let centavos = Math.round((v - reais) * 100);
+    function converteGrupo(n) {
+        if (n === 100) return "cem";
+        let c = Math.floor(n / 100); let d = Math.floor((n % 100) / 10); let u = n % 10;
+        let res = [];
+        if (c > 0) res.push(centenas[c]);
+        if (d === 1) res.push(unidades[n % 100]);
+        else {
+            if (d > 1) res.push(dezenas[d]);
+            if (u > 0) res.push(unidades[u]);
+        }
+        return res.join(" e ");
+    }
+    let partes = [];
+    if (reais > 0) {
+        let rStr = reais.toString(); let grupos = [];
+        while (rStr.length > 0) { grupos.push(parseInt(rStr.slice(-3))); rStr = rStr.slice(0, -3); }
+        for (let i = 0; i < grupos.length; i++) {
+            if (grupos[i] > 0) {
+                let gStr = converteGrupo(grupos[i]);
+                if (i === 1 && grupos[i] === 1) gStr = "mil";
+                else if (i > 0) gStr += " " + milhares[i];
+                partes.unshift(gStr);
+            }
+        }
+        let reaisStr = partes.join(" e ") + (reais === 1 ? " real" : " reais");
+        partes = [reaisStr];
+    }
+    if (centavos > 0) partes.push(converteGrupo(centavos) + (centavos === 1 ? " centavo" : " centavos"));
+    return partes.join(" e ");
+  },
+  openFinanceModal() {
     const orderIdStr = document.getElementById('current-display-id')?.value || 'NOVO PEDIDO';
     const clientSelect = document.querySelector('select[name="cliente_id"]');
     const clientName = clientSelect && clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : 'Consumidor Final';
     
-    const total = parseFloat(document.getElementById('order-total-final').innerText.replace('R$ ', '')) || 0;
+    const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
+    const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
+    const finalTotal = Math.max(0, subtotal - discount);
+
     const recebido = parseFloat(document.getElementById('order-valor-recebido')?.value) || 0;
-    const restante = Math.max(0, total - recebido);
+    const restante = Math.max(0, finalTotal - recebido);
     
     const dateStr = new Date().toLocaleString('pt-BR');
-    const metodoAtual = document.getElementById('order-metodo-pagto')?.value || 'Dinheiro';
+    const metodoAtual = document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash';
     const obsAtual = document.getElementById('order-obs-pagto')?.value || '';
     
     const modalHtml = `
@@ -351,33 +392,34 @@
           
           <div class="space-y-4">
             <div class="flex justify-between items-center font-black text-lg text-slate-800 bg-blue-50 p-3 rounded border border-blue-100">
-              <span>Valor do Pedido:</span> <span>R$ ${total.toFixed(2)}</span>
+              <span>Valor do Pedido:</span> <span>R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-600">Meio de Pagto</label>
                 <select id="fm-metodo" class="w-full p-3 border border-slate-300 rounded-lg font-bold text-sm bg-white">
-                  <option value="Dinheiro" ${metodoAtual === 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                  <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
+                  <option value="CartÃ£o de crÃ©dito / A vista" ${metodoAtual === 'CartÃ£o de crÃ©dito / A vista' ? 'selected' : ''}>CartÃ£o de crÃ©dito / A vista</option>
+                  <option value="CartÃ£o de crÃ©dito / Parcelado" ${metodoAtual === 'CartÃ£o de crÃ©dito / Parcelado' ? 'selected' : ''}>CartÃ£o de crÃ©dito / Parcelado</option>
+                  <option value="DÃ©bito" ${metodoAtual === 'DÃ©bito' ? 'selected' : ''}>DÃ©bito</option>
                   <option value="Pix" ${metodoAtual === 'Pix' ? 'selected' : ''}>Pix</option>
-                  <option value="CartÃ£o de CrÃ©dito" ${metodoAtual === 'CartÃ£o de CrÃ©dito' ? 'selected' : ''}>CartÃ£o de CrÃ©dito</option>
-                  <option value="CartÃ£o de DÃ©bito" ${metodoAtual === 'CartÃ£o de DÃ©bito' ? 'selected' : ''}>CartÃ£o de DÃ©bito</option>
-                  <option value="TransferÃªncia" ${metodoAtual === 'TransferÃªncia' ? 'selected' : ''}>TransferÃªncia</option>
+                  <option value="Permuta" ${metodoAtual === 'Permuta' ? 'selected' : ''}>Permuta</option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-600">Valor Recebido R$</label>
-                <input type="number" id="fm-recebido" step="0.01" class="w-full p-3 border-2 border-yellow-400 rounded-lg font-black text-green-700 text-lg text-center bg-yellow-50 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toFixed(2)}" oninput="salesModule.updateModalRestante(${total})">
+                <input type="number" id="fm-recebido" step="0.01" class="w-full p-3 border-2 border-yellow-400 rounded-lg font-black text-green-700 text-lg text-center bg-yellow-50 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toFixed(2)}" oninput="salesModule.updateModalRestante(${finalTotal})">
               </div>
             </div>
 
             <div>
-              <label class="block text-xs font-bold mb-1 text-slate-600">ObservaÃ§Ã£o / NSU</label>
+              <label class="block text-xs font-bold mb-1 text-slate-600">ObservaÃ§Ã£o</label>
               <input type="text" id="fm-obs" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white" placeholder="Detalhes do pagamento..." value="${obsAtual}">
             </div>
             
             <div class="flex justify-between items-center font-bold text-sm text-red-600 bg-red-50 p-2 rounded border border-red-100">
-              <span>Valor a Receber (Restante):</span> <span id="fm-restante">R$ ${restante.toFixed(2)}</span>
+              <span>Valor a Receber (Restante):</span> <span id="fm-restante">R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
           </div>
           
@@ -399,11 +441,14 @@
   updateModalRestante(total) {
     const rec = parseFloat(document.getElementById('fm-recebido').value) || 0;
     const rest = Math.max(0, total - rec);
-    document.getElementById('fm-restante').innerText = `R$ ${rest.toFixed(2)}`;
+    document.getElementById('fm-restante').innerText = `R$ ${rest.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
   },
   confirmFinance() {
     const recebido = parseFloat(document.getElementById('fm-recebido').value) || 0;
-    const total = parseFloat(document.getElementById('order-total-final').innerText.replace('R$ ', '')) || 0;
+    const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
+    const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
+    const finalTotal = Math.max(0, subtotal - discount);
+
     const metodo = document.getElementById('fm-metodo').value;
     const obs = document.getElementById('fm-obs').value;
     
@@ -416,7 +461,7 @@
     let inputObs = document.getElementById('order-obs-pagto');
     if(inputObs) inputObs.value = obs;
     
-    this.updateFinanceSummary(recebido, total);
+    this.updateFinanceSummary(recebido, finalTotal);
     document.getElementById('finance-modal').remove();
   },
   updateFinanceSummary(recebido, total) {
@@ -427,7 +472,7 @@
     if (recebido > 0) {
       summaryEl.classList.remove('hidden');
       const perc = total > 0 ? ((recebido / total) * 100).toFixed(1) : 0;
-      textEl.innerText = `R$ ${recebido.toFixed(2)} (${perc}%)`;
+      textEl.innerText = `R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${perc}%)`;
     } else {
       summaryEl.classList.add('hidden');
     }
@@ -436,16 +481,31 @@
     const orderIdStr = document.getElementById('current-display-id')?.value || 'NOVO PEDIDO';
     const clientSelect = document.querySelector('select[name="cliente_id"]');
     const clientName = clientSelect && clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : 'Consumidor Final';
-    const total = parseFloat(document.getElementById('order-total-final').innerText.replace('R$ ', '')) || 0;
+    
+    const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
+    const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
+    const total = Math.max(0, subtotal - discount);
+
     const recebido = parseFloat(document.getElementById('fm-recebido')?.value || document.getElementById('order-valor-recebido')?.value || 0);
     const restante = Math.max(0, total - recebido);
-    const method = document.getElementById('fm-metodo')?.value || 'Dinheiro';
+    const method = document.getElementById('fm-metodo')?.value || 'Dinheiro / Cash';
     const obs = document.getElementById('fm-obs')?.value || '';
     const dateStr = new Date().toLocaleString('pt-BR');
-    const companyName = window.store?.getSettings()?.companyName || 'Sua Empresa';
+    const valExtenso = this.numeroPorExtenso(recebido);
+    const codValidacao = btoa(orderIdStr + '-' + Date.now()).substring(0, 12).toUpperCase();
+
+    const conf = window.store?.getSettings ? window.store.getSettings() : {};
+    const companyName = conf.empresa_nome || 'Sua Empresa';
+    const companyCNPJ = conf.empresa_cnpj || '00.000.000/0001-00';
+    const companyAddress = conf.empresa_endereco || 'EndereÃ§o nÃ£o informado';
+    const companyPhone = conf.empresa_telefone || '(00) 0000-0000';
+    const city = conf.empresa_cidade || 'Sua Cidade';
+    const companyLogo = conf.empresa_logo || '';
     
+    const logoHtml = companyLogo ? `<img src="${companyLogo}" style="max-width: 150px; margin: 0 auto 10px auto; display: block;">` : '';
+
     const receiptHtml = `
-      <html><head><title>Recibo</title>
+      <html><head><title>Recibo - ${orderIdStr}</title>
       <style>
         body { font-family: monospace; padding: 20px; text-align: center; color: #000; }
         .receipt { max-width: 350px; margin: 0 auto; border: 1px dashed #000; padding: 20px; }
@@ -463,8 +523,12 @@
       </style>
       </head><body>
       <div class="receipt">
+        ${logoHtml}
         <h2>RECIBO</h2>
-        <div class="bold" style="font-size:16px; margin-bottom: 10px;">${companyName}</div>
+        <div class="bold" style="font-size:16px;">${companyName}</div>
+        <div style="font-size: 12px;">CNPJ: ${companyCNPJ}</div>
+        <div style="font-size: 12px;">${companyAddress} - ${city}</div>
+        <div style="font-size: 12px;">Tel: ${companyPhone}</div>
         <div class="line"></div>
         <div class="text-left">
           <p><strong>Pedido ID:</strong> ${orderIdStr}</p>
@@ -473,19 +537,21 @@
         </div>
         <div class="line"></div>
         <div class="text-left">
-          <p>Recebemos a quantia de:</p>
-          <h2 style="text-align:center; margin: 15px 0;">R$ ${recebido.toFixed(2)}</h2>
+          <p>Recebemos de ${clientName} a quantia de:</p>
+          <h2 style="text-align:center; margin: 15px 0;">R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
+          <p style="text-align:center; font-style: italic; font-size: 12px;">(${valExtenso})</p>
           <p><strong>Forma Pagto:</strong> ${method}</p>
           ${obs ? `<p><strong>Obs:</strong> ${obs}</p>` : ''}
         </div>
         <div class="line"></div>
-        <div class="flex"><span class="bold">Valor Total:</span> <span>R$ ${total.toFixed(2)}</span></div>
-        <div class="flex"><span class="bold">Valor Recebido:</span> <span>R$ ${recebido.toFixed(2)}</span></div>
-        <div class="flex"><span class="bold">Restante:</span> <span>R$ ${restante.toFixed(2)}</span></div>
+        <div class="flex"><span class="bold">Valor Total:</span> <span>R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+        <div class="flex"><span class="bold">Valor Recebido:</span> <span>R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+        <div class="flex"><span class="bold">Restante:</span> <span>R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
         <div class="line"></div>
+        <p style="font-size: 11px; margin-top: 10px;">CÃ³d. de ValidaÃ§Ã£o: ${codValidacao}</p>
         <br><br><br>
         <p style="font-size: 12px;">_________________________________</p>
-        <p style="font-size: 12px;">Assinatura do Recebedor</p>
+        <p style="font-size: 12px; margin-top: 5px;">Assinatura do Recebedor</p>
       </div>
       <script>window.print();</script>
       </body></html>
@@ -502,7 +568,7 @@
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
     const displayEl = document.getElementById('item-piece-price');
-    if(displayEl) displayEl.innerText = `PeÃ§a: R$ ${piecePrice.toFixed(2)}`;
+    if(displayEl) displayEl.innerText = `PeÃ§a: R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
   },
   openNewProductModal() {
     const modalHtml = `
@@ -660,10 +726,10 @@
                 <p><strong class="text-slate-900">DimensÃµes:</strong> ${it.largura_x}m x ${it.comprimento_y}m</p>
                 <p><strong class="text-slate-900">Quantidade:</strong> ${it.quantidade}</p>
                 <p><strong class="text-slate-900">Ãrea Total:</strong> ${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toFixed(2) + (it.tipo_calculo === 'm2' ? ' mÂ²' : ' m') : '-'}</p>
-                <p><strong class="text-slate-900">Valor UnitÃ¡rio:</strong> R$ ${Number(it.preco_unitario).toFixed(2)}</p>
+                <p><strong class="text-slate-900">Valor UnitÃ¡rio:</strong> R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                 <div class="font-black text-green-700 text-lg border-t pt-2 mt-2 flex justify-between">
                   <span>Subtotal:</span>
-                  <span>R$ ${Number(it.valor_total).toFixed(2)}</span>
+                  <span>R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
               </div>
             </div>
@@ -687,8 +753,8 @@
         <td class="p-2 font-mono text-[11px]">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
         <td class="p-2 font-bold text-center">${it.quantidade}</td>
         <td class="p-2 font-mono text-[11px] text-purple-700">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toFixed(2) + (it.tipo_calculo === 'm2' ? ' m2' : ' m') : '-'}</td>
-        <td class="p-2 font-mono text-[11px]">R$ ${Number(it.preco_unitario).toFixed(2)}</td>
-        <td class="p-2 font-bold text-blue-700">R$ ${Number(it.valor_total).toFixed(2)}</td>
+        <td class="p-2 font-mono text-[11px]">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td class="p-2 font-bold text-blue-700">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
         <td class="p-2 text-right"><button type="button" onclick="salesModule.removeItem(${idx})" class="text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded">&times;</button></td>
       </tr>
     `).join('');
@@ -710,8 +776,8 @@
 
     const finalTotal = Math.max(0, subtotal - descVal);
     if (document.getElementById('order-subtotal')) {
-      document.getElementById('order-subtotal').innerText = 'R$ ' + subtotal.toFixed(2);
-      document.getElementById('order-total-final').innerText = 'R$ ' + finalTotal.toFixed(2);
+      document.getElementById('order-subtotal').innerText = 'R$ ' + subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      document.getElementById('order-total-final').innerText = 'R$ ' + finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
     
     const valorRecebido = parseFloat(document.getElementById('order-valor-recebido')?.value) || 0;
@@ -839,7 +905,7 @@
                     <span class="font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1">#${it.item_id || '----'}</span>
                     <strong>${it.produto_nome}</strong> - ${it.quantidade}x
                   </div>
-                  <strong class="text-blue-700 font-mono">R$ ${Number(it.valor_total).toFixed(2)}</strong>
+                  <strong class="text-blue-700 font-mono">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
                 </div>
               `).join('')}
             </div>
@@ -866,9 +932,9 @@
     if (!client || !client.telefone_whatsapp) { alert('Cliente sem WhatsApp'); return; }
     let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlÃ¡ ' + client.nome + '!%0A';
     order.itens.forEach((it, i) => {
-      msg += (i+1) + '. ' + it.descricao + ' | R$ ' + Number(it.valor_total).toFixed(2) + '%0A';
+      msg += (i+1) + '. ' + it.descricao + ' | R$ ' + Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%0A';
     });
-    msg += '%0A*Total: R$ ' + Number(order.valor_final).toFixed(2) + '*%0A';
+    msg += '%0A*Total: R$ ' + Number(order.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '*%0A';
     const phone = client.telefone_whatsapp.replace(/\D/g, '');
     window.open('https://wa.me/55' + phone + '?text=' + msg, '_blank');
   },
@@ -906,7 +972,7 @@
             <table class="w-full text-xs text-left border rounded overflow-hidden">
               <thead class="bg-slate-100"><tr><th class="p-2">Item</th><th class="p-2">Medidas</th><th class="p-2 text-center">Qtd</th><th class="p-2 text-right">Total</th></tr></thead>
               <tbody>
-                ${order.itens.map(it => `<tr><td class="p-2">${it.descricao}</td><td class="p-2 font-mono">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : '-'}</td><td class="p-2 text-center">${it.quantidade}</td><td class="p-2 text-right font-mono">R$ ${Number(it.valor_total).toFixed(2)}</td></tr>`).join('')}
+                ${order.itens.map(it => `<tr><td class="p-2">${it.descricao}</td><td class="p-2 font-mono">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : '-'}</td><td class="p-2 text-center">${it.quantidade}</td><td class="p-2 text-right font-mono">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`).join('')}
               </tbody>
             </table>
           </div>
