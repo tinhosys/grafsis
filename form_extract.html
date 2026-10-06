@@ -1,0 +1,178 @@
+<form id="order-form" onsubmit="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold mb-1">Cliente *</label>
+                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800">
+                  <option value="">Selecione o Cliente...</option>
+                  ${clients.map(c => `<option value="${c.id}" ${(order && order.cliente_id === c.id) || params.clientId === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Tipo de Operacao</label>
+                <select name="tipo_operacao" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                  <option value="venda" ${order && order.tipo_operacao === 'venda' ? 'selected' : ''}>Venda</option>
+                  <option value="pre-venda" ${order && order.tipo_operacao === 'pre-venda' ? 'selected' : ''}>Pre-Venda</option>
+                  <option value="orcamento" ${order && order.tipo_operacao === 'orcamento' ? 'selected' : ''}>Orcamento</option>
+                  <option value="patrocinio" ${order && order.tipo_operacao === 'patrocinio' ? 'selected' : ''}>Patrocinio</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-semibold mb-1 text-slate-700">Prazo (Dias)</label>
+                  <input type="number" id="dias-entrega" min="0" oninput="salesModule.updateDateFromDays()" placeholder="Ex: 5" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold mb-1">Previsao</label>
+                  <input type="date" name="previsao_entrega" value="${order ? (order.previsao_entrega || '') : new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                </div>
+              </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl w-full p-6 shadow-sm border border-slate-200 mt-4">
+
+            <div class="border border-slate-300 rounded-xl p-4 bg-white mt-4">
+              <h3 class="text-sm font-bold text-slate-800 uppercase mb-3 border-b pb-2">Itens do Pedido</h3>
+                            <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
+                <div class="grid grid-cols-12 gap-2">
+                  <div class="col-span-12 sm:col-span-6 flex items-end gap-1">
+                    <div class="flex-1">
+                      <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
+                      <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
+                        <option value="">Selecione...</option>
+                        ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
+                      </select>
+                    </div>
+                    <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto RÃ¡pido">+ NOVO</button>
+                  </div>
+                  <div class="col-span-6 sm:col-span-3">
+                    <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
+                    <select id="item-type" onchange="salesModule.toggleDimensionInputs()" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
+                      <option value="m2">m2 (X x Y)</option>
+                      <option value="linear">Linear</option>
+                      <option value="unidade">Unitario</option>
+                    </select>
+                  </div>
+                  <div class="col-span-6 sm:col-span-3">
+                    <label class="block font-semibold mb-1 text-slate-700">Base mÂ² / un</label>
+                    <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="PreÃ§o base - Fica invisÃ­vel ao perder o foco">
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
+                  <input type="text" id="item-desc" placeholder="Ex: Adesivo com recorte" class="w-full p-2 border border-slate-300 rounded bg-white">
+                </div>
+                <div class="grid grid-cols-12 gap-2 items-end">
+                  <div class="col-span-2" id="div-width">
+                    <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Largura X (m)</label>
+                    <input type="number" step="0.01" id="item-width" value="1.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                  </div>
+                  <div class="col-span-2" id="div-height">
+                    <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Compr. Y (m)</label>
+                    <input type="number" step="0.01" id="item-height" value="1.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                  </div>
+                  <div class="col-span-2 sm:col-span-1">
+                    <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Qtd</label>
+                    <input type="number" step="1" id="item-qty" value="1" min="1" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-xs">
+                  </div>
+                  <div class="col-span-3 sm:col-span-2">
+                    <label class="block text-[10px] uppercase font-bold mb-1 text-red-600">V. Unit. (R$)</label>
+                    <div id="item-piece-price" class="w-full p-2 font-mono text-red-600 font-bold bg-red-50 border border-red-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
+                  </div>
+                  <div class="col-span-3 sm:col-span-2">
+                    <label class="block text-[10px] uppercase font-bold mb-1 text-green-600">Sub Total</label>
+                    <div id="item-subtotal-price" class="w-full p-2 font-mono text-green-700 font-bold bg-green-50 border border-green-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
+                  </div>
+                  <div class="col-span-12 sm:col-span-3 mt-2 sm:mt-0 flex gap-2">
+                    <div class="relative w-10 h-[38px] flex-shrink-0" title="Anexar Arte (Max 2MB)">
+                      <input type="file" id="item-arte-upload" accept="image/png, image/jpeg, image/jpg" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="salesModule.handleItemArteUpload(this)">
+                      <div id="item-arte-btn" class="w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                      </div>
+                      <input type="hidden" id="item-arte-url" value="">
+                    </div>
+                    <button type="button" onclick="salesModule.addItemToOrder()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap">+ INSERIR ITEM</button>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 border border-slate-200 rounded-lg overflow-hidden">'
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
+                    <tr><th class="p-3">Produto & Item</th><th class="p-3">Dimensoes</th><th class="p-3 text-center">Qtd</th><th class="p-3">Area</th><th class="p-3">Preco</th><th class="p-3 text-right">Total</th><th class="p-3 text-center">Acao</th></tr>
+                  </thead>
+                  <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Producao</h3>
+                
+                <div>
+                  <label class="block text-xs font-semibold mb-1 text-slate-700">Observacoes Tecnicas</label>
+                  <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
+                </div>
+              </div>
+              <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
+                  <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0,00</span>
+                </div>
+                                <div class="flex justify-between items-center">
+                  <span class="text-sm font-semibold text-slate-600">Desconto (%):</span>
+                  <input type="number" step="0.01" id="order-discount-perc" value="0" oninput="salesModule.recalcTotals('perc')" class="w-20 p-1.5 border rounded-lg text-center font-mono text-sm bg-white text-purple-700 font-bold">
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm font-semibold text-slate-600">Desconto (R$):</span>
+                  <input type="number" step="0.01" id="order-discount" value="${order ? (order.desconto || 0) : 0}" oninput="salesModule.recalcTotals('val')" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white">
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t border-blue-200">
+                  <span class="text-lg font-black text-blue-900">Total Final:</span>
+                  <span class="text-2xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
+                </div>
+                <div class="mt-4 pt-4 border-t border-blue-100">
+                  <button type="button" onclick="salesModule.openFinanceModal()" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    RECEBER / FINANCEIRO
+                  </button>
+                  <div class="text-center mt-3 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
+                    <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
+                    <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
+                    <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || 0) : 0}">
+<input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
+<input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
+</div>
+                </div>
+              </div>
+            </div>
+            <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row' justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div class="w-full sm:w-1/3">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Producao / Status Inicial</label>
+                <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
+                  ${(window.productionModule ? window.productionModule.phases : [
+                      {id:'orcamento', name:'1. ORÃ‡AMENTO'},
+                      {id:'prevenda', name:'2. PRÃ‰-VENDA'},
+                      {id:'aprovacao', name:'3. APROVAÃ‡ÃƒO'},
+                      {id:'liberado', name:'4. LIBERADO'},
+                      {id:'producao', name:'5. PRODUÃ‡ÃƒO'},
+                      {id:'acabamento', name:'6. ACABAMENTO'},
+                      {id:'embalagem', name:'7. EMBALAGEM'},
+                      {id:'entregue', name:'8. ENTREGA'}
+                  ]).map(p => `<option value="${p.id}" ${order && order.status_fase === p.id ? 'selected' : (!order && p.id === 'orcamento' ? 'selected' : '')}>${p.name}</option>`).join('')}
+                </select>
+              </div>
+              <div class="flex gap-3 w-full sm:w-auto justify-end">
+                <button type="button" onclick="salesModule.render()" class="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                                  <button type="submit" class="px-8 py-3 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
+                  <button type="button" onclick="salesModule.printOrder('pedido')" class="px-6 py-3 text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Pedido de Venda A4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Emitir Pedido
+                  </button>
+                  <button type="button" onclick="salesModule.printOrder('os')" class="px-6 py-3 text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Ordem de Servi\u00E7o A4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Emitir O.S.
+                  </button>
+                </div>
+            </div>
+          </form>
