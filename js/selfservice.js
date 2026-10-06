@@ -438,7 +438,7 @@ window.selfserviceModule = {
     
     document.getElementById('pix-modal').remove();
     this.render();
-    alert(\`Recarga PIX de R$ \${valor.toFixed(2)} realizada com sucesso (Simulada). O saldo já está disponível na sua conta.\`);
+    alert(`Recarga PIX de R$ ${valor.toFixed(2)} realizada com sucesso (Simulada). O saldo já está disponível na sua conta.`);
   },
 
   // ==========================================
