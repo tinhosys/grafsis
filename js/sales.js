@@ -1,4 +1,4 @@
-window.salesModule = {
+﻿window.salesModule = {
   activeItems: [],
   render() {
     const orders = window.store.getOrders();
@@ -86,9 +86,7 @@ window.salesModule = {
   },
   editItem(idx) {
     const it = this.activeItems[idx];
-    document.getElementById('item-desc').value = it.descricao || '';
-    document.getElementById('item-prod-select').value = it.produto_id || '';
-    document.getElementById('item-type').value = it.tipo_calculo || 'm2';
+    const prodSelect = document.getElementById('item-prod-select'); prodSelect.value = it.produto_id || ''; if (prodSelect.value) { this.handleProdSelect(prodSelect); } document.getElementById('item-desc').value = it.descricao || ''; document.getElementById('item-type').value = it.tipo_calculo || 'm2';
     document.getElementById('item-price').value = it.preco_base || '0.00';
     document.getElementById('item-width').value = it.largura_x || '0.00';
     document.getElementById('item-height').value = it.comprimento_y || '0.00';
@@ -104,8 +102,7 @@ window.salesModule = {
       }
     }
     this.toggleDimensionInputs();
-    this.calcPiecePrice();
-    this.removeItem(idx);
+    this.calcPiecePrice(); this.removeItem(idx); let cancelBtn = document.getElementById('cancel-edit-btn'); if (!cancelBtn) { cancelBtn = document.createElement('button'); cancelBtn.id = 'cancel-edit-btn'; cancelBtn.type = 'button'; cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2'; cancelBtn.innerHTML = 'CANCELAR'; cancelBtn.onclick = () => { if(confirm('Cancelar edição e limpar formulário?')) { salesModule.activeItems.splice(idx, 0, it); document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml(); document.getElementById('item-desc').value = ''; document.getElementById('item-prod-select').value = ''; document.getElementById('item-price').value = '0.00'; document.getElementById('item-width').value = '0.00'; document.getElementById('item-height').value = '0.00'; document.getElementById('item-qty').value = '1'; cancelBtn.remove(); salesModule.recalcTotals('val'); } }; const insertBtn = document.querySelector('button[onclick="salesModule.addItemToOrder()"]'); if (insertBtn) insertBtn.parentNode.appendChild(cancelBtn); }
   },
   openModal(params = {}) {
     const clients = window.store.getClients();
@@ -879,8 +876,7 @@ window.salesModule = {
       const arteUpload = document.getElementById('item-arte-upload');
       if(arteUpload) arteUpload.value = '';
       this.calcPiecePrice();
-    this.recalcTotals('val');
-    document.getElementById('item-prod-select').focus();
+    this.recalcTotals('val'); const cancelBtn = document.getElementById('cancel-edit-btn'); if(cancelBtn) cancelBtn.remove(); document.getElementById('item-prod-select').focus();
   },
   removeItem(idx) {
     this.activeItems.splice(idx, 1);
@@ -900,8 +896,7 @@ window.salesModule = {
       const arteUpload = document.getElementById('item-arte-upload');
       if(arteUpload) arteUpload.value = '';
       this.calcPiecePrice();
-    this.recalcTotals('val');
-    document.getElementById('item-prod-select').focus();
+    this.recalcTotals('val'); const cancelBtn = document.getElementById('cancel-edit-btn'); if(cancelBtn) cancelBtn.remove(); document.getElementById('item-prod-select').focus();
   },
           viewItemDetails(idx) {
       const it = this.activeItems[idx];
@@ -1222,6 +1217,10 @@ window.salesModule = {
 
 
 };
+
+
+
+
 
 
 
