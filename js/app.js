@@ -105,6 +105,9 @@ window.app = {
       case 'owner':
         this.renderOwner();
         break;
+      case 'selfservice':
+        window.selfserviceModule.render();
+        break;
     }
   },
 

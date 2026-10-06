@@ -12,8 +12,8 @@ window.selfserviceModule = {
   
   render() {
     const container = document.getElementById('view-container');
-    const user = window.authModule.currentUser;
-    const isAdmin = user && (user.role === 'ADMIN' || user.role === 'GERENTE');
+    const user = window.authModule.getCurrentUser();
+    const isAdmin = user && ['ADMIN', 'PROPRIETARIO', 'GERENTE'].includes(user.role);
     
     let adminBtn = '';
     if (isAdmin) {
@@ -234,7 +234,7 @@ window.selfserviceModule = {
     }
   },
 
-  checkout() {
+  async checkout() {
     const settings = this.getSettings();
     const nome = document.getElementById('cr-nome').value.trim();
     const mat = document.getElementById('cr-mat').value.trim();
@@ -244,6 +244,7 @@ window.selfserviceModule = {
       return;
     }
 
+    this.currentClient.saldo_corrente = Number(this.currentClient.saldo_corrente) || 0;
     if (this.currentClient.saldo_corrente < settings.price) {
       alert('SALDO INSUFICIENTE!\n\nVocê possui R$ ' + this.currentClient.saldo_corrente.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' de saldo, mas o crachá custa R$ ' + settings.price.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '.\n\nDirija-se ao balcão para recarregar sua conta.');
       return;
@@ -255,8 +256,8 @@ window.selfserviceModule = {
     const clients = window.store.getClients();
     const idx = clients.findIndex(c => c.id === this.currentClient.id);
     if(idx > -1) {
-      clients[idx].saldo_corrente -= settings.price;
-      window.store.saveClients(clients);
+      clients[idx].saldo_corrente = (Number(clients[idx].saldo_corrente) || 0) - settings.price;
+      await window.store.saveClient(clients[idx]);
       this.currentClient.saldo_corrente = clients[idx].saldo_corrente;
     }
 
@@ -292,8 +293,8 @@ window.selfserviceModule = {
       }]
     };
 
-    window.store.saveOrder(pedido);
-    window.store.saveFinanceEntry({
+    await window.store.saveOrder(pedido);
+    await window.store.saveFinanceEntry({
       tipo: 'receber',
       descricao: 'Pagamento de Crachá via Conta Corrente (Autoatendimento) - Pedido #' + pedido.numero,
       valor: settings.price,
