@@ -74,6 +74,39 @@ window.salesModule = {
     date.setDate(date.getDate() + days);
     document.getElementsByName('previsao_entrega')[0].value = date.toISOString().split('T')[0];
   },
+  updateDaysFromDate() {
+    const previsaoInput = document.getElementsByName('previsao_entrega')[0];
+    if (!previsaoInput || !previsaoInput.value) return;
+    const selectedDate = new Date(previsaoInput.value + 'T12:00:00');
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    const diffTime = selectedDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    document.getElementById('dias-entrega').value = diffDays >= 0 ? diffDays : 0;
+  },
+  editItem(idx) {
+    const it = this.activeItems[idx];
+    document.getElementById('item-desc').value = it.descricao || '';
+    document.getElementById('item-prod-select').value = it.produto_id || '';
+    document.getElementById('item-type').value = it.tipo_calculo || 'm2';
+    document.getElementById('item-price').value = it.preco_base || '0.00';
+    document.getElementById('item-width').value = it.largura_x || '0.00';
+    document.getElementById('item-height').value = it.comprimento_y || '0.00';
+    document.getElementById('item-qty').value = it.quantidade || '1';
+    const itemArteInput = document.getElementById('item-arte-url');
+    if(itemArteInput) itemArteInput.value = it.arte_url || '';
+    const arteBtn = document.getElementById('item-arte-btn');
+    if(arteBtn) {
+      if(it.arte_url) {
+        arteBtn.className = 'w-full h-full bg-blue-100 border border-blue-400 rounded flex items-center justify-center text-blue-600';
+      } else {
+        arteBtn.className = 'w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors';
+      }
+    }
+    this.toggleDimensionInputs();
+    this.calcPiecePrice();
+    this.removeItem(idx);
+  },
   openModal(params = {}) {
     const clients = window.store.getClients();
     const products = window.store.getProducts();
@@ -125,7 +158,7 @@ window.salesModule = {
                 </div>
                 <div>
                   <label class="block text-xs font-semibold mb-1">Previsao</label>
-                  <input type="date" name="previsao_entrega" value="${order ? (order.previsao_entrega || '') : new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                  <input type="date" name="previsao_entrega" id="previsao_entrega" oninput="salesModule.updateDaysFromDate()" onchange="salesModule.updateDaysFromDate()" value="${order ? (order.previsao_entrega || '') : new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
                 </div>
               </div>
             </div>
@@ -165,11 +198,11 @@ window.salesModule = {
                 <div class="grid grid-cols-12 gap-2 items-end">
                   <div class="col-span-2" id="div-width">
                     <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Largura X (m)</label>
-                    <input type="number" step="0.01" id="item-width" value="1.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                    <input type="number" step="0.01" id="item-width" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
                   </div>
                   <div class="col-span-2" id="div-height">
                     <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Compr. Y (m)</label>
-                    <input type="number" step="0.01" id="item-height" value="1.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                    <input type="number" step="0.01" id="item-height" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
                   </div>
                   <div class="col-span-2 sm:col-span-1">
                     <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Qtd</label>
@@ -834,8 +867,8 @@ window.salesModule = {
           document.getElementById('item-desc').value = '';
       document.getElementById('item-prod-select').value = '';
       document.getElementById('item-price').value = '0.00';
-      document.getElementById('item-width').value = '1.00';
-      document.getElementById('item-height').value = '1.00';
+      document.getElementById('item-width').value = '0.00';
+      document.getElementById('item-height').value = '0.00';
       document.getElementById('item-qty').value = '1';
           if(itemArteInput) itemArteInput.value = '';
       const arteBtn = document.getElementById('item-arte-btn');
@@ -855,8 +888,8 @@ window.salesModule = {
           document.getElementById('item-desc').value = '';
       document.getElementById('item-prod-select').value = '';
       document.getElementById('item-price').value = '0.00';
-      document.getElementById('item-width').value = '1.00';
-      document.getElementById('item-height').value = '1.00';
+      document.getElementById('item-width').value = '0.00';
+      document.getElementById('item-height').value = '0.00';
       document.getElementById('item-qty').value = '1';
           if(itemArteInput) itemArteInput.value = '';
       const arteBtn = document.getElementById('item-arte-btn');
@@ -927,7 +960,10 @@ window.salesModule = {
           <td class="p-2 font-mono text-[11px] text-purple-700">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + (it.tipo_calculo === 'm2' ? ' m\u00B2' : ' m') : '-'}</td>
           <td class="p-2 font-mono text-[11px]">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-2 font-bold text-blue-700">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-          <td class="p-2 text-right"><button type="button" onclick="salesModule.removeItem(${idx})" class="text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded">&times;</button></td>
+          <td class="p-2 text-right flex justify-end gap-2">
+  <button type="button" onclick="salesModule.editItem(${idx})" class="text-blue-500 font-bold hover:bg-blue-50 px-2 py-1 rounded" title="Editar">&#9998;</button>
+  <button type="button" onclick="salesModule.removeItem(${idx})" class="text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded" title="Remover">&times;</button>
+</td>
         </tr>
       `).join('');
     },
@@ -1186,6 +1222,8 @@ window.salesModule = {
 
 
 };
+
+
 
 
 
