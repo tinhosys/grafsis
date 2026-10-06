@@ -371,8 +371,8 @@ window.salesModule = {
     },
       calcPiecePrice() {
     const type = document.getElementById('item-type').value;
-    const w = parseFloat(document.getElementById('item-width').value) || 1;
-    const h = parseFloat(document.getElementById('item-height').value) || 1;
+    let w = parseFloat(document.getElementById('item-width').value); if(isNaN(w)) w = 0;
+    let h = parseFloat(document.getElementById('item-height').value); if(isNaN(h)) h = 0;
     const price = parseFloat(document.getElementById('item-price').value) || 0;
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
@@ -780,8 +780,8 @@ window.salesModule = {
   },
   calcPiecePriceOLD() {
     const type = document.getElementById('item-type').value;
-    const w = parseFloat(document.getElementById('item-width').value) || 1;
-    const h = parseFloat(document.getElementById('item-height').value) || 1;
+    let w = parseFloat(document.getElementById('item-width').value); if(isNaN(w)) w = 0;
+    let h = parseFloat(document.getElementById('item-height').value); if(isNaN(h)) h = 0;
     const price = parseFloat(document.getElementById('item-price').value) || 0;
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
@@ -851,8 +851,8 @@ window.salesModule = {
     const opt = prodSelect.options[prodSelect.selectedIndex];
     const prodNome = opt.text.split(' (R$')[0];
     const type = document.getElementById('item-type').value;
-    const w = parseFloat(document.getElementById('item-width').value) || 1;
-    const h = parseFloat(document.getElementById('item-height').value) || 1;
+    let w = parseFloat(document.getElementById('item-width').value); if(isNaN(w)) w = 0;
+    let h = parseFloat(document.getElementById('item-height').value); if(isNaN(h)) h = 0;
     const qty = parseInt(document.getElementById('item-qty').value) || 1;
     const price = parseFloat(document.getElementById('item-price').value) || 0;
     
@@ -886,8 +886,8 @@ window.salesModule = {
           document.getElementById('item-desc').value = '';
       document.getElementById('item-prod-select').value = '';
       document.getElementById('item-price').value = '0.00';
-      document.getElementById('item-width').value = '1.00';
-      document.getElementById('item-height').value = '1.00';
+      document.getElementById('item-width').value = '0.00';
+      document.getElementById('item-height').value = '0.00';
       document.getElementById('item-qty').value = '1';
           if(itemArteInput) itemArteInput.value = '';
       const arteBtn = document.getElementById('item-arte-btn');
@@ -907,8 +907,8 @@ window.salesModule = {
           document.getElementById('item-desc').value = '';
       document.getElementById('item-prod-select').value = '';
       document.getElementById('item-price').value = '0.00';
-      document.getElementById('item-width').value = '1.00';
-      document.getElementById('item-height').value = '1.00';
+      document.getElementById('item-width').value = '0.00';
+      document.getElementById('item-height').value = '0.00';
       document.getElementById('item-qty').value = '1';
           if(itemArteInput) itemArteInput.value = '';
       const arteBtn = document.getElementById('item-arte-btn');
