@@ -1,9 +1,9 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GRAFSIS - Controle de Vendas, ProduÃ§Ã£o e ComunicaÃ§Ã£o Visual</title>
+  <title>GRAFSIS - Controle de Vendas, Produção e Comunicação Visual</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,9 +16,9 @@
 
   <!-- Sidebar Lateral -->
   <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0 no-print z-20 shadow-sm">
-    <!-- Logo DinÃ¢mica e VersÃ£o -->
+    <!-- Logo Dinâmica e Versão -->
     <div class="h-28 flex items-center justify-center p-4 border-b border-slate-100 shrink-0">
-      <div class="flex flex-col items-center gap-2 w-full cursor-pointer" onclick="app.switchTab('settings')" title="ConfiguraÃ§Ãµes e UsuÃ¡rios">
+      <div class="flex flex-col items-center gap-2 w-full cursor-pointer" onclick="app.switchTab('settings')" title="Configurações e Usuários">
         <div class="w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-slate-100" id="header-logo-container">
           <img id="header-logo-img" src="assets/demo-top-digital.png" alt="Logo" class="w-full h-full object-contain">
         </div>
@@ -26,15 +26,15 @@
       </div>
     </div>
     
-    <!-- NavegaÃ§Ã£o Vertical (Sidebar) -->
+    <!-- Navegação Vertical (Sidebar) -->
     <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="nav-tabs-container">
       <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors" data-tab="production" onclick="app.navigate('production')">
         <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
-        Fases da ProduÃ§Ã£o
+        Fases da Produção
       </button>
       <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors" data-tab="sales" onclick="app.navigate('sales')">
         <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-        Vendas & OrÃ§amentos
+        Vendas & Orçamentos
       </button>
       <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors" data-tab="clients" onclick="app.navigate('clients')">
         <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
@@ -50,14 +50,14 @@
       </button>
       <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors" data-tab="products" onclick="app.navigate('products')">
         <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-        Produtos & mÂ²
+        Produtos & m²
       </button>
       
       <div class="pt-4 pb-2">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">ConfiguraÃ§Ãµes</div>
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Configurações</div>
         <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors hidden" data-tab="owner" onclick="app.navigate('owner')" id="nav-owner-tab">
           <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-          ProprietÃ¡rio
+          Proprietário
         </button>
         <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors" data-tab="settings" onclick="app.navigate('settings')">
           <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
@@ -67,27 +67,27 @@
     </nav>
     
     <div class="p-4 border-t border-slate-100 flex flex-col items-center justify-center shrink-0">
-       <button onclick="app.openVersionModal()" title="Clique para ver o histÃ³rico e controle de versÃ£o" class="text-[10px] font-bold px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 transition mb-1">
-         v2.2.13
+       <button onclick="app.openVersionModal()" title="Clique para ver o histórico e controle de versão" class="text-[10px] font-bold px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 transition mb-1">
+         v2.2.14
        </button>
        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider text-center">Powered by <span class="text-slate-600">GRAF</span><span class="text-blue-600">SIS</span></span>
     </div>
   </aside>
 
-  <!-- Ãrea Principal -->
+  <!-- Área Principal -->
   <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
     
-    <!-- Header Superior (Mobile Menu Toggle + AÃ§Ãµes RÃ¡pidas + Perfil) -->
+    <!-- Header Superior (Mobile Menu Toggle + Ações Rápidas + Perfil) -->
     <header class="bg-white border-b border-slate-200 h-24 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0 no-print">
       
-      <!-- Lado Esquerdo: Toggle Mobile + BotÃµes Azuis (Atalhos) -->
+      <!-- Lado Esquerdo: Toggle Mobile + Botões Azuis (Atalhos) -->
       <div class="flex items-center gap-4">
         <!-- Toggle Menu Mobile (Oculto no Desktop) -->
         <button class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         
-        <!-- BotÃµes de Atalho Azuis (como na imagem) -->
+        <!-- Botões de Atalho Azuis (como na imagem) -->
         <div class="hidden sm:flex items-center gap-2">
           <button onclick="app.navigate('sales')" class="w-16 h-16 bg-[#00a3ff] hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition-transform hover:scale-105 border-b-4 border-blue-700">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -96,7 +96,7 @@
           
           <button onclick="app.navigate('production')" class="w-16 h-16 bg-[#00a3ff] hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition-transform hover:scale-105 border-b-4 border-blue-700">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-tight">ProduÃ§Ã£o</span>
+            <span class="text-[10px] font-bold uppercase tracking-tight">Produção</span>
           </button>
           
           <button class="w-16 h-16 bg-[#00a3ff] hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition-transform hover:scale-105 border-b-4 border-blue-700" title="Filtros">
@@ -109,7 +109,7 @@
             <span class="text-[10px] font-bold uppercase tracking-tight">Clientes</span>
           </button>
           
-          <button class="w-16 h-16 bg-[#00a3ff] hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition-transform hover:scale-105 border-b-4 border-blue-700" title="Mais opÃ§Ãµes">
+          <button class="w-16 h-16 bg-[#00a3ff] hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition-transform hover:scale-105 border-b-4 border-blue-700" title="Mais opções">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
           </button>
         </div>
@@ -120,49 +120,49 @@
         <!-- Status Nuvem Supabase -->
         <div id="cloud-sync-status" class="hidden md:block"></div>
 
-        <!-- BotÃ£o Calculadora m2 -->
+        <!-- Botão Calculadora m2 -->
         <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden xl:flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold border border-emerald-200 transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-          Calculadora mÂ²
+          Calculadora m²
         </button>
         
         <!-- Perfil / Operador (Verde) -->
-        <div class="flex items-center gap-2 pl-3 border-l border-slate-200 cursor-pointer p-1.5 hover:bg-slate-50 rounded-xl transition" onclick="authModule.openLoginModal()" title="Trocar Operador / NÃ­vel de Acesso">
+        <div class="flex items-center gap-2 pl-3 border-l border-slate-200 cursor-pointer p-1.5 hover:bg-slate-50 rounded-xl transition" onclick="authModule.openLoginModal()" title="Trocar Operador / Nível de Acesso">
           <div class="text-right hidden sm:block">
             <div id="user-header-badge" class="text-[9px] font-extrabold uppercase text-slate-500 mb-0.5">ADMIN</div>
-            <div id="user-header-name" class="text-xs font-bold text-blue-700 leading-none">ProprietÃ¡rio (Master)</div>
+            <div id="user-header-name" class="text-xs font-bold text-blue-700 leading-none">Proprietário (Master)</div>
           </div>
           <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
           </div>
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition ml-1" title="ConfiguraÃ§Ãµes e UsuÃ¡rios" onclick="event.stopPropagation(); app.switchTab('settings')">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition ml-1" title="Configurações e Usuários" onclick="event.stopPropagation(); app.switchTab('settings')">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- Container DinÃ¢mico Principal -->
+    <!-- Container Dinâmico Principal -->
     <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-slate-50 relative" id="main-content-scroll">
       <div id="view-container" class="max-w-7xl mx-auto"></div>
       
-      <!-- RodapÃ© com VersÃ£o -->
+      <!-- Rodapé com Versão -->
       <footer class="mt-8 pt-4 border-t border-slate-200 text-center text-xs text-slate-500 no-print flex flex-col sm:flex-row items-center justify-between w-full max-w-7xl mx-auto pb-4">
         <div>
-          GRAFSIS - ComunicaÃ§Ã£o Visual, GrÃ¡fica RÃ¡pida, Brindes & ImpressÃ£o Digital
+          GRAFSIS - Comunicação Visual, Gráfica Rápida, Brindes & Impressão Digital
         </div>
         <div class="mt-2 sm:mt-0 flex items-center gap-2">
           <span class="text-slate-400">Banco de Dados Cloud Supabase</span>
-          <span>â€¢</span>
+          <span>•</span>
           <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
-            VersÃ£o 2.0.0 (Ver Notas)
+            Versão 2.0.0 (Ver Notas)
           </button>
         </div>
       </footer>
     </main>
   </div>
 
-  <!-- Modal de Autenticaï¿½ï¿½o / Troca de Operador -->
+  <!-- Modal de Autentica??o / Troca de Operador -->
   <div id="auth-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
       <div class="bg-gradient-to-r from-blue-700 to-indigo-700 p-6 text-white text-center">
@@ -174,43 +174,43 @@
       </div>
 
       <div class="p-6 space-y-4">
-        <!-- Seleï¿½ï¿½o Rï¿½pida de Perfil -->
+        <!-- Sele??o R?pida de Perfil -->
         <div>
           <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Atalhos de Operador</label>
           <div class="grid grid-cols-2 gap-2 text-xs">
             <button onclick="authModule.quickSwitch('ADMIN')" class="p-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-800 font-bold text-left transition flex items-center justify-between">
               <span>ADMIN</span>
-              <span class="text-[10px] bg-red-200 px-1.5 py-0.5 rounded">Nï¿½vel 4</span>
+              <span class="text-[10px] bg-red-200 px-1.5 py-0.5 rounded">N?vel 4</span>
             </button>
             <button onclick="authModule.quickSwitch('GERENTE')" class="p-2.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-left transition flex items-center justify-between">
               <span>GERENTE</span>
-              <span class="text-[10px] bg-purple-200 px-1.5 py-0.5 rounded">Nï¿½vel 3</span>
+              <span class="text-[10px] bg-purple-200 px-1.5 py-0.5 rounded">N?vel 3</span>
             </button>
             <button onclick="authModule.quickSwitch('VENDAS')" class="p-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-left transition flex items-center justify-between">
               <span>VENDAS</span>
-              <span class="text-[10px] bg-blue-200 px-1.5 py-0.5 rounded">Nï¿½vel 2</span>
+              <span class="text-[10px] bg-blue-200 px-1.5 py-0.5 rounded">N?vel 2</span>
             </button>
             <button onclick="authModule.quickSwitch('PRODUCAO')" class="p-2.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-left transition flex items-center justify-between">
-              <span>PRODUï¿½ï¿½O</span>
-              <span class="text-[10px] bg-amber-200 px-1.5 py-0.5 rounded">Nï¿½vel 1</span>
+              <span>PRODU??O</span>
+              <span class="text-[10px] bg-amber-200 px-1.5 py-0.5 rounded">N?vel 1</span>
             </button>
           </div>
         </div>
 
         <div class="relative flex items-center py-2">
           <div class="flex-grow border-t border-slate-200"></div>
-          <span class="flex-shrink mx-2 text-xs text-slate-400 font-medium">Ou autenticaï¿½ï¿½o por Login e Senha</span>
+          <span class="flex-shrink mx-2 text-xs text-slate-400 font-medium">Ou autentica??o por Login e Senha</span>
           <div class="flex-grow border-t border-slate-200"></div>
         </div>
 
         <form onsubmit="authModule.submitLogin(event)" class="space-y-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Usuï¿½rio / Login</label>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Usu?rio / Login</label>
             <input type="text" id="auth-login" placeholder="Ex: admin, gerente, vendas, producao" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Senha (Padrï¿½o: 1234)</label>
-            <input type="password" id="auth-pin" placeholder="ï¿½ï¿½ï¿½ï¿½" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Senha (Padr?o: 1234)</label>
+            <input type="password" id="auth-pin" placeholder="????" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
           </div>
 
           <div id="auth-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200"></div>
@@ -228,11 +228,11 @@
     </div>
   </div>
 
-  <!-- Modal de Cadastro / Ediï¿½ï¿½o de Usuï¿½rio -->
+  <!-- Modal de Cadastro / Edi??o de Usu?rio -->
   <div id="user-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-        <h3 id="user-modal-title" class="text-base font-bold text-slate-800">Novo Usuï¿½rio</h3>
+        <h3 id="user-modal-title" class="text-base font-bold text-slate-800">Novo Usu?rio</h3>
         <button onclick="app.closeUserModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
       <form onsubmit="app.handleUserFormSubmit(event)" class="p-6 space-y-4">
@@ -251,26 +251,26 @@
             <input type="text" id="user-form-login" required placeholder="Ex: csilva" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Senha (Padrï¿½o: 1234) *</label>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Senha (Padr?o: 1234) *</label>
             <input type="text" id="user-form-senha" required placeholder="1234" value="1234" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Perfil / Nï¿½vel *</label>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Perfil / N?vel *</label>
             <select id="user-form-role" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="VENDAS">VENDAS (Comercial)</option>
-              <option value="PRODUCAO">PRODUï¿½ï¿½O (Fï¿½brica/Kanban)</option>
+              <option value="PRODUCAO">PRODU??O (F?brica/Kanban)</option>
               <option value="GERENTE">GERENTE (Operacional)</option>
               <option value="ADMIN">ADMIN (Controle Total)</option>
-                <option value="PROPRIETARIO">PROPRIETï¿½RIO (Master / Patrocï¿½nios)</option>
+                <option value="PROPRIETARIO">PROPRIET?RIO (Master / Patroc?nios)</option>
             </select>
           </div>
           <div class="flex items-center pt-5">
             <label class="inline-flex items-center gap-2 cursor-pointer">
               <input type="checkbox" id="user-form-ativo" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-              <span class="text-xs font-semibold text-slate-700">Usuï¿½rio Ativo</span>
+              <span class="text-xs font-semibold text-slate-700">Usu?rio Ativo</span>
             </label>
           </div>
         </div>
@@ -280,7 +280,7 @@
             Cancelar
           </button>
           <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition">
-            Salvar Usuï¿½rio
+            Salvar Usu?rio
           </button>
         </div>
       </form>
@@ -297,11 +297,11 @@
       <form onsubmit="app.handleChangePasswordSubmit(event)" class="p-5 space-y-3">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Senha Atual *</label>
-          <input type="password" id="cp-current" required placeholder="ï¿½ï¿½ï¿½ï¿½" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <input type="password" id="cp-current" required placeholder="????" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Nova Senha *</label>
-          <input type="password" id="cp-new" required minlength="4" placeholder="Mï¿½nimo 4 caracteres" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <input type="password" id="cp-new" required minlength="4" placeholder="M?nimo 4 caracteres" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Confirmar Nova Senha *</label>
@@ -322,63 +322,63 @@
     </div>
   </div>
 
-  <!-- Modal de Controle de Versï¿½o & Changelog -->
+  <!-- Modal de Controle de Vers?o & Changelog -->
   <div id="version-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-            <button onclick="app.switchTab('settings')" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition" title="Configuraï¿½ï¿½es e Usuï¿½rios">
+            <button onclick="app.switchTab('settings')" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition" title="Configura??es e Usu?rios">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </button>
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v2.2.13</span>
-          <h3 class="text-base font-bold text-slate-800">Controle de Versï¿½o do GRAFSIS</h3>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v2.2.14</span>
+          <h3 class="text-base font-bold text-slate-800">Controle de Vers?o do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versï¿½o 2.1.0 (Atual)</h4>
+            <h4 class="font-bold text-slate-800">Vers?o 2.1.0 (Atual)</h4>
             <span class="text-xs text-blue-600 font-bold">Estoque & Caixa</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li><strong>Caixa Parcial:</strong> Fluxo completo de baixas parciais de pagamento, estorno e saldo devedor.</li>
-            <li><strong>Inteligï¿½ncia de Perdas:</strong> Calculadora opina melhor bobina para otimizaï¿½ï¿½o de sobras.</li>
-            <li><strong>Controle de Tintas:</strong> Gestï¿½o de rendimento (Eco/Sublimaï¿½ï¿½o) e baixa automï¿½tica.</li>
-            <li><strong>Estoque:</strong> Baixa real de rolos e tintas quando pedido ï¿½ concluï¿½do.</li>
-            <li><strong>Novo Perfil:</strong> Adicionado acesso de Proprietï¿½rio (Master).</li>
+            <li><strong>Intelig?ncia de Perdas:</strong> Calculadora opina melhor bobina para otimiza??o de sobras.</li>
+            <li><strong>Controle de Tintas:</strong> Gest?o de rendimento (Eco/Sublima??o) e baixa autom?tica.</li>
+            <li><strong>Estoque:</strong> Baixa real de rolos e tintas quando pedido ? conclu?do.</li>
+            <li><strong>Novo Perfil:</strong> Adicionado acesso de Propriet?rio (Master).</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versï¿½o 2.0.0</h4>
-            <span class="text-xs text-blue-600 font-bold">Identidade & Separaï¿½ï¿½o de Clientes</span>
+            <h4 class="font-bold text-slate-800">Vers?o 2.0.0</h4>
+            <span class="text-xs text-blue-600 font-bold">Identidade & Separa??o de Clientes</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>White Label (Multi-tenant):</strong> Inclusï¿½o de personalizaï¿½ï¿½o de logomarca e nome da grï¿½fica na aba configuraï¿½ï¿½es.</li>
-            <li>Inï¿½cio do projeto de migraï¿½ï¿½o estrutural para controle de fluxo: Caixa Parcial e Entregas (Em andamento).</li>
+            <li><strong>White Label (Multi-tenant):</strong> Inclus?o de personaliza??o de logomarca e nome da gr?fica na aba configura??es.</li>
+            <li>In?cio do projeto de migra??o estrutural para controle de fluxo: Caixa Parcial e Entregas (Em andamento).</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versï¿½o 1.3.0</h4>
-            <span class="text-xs text-emerald-600 font-bold">Cloud Sync & Usuï¿½rios</span>
+            <h4 class="font-bold text-slate-800">Vers?o 1.3.0</h4>
+            <span class="text-xs text-emerald-600 font-bold">Cloud Sync & Usu?rios</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Sincronizaï¿½ï¿½o Cloud em tempo real com <strong>Supabase</strong> (PC e Celular acessam os mesmos clientes e pedidos).</li>
-            <li>Formulï¿½rio completo de <strong>Cadastro de Usuï¿½rios</strong> (Nome, Login, Senha, Perfil, Ativo/Inativo, Data Cadastro e ï¿½ltimo Acesso).</li>
-            <li>Formulï¿½rio modal simples de <strong>Troca de Senha</strong>.</li>
-            <li>Geraï¿½ï¿½o nativa de UUID compatï¿½vel com o PostgreSQL/Supabase.</li>
+            <li>Sincroniza??o Cloud em tempo real com <strong>Supabase</strong> (PC e Celular acessam os mesmos clientes e pedidos).</li>
+            <li>Formul?rio completo de <strong>Cadastro de Usu?rios</strong> (Nome, Login, Senha, Perfil, Ativo/Inativo, Data Cadastro e ?ltimo Acesso).</li>
+            <li>Formul?rio modal simples de <strong>Troca de Senha</strong>.</li>
+            <li>Gera??o nativa de UUID compat?vel com o PostgreSQL/Supabase.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versï¿½o 1.2.0</h4>
+            <h4 class="font-bold text-slate-800">Vers?o 1.2.0</h4>
             <span class="text-xs text-slate-400">Release Oficial</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Controle de Acesso RBAC com 4 Nï¿½veis: <strong>ADMIN, GERENTE, VENDAS, PRODUï¿½ï¿½O</strong>.</li>
-            <li>Hospedagem gratuita no GitHub Pages e configuraï¿½ï¿½o para deploy no Render (`render.yaml`).</li>
+            <li>Controle de Acesso RBAC com 4 N?veis: <strong>ADMIN, GERENTE, VENDAS, PRODU??O</strong>.</li>
+            <li>Hospedagem gratuita no GitHub Pages e configura??o para deploy no Render (`render.yaml`).</li>
           </ul>
         </div>
       </div>
@@ -390,19 +390,20 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicaï¿½ï¿½o -->
+  <!-- Scripts da Aplica??o -->
   <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/store.js"></script>
-  <script src="js/clients.js"></script>
-  <script src="js/suppliers.js"></script>
-  <script src="js/products.js"></script>
-  <script src="js/sales.js"></script>
-  <script src="js/production.js"></script>
-  <script src="js/finance.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/auth.js?v=2.2.14"></script>
+  <script src="js/store.js?v=2.2.14"></script>
+  <script src="js/clients.js?v=2.2.14"></script>
+  <script src="js/suppliers.js?v=2.2.14"></script>
+  <script src="js/products.js?v=2.2.14"></script>
+  <script src="js/sales.js?v=2.2.14"></script>
+  <script src="js/production.js?v=2.2.14"></script>
+  <script src="js/finance.js?v=2.2.14"></script>
+  <script src="js/app.js?v=2.2.14"></script>
 </body>
 </html>
+
 
 
 
