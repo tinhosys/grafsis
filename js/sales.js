@@ -129,8 +129,7 @@ window.salesModule = {
                 </div>
               </div>
             </div>
-        </div>
-        <div class="bg-white rounded-xl w-full p-6 shadow-sm border border-slate-200 mt-4">
+          <div class="bg-white rounded-xl w-full p-6 shadow-sm border border-slate-200 mt-4">
 
             <div class="border border-slate-300 rounded-xl p-4 bg-white mt-4">
               <h3 class="text-sm font-bold text-slate-800 uppercase mb-3 border-b pb-2">Itens do Pedido</h3>
@@ -248,7 +247,7 @@ window.salesModule = {
                 </div>
               </div>
             </div>
-            <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row' justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div class="w-full sm:w-1/3">
                 <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Producao / Status Inicial</label>
                 <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
@@ -976,7 +975,7 @@ window.salesModule = {
     };
     reader.readAsDataURL(file);
   },
-  saveOrder(e, id, geradoNumero) {
+  async saveOrder(e, id, geradoNumero) {
     e.preventDefault();
     if (this.activeItems.length === 0) { alert('Adicione pelo menos um item'); return; }
     const form = e.target;
@@ -1018,9 +1017,9 @@ window.salesModule = {
       itens: this.activeItems,
       historico: historico
     };
-    const saved = window.store.saveOrder(orderData);
+    const saved = await window.store.saveOrder(orderData);
     if (orderData.status_pagamento !== 'pago') {
-      window.store.saveFinanceEntry({
+      await window.store.saveFinanceEntry({
         tipo: 'receber',
         descricao: 'Pedido #' + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicacao Visual'),
         valor: finalTotal,
@@ -1187,6 +1186,9 @@ window.salesModule = {
 
 
 };
+
+
+
 
 
 
