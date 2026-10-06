@@ -1,7 +1,11 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Módulo de Autenticação, Usuários & Controle de Acesso (RBAC)
    Perfis: ADMIN, GERENTE, VENDAS, PRODUCAO
    ============================================================================== */
+
+// TEMPORÁRIO: libera todas as abas e ações para todos os perfis.
+// Mude para false para reativar o controle de acesso por perfil.
+const LIBERAR_TUDO = true;
 
 const ROLES = {
   PROPRIETARIO: 'PROPRIETARIO',
@@ -195,11 +199,13 @@ class GrafsisAuth {
   }
 
   canAccess(tab) {
+    if (LIBERAR_TUDO) return true;
     const permissions = this.getRolePermissions();
     return permissions.tabs.includes(tab);
   }
 
   can(action) {
+    if (LIBERAR_TUDO) return true;
     const permissions = this.getRolePermissions();
     return !!permissions[action];
   }
