@@ -1,9 +1,18 @@
 window.selfserviceModule = {
   currentClient: null,
-  
+  currentTab: 'pedido',
+  selectedTemplateId: null,
+  photoDataUrl: null,
+
   getSettings() {
     const s = localStorage.getItem('grafsis_cracha_settings');
-    return s ? JSON.parse(s) : { bg_url: '', price: 15.00 };
+    let parsed = s ? JSON.parse(s) : { templates: [] };
+    if (parsed.price !== undefined && !parsed.templates) {
+      parsed = { templates: [{ id: 'tpl_1', name: 'Crachá Padrão', price: parsed.price || 15, bg_front: parsed.bg_url || '', bg_back: '' }] };
+      this.saveSettings(parsed);
+    }
+    if (!parsed.templates) parsed.templates = [];
+    return parsed;
   },
   
   saveSettings(s) {
@@ -12,22 +21,12 @@ window.selfserviceModule = {
   
   render() {
     const container = document.getElementById('view-container');
-    const user = window.authModule.getCurrentUser();
-    const isAdmin = user && ['ADMIN', 'PROPRIETARIO', 'GERENTE'].includes(user.role);
-    
-    let adminBtn = '';
-    if (isAdmin) {
-      adminBtn = `<button onclick="selfserviceModule.openSettings()" class="mb-4 text-xs font-bold text-blue-600 underline bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">Acesso Restrito: Configurar Arte e Preço do Crachá</button>`;
-    }
-
     if (!this.currentClient) {
       container.innerHTML = `
         <div class="flex flex-col items-center justify-center min-h-[70vh]">
-          ` + adminBtn + `
           <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-slate-100 text-center">
             <h1 class="text-2xl font-black text-slate-800 mb-2">Autoatendimento</h1>
-            <p class="text-slate-500 mb-6">Acesse com seu CPF ou Telefone para solicitar seu crachá.</p>
-            
+            <p class="text-slate-500 mb-6">Acesse com seu CPF ou Telefone para solicitar seus produtos.</p>
             <form onsubmit="selfserviceModule.login(event)" class="space-y-4">
               <input type="text" id="ss-login-doc" required placeholder="Digite CPF ou Celular" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-center text-lg font-bold focus:ring-2 focus:ring-blue-500">
               <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-md">ENTRAR</button>
@@ -44,15 +43,14 @@ window.selfserviceModule = {
     e.preventDefault();
     const doc = document.getElementById('ss-login-doc').value.trim().replace(/\D/g, '');
     const clients = window.store.getClients();
-    
     const client = clients.find(c => {
       const cDoc = (c.cpf_cnpj || '').replace(/\D/g, '');
       const cPhone = (c.telefone_whatsapp || '').replace(/\D/g, '');
       return (cDoc && cDoc === doc) || (cPhone && cPhone === doc);
     });
-
     if (client) {
       this.currentClient = client;
+      this.currentTab = 'pedido';
       this.renderDashboard();
     } else {
       alert('Cliente não encontrado. Verifique o número digitado ou dirija-se ao balcão.');
@@ -65,14 +63,27 @@ window.selfserviceModule = {
     this.render();
   },
 
+  setTab(tab) {
+    this.currentTab = tab;
+    this.render();
+  },
+
   renderDashboard() {
     const container = document.getElementById('view-container');
-    const settings = this.getSettings();
     const c = this.currentClient;
-    const saldo = c.saldo_corrente || 0;
-    
+    const saldo = Number(c.saldo_corrente) || 0;
+    const user = window.authModule.getCurrentUser();
+    const isAdmin = user && ['ADMIN', 'PROPRIETARIO', 'GERENTE'].includes(user.role);
+
+    let tabContent = '';
+    if (this.currentTab === 'pedido') tabContent = this.getPedidoTabHtml();
+    else if (this.currentTab === 'pedidos') tabContent = this.getPedidosTabHtml();
+    else if (this.currentTab === 'perfil') tabContent = this.getPerfilTabHtml();
+    else if (this.currentTab === 'config' && isAdmin) tabContent = this.getConfigTabHtml();
+
     container.innerHTML = `
-      <div class="max-w-4xl mx-auto py-6">
+      <div class="max-w-5xl mx-auto py-6">
+        <!-- HEADER DO CLIENTE -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-blue-600 text-white p-6 rounded-2xl shadow-lg mb-6 gap-4">
           <div>
             <h2 class="text-xl font-bold">Olá, ${c.nome}!</h2>
@@ -86,61 +97,105 @@ window.selfserviceModule = {
           <button onclick="selfserviceModule.logout()" class="sm:hidden text-xs text-blue-200 hover:text-white underline">Sair da Conta</button>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2 flex items-center gap-2">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
-            Solicitar Novo Crachá
-          </h3>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <form id="cracha-form" class="space-y-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Nome no Crachá *</label>
-                <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="Ex: JOÃO SILVA" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Matrícula / ID *</label>
-                  <input type="text" id="cr-mat" required oninput="selfserviceModule.preview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Tipo Sanguíneo</label>
-                  <input type="text" id="cr-sangue" oninput="selfserviceModule.preview()" placeholder="Ex: O+" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
-                </div>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Sua Foto (Selfie ou Arquivo) *</label>
-                <input type="file" id="cr-foto" accept="image/*" required onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition">
-              </div>
-              
-              <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                  <span class="font-bold text-slate-600 text-sm">Valor do Crachá:</span>
-                  <span class="font-black text-blue-700 text-xl">R$ ${settings.price.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
-                <button type="button" onclick="selfserviceModule.checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider text-sm flex justify-center items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                  Gerar e Descontar do Saldo
-                </button>
-              </div>
-            </form>
+        <!-- MENU DE NAVEGAÇÃO -->
+        <div class="flex flex-wrap gap-3 mb-6 bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
+          <button onclick="selfserviceModule.setTab('pedido')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'pedido' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'} flex-1 sm:flex-none text-center">Novo Pedido</button>
+          <button onclick="selfserviceModule.setTab('pedidos')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'pedidos' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'} flex-1 sm:flex-none text-center">Meus Pedidos</button>
+          <button onclick="selfserviceModule.setTab('perfil')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'perfil' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'} flex-1 sm:flex-none text-center">Perfil</button>
+          ${isAdmin ? `<button onclick="selfserviceModule.setTab('config')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'config' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'} flex-1 sm:flex-none text-center">Configuração (Admin)</button>` : ''}
+        </div>
 
-            <div class="flex flex-col items-center justify-start border-t md:border-t-0 md:border-l pt-6 md:pt-0 md:pl-8 border-slate-200">
-              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Pré-visualização do Crachá</p>
-              <div id="canvas-container" class="relative w-[250px] h-[395px] border border-slate-300 shadow-lg rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-                <span id="canvas-loading" class="absolute text-slate-400 text-xs font-bold">Carregando prévia...</span>
-                <canvas id="cracha-canvas" width="250" height="395" class="w-full h-full relative z-10"></canvas>
+        <!-- CONTEÚDO DA ABA -->
+        ${tabContent}
+      </div>
+    `;
+
+    if (this.currentTab === 'pedido') {
+      setTimeout(() => this.preview(), 50);
+    } else if (this.currentTab === 'pedidos') {
+      this.loadPedidosList();
+    }
+  },
+
+  // ==========================================
+  // ABA: NOVO PEDIDO
+  // ==========================================
+  getPedidoTabHtml() {
+    const templates = this.getSettings().templates;
+    if (templates.length === 0) return '<div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center font-bold text-slate-500">Nenhum produto configurado pelo administrador.</div>';
+    
+    if (!this.selectedTemplateId) this.selectedTemplateId = templates[0].id;
+    const selected = templates.find(t => t.id === this.selectedTemplateId) || templates[0];
+
+    const templateOptions = templates.map(t => `<option value="${t.id}" ${t.id === this.selectedTemplateId ? 'selected' : ''}>${t.name} - R$ ${Number(t.price).toFixed(2)}</option>`).join('');
+
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Solicitar Produto</h3>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <form id="cracha-form" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Produto Desejado</label>
+              <select id="cr-template" onchange="selfserviceModule.selectedTemplateId=this.value; selfserviceModule.render()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-bold text-blue-700 focus:ring-2 focus:ring-blue-500">
+                ${templateOptions}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Nome Principal *</label>
+              <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="Ex: JOÃO SILVA" value="${this.currentClient.nome}" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Dados 1 (Ex: Matrícula)</label>
+                <input type="text" id="cr-mat" oninput="selfserviceModule.preview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Dados 2 (Ex: Info Adicional)</label>
+                <input type="text" id="cr-sangue" oninput="selfserviceModule.preview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Foto Principal (se necessário) *</label>
+              <input type="file" id="cr-foto" accept="image/*" onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition">
+            </div>
+            
+            <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
+              <div class="flex justify-between items-center mb-4">
+                <span class="font-bold text-slate-600 text-sm">Valor do Produto:</span>
+                <span class="font-black text-blue-700 text-xl">R$ ${Number(selected.price).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
+              <button type="button" onclick="selfserviceModule.checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider text-sm flex justify-center items-center gap-2">
+                Gerar e Descontar do Saldo
+              </button>
+            </div>
+          </form>
+
+          <div class="flex flex-col items-center justify-start border-t lg:border-t-0 lg:border-l pt-6 lg:pt-0 lg:pl-8 border-slate-200 overflow-x-auto">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Pré-visualização</p>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <!-- Frente -->
+              <div class="flex flex-col items-center">
+                <span class="text-[10px] font-bold text-slate-500 mb-1">FRENTE</span>
+                <div class="relative w-[200px] h-[316px] border border-orange-400 shadow-lg rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+                  <span class="absolute text-slate-400 text-xs font-bold preview-loading">Carregando...</span>
+                  <canvas id="cracha-canvas-front" width="250" height="395" class="w-full h-full relative z-10 scale-80" style="transform: scale(0.8); transform-origin: top left;"></canvas>
+                </div>
+              </div>
+              <!-- Verso -->
+              <div class="flex flex-col items-center">
+                <span class="text-[10px] font-bold text-slate-500 mb-1">VERSO</span>
+                <div class="relative w-[200px] h-[316px] border border-yellow-400 shadow-lg rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+                  <span class="absolute text-slate-400 text-xs font-bold preview-loading">Carregando...</span>
+                  <canvas id="cracha-canvas-back" width="250" height="395" class="w-full h-full relative z-10 scale-80" style="transform: scale(0.8); transform-origin: top left;"></canvas>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     `;
-    
-    setTimeout(() => this.preview(), 50);
   },
-
-  photoDataUrl: null,
 
   handlePhoto(input) {
     if (!input.files || !input.files[0]) return;
@@ -154,116 +209,114 @@ window.selfserviceModule = {
   },
 
   preview() {
-    const canvas = document.getElementById('cracha-canvas');
-    if (!canvas) return;
-    document.getElementById('canvas-loading').style.display = 'none';
-    const ctx = canvas.getContext('2d');
-    const settings = this.getSettings();
+    const canvasF = document.getElementById('cracha-canvas-front');
+    const canvasB = document.getElementById('cracha-canvas-back');
+    if (!canvasF || !canvasB) return;
     
+    document.querySelectorAll('.preview-loading').forEach(el => el.style.display = 'none');
+    
+    const ctxF = canvasF.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+    
+    const templates = this.getSettings().templates;
+    const template = templates.find(t => t.id === this.selectedTemplateId) || templates[0];
+
     const nome = document.getElementById('cr-nome')?.value || 'NOME DO CLIENTE';
-    const mat = document.getElementById('cr-mat')?.value || '123456';
+    const mat = document.getElementById('cr-mat')?.value || '';
     const sangue = document.getElementById('cr-sangue')?.value || '';
 
-    // Fundo limpo
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const drawTextsAndPhoto = () => {
-      ctx.save();
-      
-      // Foto centralizada (100x100) Y=70
-      if (this.photoDataUrl) {
-        const img = new Image();
-        img.onload = () => {
-          // Circle mask
-          ctx.beginPath();
-          ctx.arc(125, 120, 55, 0, Math.PI * 2, true);
-          ctx.closePath();
-          ctx.clip();
-          
-          // Draw image to fill the circle
-          const sizer = Math.max(110 / img.width, 110 / img.height);
-          const drawW = img.width * sizer;
-          const drawH = img.height * sizer;
-          ctx.drawImage(img, 125 - drawW/2, 120 - drawH/2, drawW, drawH);
-          
-          ctx.restore();
-          drawTexts();
-        };
-        img.src = this.photoDataUrl;
-      } else {
-        ctx.beginPath();
-        ctx.arc(125, 120, 55, 0, Math.PI * 2, true);
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fill();
-        ctx.closePath();
-        ctx.restore();
-        drawTexts();
-      }
-    };
-
-    const drawTexts = () => {
-      ctx.fillStyle = '#1e293b';
-      ctx.textAlign = 'center';
-      ctx.font = '900 18px Arial, sans-serif';
-      ctx.fillText(nome.toUpperCase(), canvas.width / 2, 220, 230);
-      
-      ctx.font = 'bold 12px Arial, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText('MATRÍCULA: ' + mat.toUpperCase(), canvas.width / 2, 250);
-      
-      if (sangue) {
-        ctx.fillStyle = '#e11d48';
-        ctx.font = '900 16px Arial, sans-serif';
-        ctx.fillText('SANGUE: ' + sangue.toUpperCase(), canvas.width / 2, 280);
-      }
-    };
-
-    if (settings.bg_url) {
-      const bg = new Image();
-      bg.onload = () => {
-        ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
-        drawTextsAndPhoto();
+    // -- Render Front --
+    const drawFront = () => {
+      ctxF.fillStyle = '#ffffff';
+      ctxF.fillRect(0, 0, canvasF.width, canvasF.height);
+      const drawTextsAndPhoto = () => {
+        ctxF.save();
+        if (this.photoDataUrl) {
+          const img = new Image();
+          img.onload = () => {
+            ctxF.beginPath(); ctxF.arc(125, 120, 55, 0, Math.PI * 2, true); ctxF.closePath(); ctxF.clip();
+            const sizer = Math.max(110 / img.width, 110 / img.height);
+            const drawW = img.width * sizer; const drawH = img.height * sizer;
+            ctxF.drawImage(img, 125 - drawW/2, 120 - drawH/2, drawW, drawH);
+            ctxF.restore(); drawFTexts();
+          };
+          img.src = this.photoDataUrl;
+        } else {
+          ctxF.beginPath(); ctxF.arc(125, 120, 55, 0, Math.PI * 2, true);
+          ctxF.fillStyle = '#e2e8f0'; ctxF.fill(); ctxF.closePath(); ctxF.restore();
+          drawFTexts();
+        }
       };
-      bg.onerror = () => drawTextsAndPhoto();
-      bg.src = settings.bg_url;
-    } else {
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawTextsAndPhoto();
-    }
+      const drawFTexts = () => {
+        ctxF.fillStyle = '#1e293b'; ctxF.textAlign = 'center'; ctxF.font = '900 18px Arial, sans-serif';
+        ctxF.fillText(nome.toUpperCase(), 125, 220, 230);
+        ctxF.font = 'bold 12px Arial, sans-serif'; ctxF.fillStyle = '#64748b';
+        if (mat) ctxF.fillText('ID: ' + mat.toUpperCase(), 125, 250);
+        if (sangue) {
+          ctxF.fillStyle = '#e11d48'; ctxF.font = '900 16px Arial, sans-serif';
+          ctxF.fillText('INFO: ' + sangue.toUpperCase(), 125, 280);
+        }
+      };
+
+      if (template.bg_front) {
+        const bg = new Image();
+        bg.onload = () => { ctxF.drawImage(bg, 0, 0, canvasF.width, canvasF.height); drawTextsAndPhoto(); };
+        bg.onerror = () => drawTextsAndPhoto();
+        bg.src = template.bg_front;
+      } else { drawTextsAndPhoto(); }
+    };
+
+    // -- Render Back --
+    const drawBack = () => {
+      ctxB.fillStyle = '#ffffff';
+      ctxB.fillRect(0, 0, canvasB.width, canvasB.height);
+      const drawBTexts = () => {
+        ctxB.fillStyle = '#1e293b'; ctxB.textAlign = 'center'; ctxB.font = 'bold 12px Arial, sans-serif';
+        ctxB.fillText(nome.toUpperCase(), 125, 360, 230);
+      };
+      if (template.bg_back) {
+        const bg2 = new Image();
+        bg2.onload = () => { ctxB.drawImage(bg2, 0, 0, canvasB.width, canvasB.height); drawBTexts(); };
+        bg2.onerror = () => drawBTexts();
+        bg2.src = template.bg_back;
+      } else { drawBTexts(); }
+    };
+
+    drawFront();
+    drawBack();
   },
 
   async checkout() {
-    const settings = this.getSettings();
+    const templates = this.getSettings().templates;
+    const template = templates.find(t => t.id === this.selectedTemplateId);
+    if (!template) return;
+
     const nome = document.getElementById('cr-nome').value.trim();
-    const mat = document.getElementById('cr-mat').value.trim();
-    
-    if (!nome || !mat || !this.photoDataUrl) {
-      alert('Preencha os campos obrigatórios (Nome, Matrícula e Foto).');
-      return;
-    }
+    if (!nome) { alert('Preencha pelo menos o Nome principal.'); return; }
 
+    const preco = Number(template.price) || 0;
     this.currentClient.saldo_corrente = Number(this.currentClient.saldo_corrente) || 0;
-    if (this.currentClient.saldo_corrente < settings.price) {
-      alert('SALDO INSUFICIENTE!\n\nVocê possui R$ ' + this.currentClient.saldo_corrente.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' de saldo, mas o crachá custa R$ ' + settings.price.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '.\n\nDirija-se ao balcão para recarregar sua conta.');
+    
+    if (this.currentClient.saldo_corrente < preco) {
+      alert('SALDO INSUFICIENTE!\n\nVocê possui R$ ' + this.currentClient.saldo_corrente.toFixed(2) + '.\nO produto custa R$ ' + preco.toFixed(2) + '.\n\nVá na aba "Meus Pedidos" para recarregar com PIX.');
       return;
     }
 
-    if(!confirm('CONFIRMAR PEDIDO?\n\nSerão descontados R$ ' + settings.price.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' do seu saldo.')) return;
+    if(!confirm('CONFIRMAR PEDIDO?\n\nSerão descontados R$ ' + preco.toFixed(2) + ' do seu saldo.')) return;
 
-    // Deduct balance
     const clients = window.store.getClients();
     const idx = clients.findIndex(c => c.id === this.currentClient.id);
     if(idx > -1) {
-      clients[idx].saldo_corrente = (Number(clients[idx].saldo_corrente) || 0) - settings.price;
+      clients[idx].saldo_corrente = (Number(clients[idx].saldo_corrente) || 0) - preco;
       await window.store.saveClient(clients[idx]);
       this.currentClient.saldo_corrente = clients[idx].saldo_corrente;
     }
 
-    // Generate Order
-    const canvas = document.getElementById('cracha-canvas');
-    const finalImage = canvas.toDataURL('image/png');
+    const canvasF = document.getElementById('cracha-canvas-front');
+    const canvasB = document.getElementById('cracha-canvas-back');
+    const finalImageFront = canvasF.toDataURL('image/png');
+    const finalImageBack = canvasB.toDataURL('image/png');
+    
     const dtNow = new Date().toISOString();
     
     const pedido = {
@@ -278,26 +331,23 @@ window.selfserviceModule = {
       previsao_entrega: dtNow.split('T')[0],
       itens: [{
         produto_id: '',
-        descricao: 'Crachá Autoatendimento - ' + nome,
+        descricao: template.name + ' (Autoatendimento) - ' + nome,
         quantidade: 1,
         tipo_calculo: 'unidade',
-        preco_base: settings.price,
-        preco_unitario: settings.price,
-        valor_total: settings.price,
-        arte_url: finalImage
+        preco_base: preco,
+        preco_unitario: preco,
+        valor_total: preco,
+        arte_url: finalImageFront,
+        arte_verso_url: finalImageBack
       }],
-      historico: [{
-        data: dtNow,
-        usuario: 'Autoatendimento',
-        acao: 'Pedido gerado. Pago usando Saldo da Conta Corrente.'
-      }]
+      historico: [{ data: dtNow, usuario: 'Autoatendimento', acao: 'Pedido gerado. Pago usando Saldo.' }]
     };
 
     await window.store.saveOrder(pedido);
     await window.store.saveFinanceEntry({
       tipo: 'receber',
-      descricao: 'Pagamento de Crachá via Conta Corrente (Autoatendimento) - Pedido #' + pedido.numero,
-      valor: settings.price,
+      descricao: 'Pagamento de ' + template.name + ' via Saldo - Pedido #' + pedido.numero,
+      valor: preco,
       data_vencimento: dtNow.split('T')[0],
       data_pagamento: dtNow.split('T')[0],
       status: 'pago',
@@ -305,60 +355,264 @@ window.selfserviceModule = {
       pedido_id: pedido.id
     });
 
-    alert('CRACHÁ ENVIADO PARA PRODUÇÃO!\n\nSeu pedido foi registrado com sucesso e o valor foi descontado da sua conta.');
-    this.logout();
+    alert('PEDIDO ENVIADO PARA PRODUÇÃO!\n\nSeu pedido foi registrado e o valor descontado da conta.');
+    this.setTab('pedidos');
   },
 
-  openSettings() {
-    const s = this.getSettings();
-    const modalHtml = `
-      <div id="cracha-settings-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
-          <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
-            <h2 class="text-lg font-bold text-slate-800">Configuração do Crachá</h2>
-            <button onclick="document.getElementById('cracha-settings-modal').remove()" class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
-          </div>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Valor do Crachá (R$) debitado do saldo</label>
-              <input type="number" step="0.01" id="cfg-price" value="${s.price}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+  // ==========================================
+  // ABA: MEUS PEDIDOS & PIX
+  // ==========================================
+  getPedidosTabHtml() {
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+          <h3 class="text-lg font-bold text-slate-800">Meus Pedidos</h3>
+          <button onclick="selfserviceModule.openPixModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2">
+             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+             Recarregar Saldo (PIX)
+          </button>
+        </div>
+        <div id="ss-pedidos-list" class="space-y-4">Carregando pedidos...</div>
+      </div>
+    `;
+  },
+  loadPedidosList() {
+    const listEl = document.getElementById('ss-pedidos-list');
+    if (!listEl) return;
+    const orders = window.store.getOrders().filter(o => o.cliente_id === this.currentClient.id).sort((a,b) => b.numero - a.numero);
+    
+    if (orders.length === 0) {
+      listEl.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhum pedido encontrado.</p>';
+      return;
+    }
+    
+    listEl.innerHTML = orders.map(o => {
+      const itemDesc = o.itens && o.itens.length ? o.itens[0].descricao : 'Produto Genérico';
+      const total = (o.itens || []).reduce((acc, it) => acc + (it.valor_total || 0), 0);
+      const dataFormat = new Date(o.data_criacao).toLocaleDateString('pt-BR');
+      return `
+        <div class="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 hover:bg-slate-100 transition">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-slate-800">Pedido #${o.numero}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">${o.status_fase}</span>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Arte Base (Fundo do Crachá)</label>
-              <input type="file" id="cfg-bg" accept="image/*" class="w-full text-xs mb-2 p-2 border border-slate-300 rounded-lg bg-slate-50">
-              <p class="text-[10px] text-slate-500">A arte ficará no fundo (sugestão: 250x395 pixels). O sistema vai pintar a foto no meio e o nome embaixo.</p>
-              ${s.bg_url ? `<div class="mt-2 text-xs text-green-600 font-bold">Arte atual já carregada. Selecione uma nova apenas se quiser substituir.</div>` : ''}
-            </div>
+            <p class="text-sm text-slate-600">${itemDesc}</p>
+            <p class="text-xs text-slate-400 mt-1">Realizado em ${dataFormat}</p>
           </div>
-          
-          <div class="flex justify-end gap-2 mt-6 border-t border-slate-100 pt-4">
-            <button onclick="document.getElementById('cracha-settings-modal').remove()" class="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-sm transition">Cancelar</button>
-            <button onclick="selfserviceModule.saveSettingsForm()" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold text-sm shadow-md transition">Salvar Configurações</button>
+          <div class="text-right">
+            <p class="font-black text-lg text-slate-800">R$ ${total.toFixed(2)}</p>
           </div>
+        </div>
+      `;
+    }).join('');
+  },
+  openPixModal() {
+    const html = `
+      <div id="pix-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl border border-slate-100">
+           <h2 class="font-bold text-lg text-slate-800 mb-4 border-b pb-2">Recarga via PIX (Simulação)</h2>
+           <label class="block text-xs font-bold text-slate-600 text-left mb-1">Valor da Recarga (R$)</label>
+           <input type="number" id="pix-valor" class="w-full border border-slate-300 p-3 mb-6 rounded-lg text-center text-xl font-black text-green-700 focus:ring-2 focus:ring-green-500" value="50.00" step="10.00">
+           
+           <div class="bg-slate-100 w-48 h-48 mx-auto flex flex-col items-center justify-center mb-4 rounded-xl border border-slate-200 shadow-inner">
+             <svg class="w-12 h-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+             <span class="text-slate-400 text-xs font-bold px-4">Aqui entraria o QR Code PIX</span>
+           </div>
+           
+           <p class="text-xs text-slate-500 mb-6">Como isto é apenas uma demonstração, clique no botão abaixo para simular que o pagamento foi compensado.</p>
+           
+           <button onclick="selfserviceModule.confirmPix()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-3 rounded-xl mb-2 transition shadow-md uppercase tracking-wide">Simular Pagamento</button>
+           <button onclick="document.getElementById('pix-modal').remove()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Cancelar</button>
         </div>
       </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.body.insertAdjacentHTML('beforeend', html);
+  },
+  async confirmPix() {
+    const valor = parseFloat(document.getElementById('pix-valor').value) || 0;
+    if (valor <= 0) return;
+    
+    this.currentClient.saldo_corrente = (Number(this.currentClient.saldo_corrente) || 0) + valor;
+    await window.store.saveClient(this.currentClient);
+    
+    document.getElementById('pix-modal').remove();
+    this.render();
+    alert(\`Recarga PIX de R$ \${valor.toFixed(2)} realizada com sucesso (Simulada). O saldo já está disponível na sua conta.\`);
   },
 
-  saveSettingsForm() {
-    const price = parseFloat(document.getElementById('cfg-price').value) || 0;
-    const fileInput = document.getElementById('cfg-bg');
-    
-    if (fileInput.files && fileInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.saveSettings({ price: price, bg_url: e.target.result });
-        document.getElementById('cracha-settings-modal').remove();
-        this.render();
-      };
-      reader.readAsDataURL(fileInput.files[0]);
-    } else {
-      const old = this.getSettings();
-      this.saveSettings({ price: price, bg_url: old.bg_url });
-      document.getElementById('cracha-settings-modal').remove();
-      this.render();
+  // ==========================================
+  // ABA: PERFIL
+  // ==========================================
+  getPerfilTabHtml() {
+    const c = this.currentClient;
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Meu Perfil</h3>
+        <form onsubmit="selfserviceModule.saveProfile(event)" class="space-y-4 max-w-3xl">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo</label><input type="text" id="pf-nome" value="${c.nome || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" required></div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Telefone/WhatsApp</label><input type="text" id="pf-tel" value="${c.telefone_whatsapp || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" required></div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">E-mail</label><input type="email" id="pf-email" value="${c.email || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>
+            <div>
+              <div class="grid grid-cols-3 gap-2">
+                 <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">Cidade</label><input type="text" id="pf-cid" value="${c.cidade || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>
+                 <div><label class="block text-xs font-bold text-slate-700 mb-1">UF</label><input type="text" id="pf-uf" value="${c.uf || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" maxlength="2"></div>
+              </div>
+            </div>
+            <div class="md:col-span-2 border-t pt-4">
+               <label class="block text-xs font-bold text-slate-700 mb-1">Nova Senha de Acesso (opcional)</label>
+               <input type="password" id="pf-senha" class="w-full md:w-1/2 border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" placeholder="Deixe em branco para não alterar">
+            </div>
+          </div>
+          <div class="border-t pt-4 mt-6">
+             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-md uppercase text-sm">Salvar Alterações do Perfil</button>
+          </div>
+        </form>
+      </div>
+    `;
+  },
+  async saveProfile(e) {
+    e.preventDefault();
+    this.currentClient.nome = document.getElementById('pf-nome').value;
+    this.currentClient.telefone_whatsapp = document.getElementById('pf-tel').value;
+    this.currentClient.cidade = document.getElementById('pf-cid').value;
+    this.currentClient.uf = document.getElementById('pf-uf').value;
+    this.currentClient.email = document.getElementById('pf-email').value;
+    const s = document.getElementById('pf-senha').value;
+    if (s) {
+      if (!this.currentClient.observacoes) this.currentClient.observacoes = '';
+      this.currentClient.observacoes += `\n[Senha Atualizada no Autoatendimento]`;
     }
+    
+    await window.store.saveClient(this.currentClient);
+    alert('Seu perfil foi atualizado com sucesso.');
+    this.render();
+  },
+
+  // ==========================================
+  // ABA: CONFIGURAÇÃO (ADMIN)
+  // ==========================================
+  getConfigTabHtml() {
+    const templates = this.getSettings().templates;
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+          <h3 class="text-lg font-bold text-slate-800">Modelos Base de Produtos (Templates)</h3>
+          <button onclick="selfserviceModule.editTemplate('new')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition">Novo Modelo</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-slate-600 text-sm">
+                <th class="p-3 border-b font-bold rounded-tl-lg">Nome do Produto</th>
+                <th class="p-3 border-b font-bold">Preço Base</th>
+                <th class="p-3 border-b font-bold text-center">Frente</th>
+                <th class="p-3 border-b font-bold text-center">Verso</th>
+                <th class="p-3 border-b font-bold text-right rounded-tr-lg">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${templates.map(t => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                  <td class="p-3 font-semibold text-slate-800">${t.name}</td>
+                  <td class="p-3 text-blue-700 font-bold">R$ ${Number(t.price).toFixed(2)}</td>
+                  <td class="p-3 text-center">${t.bg_front ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">Não</span>'}</td>
+                  <td class="p-3 text-center">${t.bg_back ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">Não</span>'}</td>
+                  <td class="p-3 text-right">
+                    <button onclick="selfserviceModule.editTemplate('${t.id}')" class="text-indigo-600 font-bold text-sm mr-3 hover:underline">Editar</button>
+                    <button onclick="selfserviceModule.deleteTemplate('${t.id}')" class="text-red-500 font-bold text-sm hover:underline">Excluir</button>
+                  </td>
+                </tr>
+              `).join('')}
+              ${templates.length === 0 ? '<tr><td colspan="5" class="p-6 text-center text-slate-500 font-bold">Nenhum modelo cadastrado. Clique em Novo Modelo para adicionar.</td></tr>' : ''}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+  editTemplate(id) {
+    let t = { id: 'new', name: '', price: 0, bg_front: '', bg_back: '' };
+    if (id !== 'new') {
+      const found = this.getSettings().templates.find(x => x.id === id);
+      if (found) t = found;
+    }
+    
+    const html = `
+      <div id="tpl-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 max-h-[95vh] overflow-y-auto">
+           <h2 class="font-bold text-xl text-slate-800 mb-4 border-b pb-2">${id === 'new' ? 'Novo Modelo Base' : 'Editar Modelo Base'}</h2>
+           <input type="hidden" id="tpl-id" value="${t.id}">
+           
+           <div class="space-y-5">
+             <div class="grid grid-cols-3 gap-4">
+               <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">Nome do Produto</label><input type="text" id="tpl-name" value="${t.name}" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50" placeholder="Ex: Adesivo de Festa"></div>
+               <div><label class="block text-xs font-bold text-slate-700 mb-1">Preço (R$)</label><input type="number" step="0.01" id="tpl-price" value="${t.price}" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50 text-blue-700 font-bold"></div>
+             </div>
+             
+             <div class="bg-orange-50 p-4 rounded-xl border border-orange-200">
+               <label class="block text-sm font-black text-orange-800 mb-1">Imagem FRENTE (Arte Base)</label>
+               <p class="text-[10px] text-orange-600 mb-2">Tamanho recomendado: 250x395 pixels (retrato). O sistema vai pintar a foto no meio e o nome embaixo.</p>
+               <input type="file" id="tpl-front" accept="image/*" class="w-full text-xs p-2 bg-white rounded border border-orange-200">
+               ${t.bg_front ? '<p class="text-green-700 text-xs mt-2 font-bold">✓ Imagem carregada. Envie outra apenas se quiser substituir.</p>' : ''}
+             </div>
+             
+             <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+               <label class="block text-sm font-black text-yellow-800 mb-1">Imagem VERSO (Arte Complementar)</label>
+               <p class="text-[10px] text-yellow-600 mb-2">Se enviada, será mostrada na 2ª prévia. O sistema adiciona apenas o nome no verso atualmente.</p>
+               <input type="file" id="tpl-back" accept="image/*" class="w-full text-xs p-2 bg-white rounded border border-yellow-200">
+               ${t.bg_back ? '<p class="text-green-700 text-xs mt-2 font-bold">✓ Imagem carregada. Envie outra apenas se quiser substituir.</p>' : ''}
+             </div>
+           </div>
+           
+           <div class="flex justify-end gap-3 mt-8 border-t pt-4">
+             <button onclick="document.getElementById('tpl-modal').remove()" class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Cancelar</button>
+             <button onclick="selfserviceModule.saveTemplate()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-md">Salvar Modelo</button>
+           </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+  },
+  async saveTemplate() {
+    const id = document.getElementById('tpl-id').value;
+    const name = document.getElementById('tpl-name').value.trim();
+    const price = parseFloat(document.getElementById('tpl-price').value) || 0;
+    
+    if (!name) { alert('Informe o nome do produto.'); return; }
+
+    const settings = this.getSettings();
+    let t = settings.templates.find(x => x.id === id);
+    if (!t) {
+      t = { id: 'tpl_' + Date.now(), name, price, bg_front: '', bg_back: '' };
+      settings.templates.push(t);
+    } else {
+      t.name = name;
+      t.price = price;
+    }
+
+    const fileF = document.getElementById('tpl-front').files[0];
+    const fileB = document.getElementById('tpl-back').files[0];
+
+    const readFile = (file) => new Promise(res => {
+      const r = new FileReader();
+      r.onload = (e) => res(e.target.result);
+      r.readAsDataURL(file);
+    });
+
+    if (fileF) t.bg_front = await readFile(fileF);
+    if (fileB) t.bg_back = await readFile(fileB);
+
+    this.saveSettings(settings);
+    document.getElementById('tpl-modal').remove();
+    this.render();
+  },
+  deleteTemplate(id) {
+    if (!confirm('Excluir este modelo de produto permanentemente?')) return;
+    const settings = this.getSettings();
+    settings.templates = settings.templates.filter(x => x.id !== id);
+    this.saveSettings(settings);
+    this.render();
   }
 };
