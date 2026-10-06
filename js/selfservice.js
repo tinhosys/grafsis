@@ -1,7 +1,7 @@
 window.selfserviceModule = {
   currentClient: null,
   currentTab: 'pedido',
-  selectedTemplateId: null,
+  cart: [],
   photoDataUrl: null,
 
   getSettings() {
@@ -11,7 +11,9 @@ window.selfserviceModule = {
       parsed = { templates: [{ id: 'tpl_1', name: 'Crachá Padrão', price: parsed.price || 15, bg_front: parsed.bg_url || '', bg_back: '' }] };
       this.saveSettings(parsed);
     }
-    if (!parsed.templates) parsed.templates = [];
+    if (!parsed.templates || parsed.templates.length === 0) {
+      parsed.templates = [{ id: 'tpl_1', name: 'Crachá Padrão', price: 15, bg_front: '', bg_back: '' }];
+    }
     return parsed;
   },
   
@@ -51,6 +53,8 @@ window.selfserviceModule = {
     if (client) {
       this.currentClient = client;
       this.currentTab = 'pedido';
+      this.cart = [];
+      this.photoDataUrl = null;
       this.renderDashboard();
     } else {
       alert('Cliente não encontrado. Verifique o número digitado ou dirija-se ao balcão.');
@@ -60,6 +64,7 @@ window.selfserviceModule = {
   logout() {
     this.currentClient = null;
     this.photoDataUrl = null;
+    this.cart = [];
     this.render();
   },
 
@@ -73,7 +78,7 @@ window.selfserviceModule = {
     const c = this.currentClient;
     const saldo = Number(c.saldo_corrente) || 0;
     const user = window.authModule.getCurrentUser();
-    const isAdmin = user && ['ADMIN', 'PROPRIETARIO', 'GERENTE'].includes(user.role);
+    const isAdmin = user && ['ADMIN', 'PROPRIETARIO', 'GERENTE', 'ADMINISTRADOR'].includes(user.role.toUpperCase());
 
     let tabContent = '';
     if (this.currentTab === 'pedido') tabContent = this.getPedidoTabHtml();
@@ -118,81 +123,120 @@ window.selfserviceModule = {
   },
 
   // ==========================================
-  // ABA: NOVO PEDIDO
+  // ABA: NOVO PEDIDO (CRACHÁ)
   // ==========================================
   getPedidoTabHtml() {
-    const templates = this.getSettings().templates;
-    if (templates.length === 0) return '<div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center font-bold text-slate-500">Nenhum produto configurado pelo administrador.</div>';
+    const template = this.getSettings().templates[0]; // Sempre usa o padrao 0
+    const preco = Number(template.price) || 0;
     
-    if (!this.selectedTemplateId) this.selectedTemplateId = templates[0].id;
-    const selected = templates.find(t => t.id === this.selectedTemplateId) || templates[0];
-
-    const templateOptions = templates.map(t => `<option value="${t.id}" ${t.id === this.selectedTemplateId ? 'selected' : ''}>${t.name} - R$ ${Number(t.price).toFixed(2)}</option>`).join('');
+    // Lista de crachás no carrinho
+    let cartHtml = '';
+    let cartTotal = 0;
+    if (this.cart.length > 0) {
+      cartTotal = this.cart.reduce((acc, item) => acc + item.preco, 0);
+      cartHtml = `
+        <div class="mt-8 border-t pt-6">
+          <h4 class="font-black text-slate-800 mb-4 flex items-center justify-between">
+            <span>Crachás no Pedido Atual (${this.cart.length})</span>
+            <span class="text-blue-700 text-xl">Total: R$ ${cartTotal.toFixed(2)}</span>
+          </h4>
+          <div class="space-y-3 mb-6">
+            ${this.cart.map((item, idx) => `
+              <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+                    ${item.foto ? `<img src="${item.foto}" class="w-full h-full object-cover">` : ''}
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">${item.nome}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase">MAT: ${item.mat || '--'} | TIPO: ${item.sangue || '--'}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="font-black text-slate-700 text-sm">R$ ${item.preco.toFixed(2)}</span>
+                  <button type="button" onclick="selfserviceModule.removeFromCart(${idx})" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" onclick="selfserviceModule.checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider flex justify-center items-center gap-2 text-lg">
+            FINALIZAR COMPRA (Descontar R$ ${cartTotal.toFixed(2)})
+          </button>
+        </div>
+      `;
+    }
 
     return `
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Solicitar Produto</h3>
+        <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+           <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
+           Solicitar Novo Crachá
+        </h3>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <form id="cracha-form" class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Produto Desejado</label>
-              <select id="cr-template" onchange="selfserviceModule.selectedTemplateId=this.value; selfserviceModule.render()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-bold text-blue-700 focus:ring-2 focus:ring-blue-500">
-                ${templateOptions}
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Nome Principal *</label>
-              <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="Ex: JOÃO SILVA" value="${this.currentClient.nome}" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="grid grid-cols-2 gap-4">
+          <!-- FORMULÁRIO -->
+          <div>
+            <form id="cracha-form" class="space-y-5" onsubmit="selfserviceModule.addToCart(event)">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Dados 1 (Ex: Matrícula)</label>
-                <input type="text" id="cr-mat" oninput="selfserviceModule.preview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nome no Crachá *</label>
+                <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="EX: JOÃO SILVA" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Matrícula / ID *</label>
+                  <input type="text" id="cr-mat" required oninput="selfserviceModule.preview()" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Tipo Sanguíneo</label>
+                  <input type="text" id="cr-sangue" oninput="selfserviceModule.preview()" placeholder="EX: O+" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
+                </div>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Dados 2 (Ex: Info Adicional)</label>
-                <input type="text" id="cr-sangue" oninput="selfserviceModule.preview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Sua Foto (Selfie ou Arquivo) *</label>
+                <input type="file" id="cr-foto" required accept="image/*" onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-3 border border-slate-300 rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition">
               </div>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Foto Principal (se necessário) *</label>
-              <input type="file" id="cr-foto" accept="image/*" onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition">
-            </div>
-            
-            <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-              <div class="flex justify-between items-center mb-4">
-                <span class="font-bold text-slate-600 text-sm">Valor do Produto:</span>
-                <span class="font-black text-blue-700 text-xl">R$ ${Number(selected.price).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              
+              <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                  <span class="font-bold text-slate-600 text-sm">Valor do Crachá:</span>
+                  <span class="font-black text-blue-700 text-xl">R$ ${preco.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow flex justify-center items-center gap-2 uppercase tracking-wide text-sm">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                  Adicionar Crachá ao Pedido
+                </button>
               </div>
-              <button type="button" onclick="selfserviceModule.checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider text-sm flex justify-center items-center gap-2">
-                Gerar e Descontar do Saldo
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
 
+          <!-- PREVIEW -->
           <div class="flex flex-col items-center justify-start border-t lg:border-t-0 lg:border-l pt-6 lg:pt-0 lg:pl-8 border-slate-200 overflow-x-auto">
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Pré-visualização</p>
-            <div class="flex flex-col sm:flex-row gap-4">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Pré-visualização do Crachá</p>
+            <div class="flex flex-col sm:flex-row gap-6">
               <!-- Frente -->
               <div class="flex flex-col items-center">
-                <span class="text-[10px] font-bold text-slate-500 mb-1">FRENTE</span>
-                <div class="relative w-[200px] h-[316px] border border-orange-400 shadow-lg rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-                  <span class="absolute text-slate-400 text-xs font-bold preview-loading">Carregando...</span>
+                <div class="relative w-[200px] h-[316px] border border-orange-500 shadow-lg rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+                  <span class="absolute text-slate-400 text-xs font-bold preview-loading">FRENTE...</span>
                   <canvas id="cracha-canvas-front" width="250" height="395" class="w-full h-full relative z-10 scale-80" style="transform: scale(0.8); transform-origin: top left;"></canvas>
                 </div>
+                <span class="text-xs font-black text-orange-600 mt-2 bg-orange-100 px-3 py-1 rounded-full">FRENTE</span>
               </div>
               <!-- Verso -->
               <div class="flex flex-col items-center">
-                <span class="text-[10px] font-bold text-slate-500 mb-1">VERSO</span>
                 <div class="relative w-[200px] h-[316px] border border-yellow-400 shadow-lg rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-                  <span class="absolute text-slate-400 text-xs font-bold preview-loading">Carregando...</span>
+                  <span class="absolute text-slate-400 text-xs font-bold preview-loading">VERSO...</span>
                   <canvas id="cracha-canvas-back" width="250" height="395" class="w-full h-full relative z-10 scale-80" style="transform: scale(0.8); transform-origin: top left;"></canvas>
                 </div>
+                <span class="text-xs font-black text-yellow-600 mt-2 bg-yellow-100 px-3 py-1 rounded-full">VERSO</span>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- CARRINHO -->
+        ${cartHtml}
       </div>
     `;
   },
@@ -218,11 +262,10 @@ window.selfserviceModule = {
     const ctxF = canvasF.getContext('2d');
     const ctxB = canvasB.getContext('2d');
     
-    const templates = this.getSettings().templates;
-    const template = templates.find(t => t.id === this.selectedTemplateId) || templates[0];
+    const template = this.getSettings().templates[0]; // Padrão
 
     const nome = document.getElementById('cr-nome')?.value || 'NOME DO CLIENTE';
-    const mat = document.getElementById('cr-mat')?.value || '';
+    const mat = document.getElementById('cr-mat')?.value || '123456';
     const sangue = document.getElementById('cr-sangue')?.value || '';
 
     // -- Render Front --
@@ -234,31 +277,31 @@ window.selfserviceModule = {
         if (this.photoDataUrl) {
           const img = new Image();
           img.onload = () => {
-            ctxF.beginPath(); ctxF.arc(125, 120, 55, 0, Math.PI * 2, true); ctxF.closePath(); ctxF.clip();
-            const sizer = Math.max(110 / img.width, 110 / img.height);
+            ctxF.beginPath(); ctxF.arc(125, 150, 60, 0, Math.PI * 2, true); ctxF.closePath(); ctxF.clip();
+            const sizer = Math.max(120 / img.width, 120 / img.height);
             const drawW = img.width * sizer; const drawH = img.height * sizer;
-            ctxF.drawImage(img, 125 - drawW/2, 120 - drawH/2, drawW, drawH);
+            ctxF.drawImage(img, 125 - drawW/2, 150 - drawH/2, drawW, drawH);
             ctxF.restore(); drawFTexts();
           };
           img.src = this.photoDataUrl;
         } else {
-          ctxF.beginPath(); ctxF.arc(125, 120, 55, 0, Math.PI * 2, true);
+          ctxF.beginPath(); ctxF.arc(125, 150, 60, 0, Math.PI * 2, true);
           ctxF.fillStyle = '#e2e8f0'; ctxF.fill(); ctxF.closePath(); ctxF.restore();
           drawFTexts();
         }
       };
       const drawFTexts = () => {
-        ctxF.fillStyle = '#1e293b'; ctxF.textAlign = 'center'; ctxF.font = '900 18px Arial, sans-serif';
-        ctxF.fillText(nome.toUpperCase(), 125, 220, 230);
+        ctxF.fillStyle = '#1e293b'; ctxF.textAlign = 'center'; ctxF.font = '900 20px Arial, sans-serif';
+        ctxF.fillText(nome.toUpperCase(), 125, 250, 230);
         ctxF.font = 'bold 12px Arial, sans-serif'; ctxF.fillStyle = '#64748b';
-        if (mat) ctxF.fillText('ID: ' + mat.toUpperCase(), 125, 250);
+        if (mat) ctxF.fillText('MATRÍCULA: ' + mat.toUpperCase(), 125, 275);
         if (sangue) {
           ctxF.fillStyle = '#e11d48'; ctxF.font = '900 16px Arial, sans-serif';
-          ctxF.fillText('INFO: ' + sangue.toUpperCase(), 125, 280);
+          ctxF.fillText('SANGUE: ' + sangue.toUpperCase(), 125, 305);
         }
       };
 
-      if (template.bg_front) {
+      if (template && template.bg_front) {
         const bg = new Image();
         bg.onload = () => { ctxF.drawImage(bg, 0, 0, canvasF.width, canvasF.height); drawTextsAndPhoto(); };
         bg.onerror = () => drawTextsAndPhoto();
@@ -271,10 +314,10 @@ window.selfserviceModule = {
       ctxB.fillStyle = '#ffffff';
       ctxB.fillRect(0, 0, canvasB.width, canvasB.height);
       const drawBTexts = () => {
-        ctxB.fillStyle = '#1e293b'; ctxB.textAlign = 'center'; ctxB.font = 'bold 12px Arial, sans-serif';
+        ctxB.fillStyle = '#1e293b'; ctxB.textAlign = 'center'; ctxB.font = 'bold 14px Arial, sans-serif';
         ctxB.fillText(nome.toUpperCase(), 125, 360, 230);
       };
-      if (template.bg_back) {
+      if (template && template.bg_back) {
         const bg2 = new Image();
         bg2.onload = () => { ctxB.drawImage(bg2, 0, 0, canvasB.width, canvasB.height); drawBTexts(); };
         bg2.onerror = () => drawBTexts();
@@ -286,36 +329,67 @@ window.selfserviceModule = {
     drawBack();
   },
 
-  async checkout() {
-    const templates = this.getSettings().templates;
-    const template = templates.find(t => t.id === this.selectedTemplateId);
-    if (!template) return;
-
-    const nome = document.getElementById('cr-nome').value.trim();
-    if (!nome) { alert('Preencha pelo menos o Nome principal.'); return; }
-
+  addToCart(e) {
+    e.preventDefault();
+    const template = this.getSettings().templates[0];
     const preco = Number(template.price) || 0;
-    this.currentClient.saldo_corrente = Number(this.currentClient.saldo_corrente) || 0;
     
-    if (this.currentClient.saldo_corrente < preco) {
-      alert('SALDO INSUFICIENTE!\n\nVocê possui R$ ' + this.currentClient.saldo_corrente.toFixed(2) + '.\nO produto custa R$ ' + preco.toFixed(2) + '.\n\nVá na aba "Meus Pedidos" para recarregar com PIX.');
+    const nome = document.getElementById('cr-nome').value.trim();
+    const mat = document.getElementById('cr-mat').value.trim();
+    const sangue = document.getElementById('cr-sangue').value.trim();
+    
+    if (!this.photoDataUrl) {
+      alert("Por favor, selecione uma foto.");
       return;
     }
-
-    if(!confirm('CONFIRMAR PEDIDO?\n\nSerão descontados R$ ' + preco.toFixed(2) + ' do seu saldo.')) return;
-
-    const clients = window.store.getClients();
-    const idx = clients.findIndex(c => c.id === this.currentClient.id);
-    if(idx > -1) {
-      clients[idx].saldo_corrente = (Number(clients[idx].saldo_corrente) || 0) - preco;
-      await window.store.saveClient(clients[idx]);
-      this.currentClient.saldo_corrente = clients[idx].saldo_corrente;
-    }
-
+    
+    // Captura as artes geradas
     const canvasF = document.getElementById('cracha-canvas-front');
     const canvasB = document.getElementById('cracha-canvas-back');
     const finalImageFront = canvasF.toDataURL('image/png');
     const finalImageBack = canvasB.toDataURL('image/png');
+
+    this.cart.push({
+      nome,
+      mat,
+      sangue,
+      foto: this.photoDataUrl,
+      preco,
+      frontUrl: finalImageFront,
+      backUrl: finalImageBack,
+      templateName: template.name || 'Crachá'
+    });
+
+    // Limpa o formulário para o próximo
+    this.photoDataUrl = null;
+    this.renderDashboard();
+  },
+
+  removeFromCart(idx) {
+    this.cart.splice(idx, 1);
+    this.renderDashboard();
+  },
+
+  async checkout() {
+    if (this.cart.length === 0) return;
+
+    const totalPreco = this.cart.reduce((acc, item) => acc + item.preco, 0);
+    this.currentClient.saldo_corrente = Number(this.currentClient.saldo_corrente) || 0;
+    
+    if (this.currentClient.saldo_corrente < totalPreco) {
+      alert(`SALDO INSUFICIENTE!\n\nVocê possui R$ ${this.currentClient.saldo_corrente.toFixed(2)}.\nO pedido custa R$ ${totalPreco.toFixed(2)}.\n\nVá na aba "Meus Pedidos" para recarregar com PIX.`);
+      return;
+    }
+
+    if(!confirm(`CONFIRMAR PEDIDO DE ${this.cart.length} CRACHÁ(S)?\n\nSerão descontados R$ ${totalPreco.toFixed(2)} do seu saldo.`)) return;
+
+    const clients = window.store.getClients();
+    const idx = clients.findIndex(c => c.id === this.currentClient.id);
+    if(idx > -1) {
+      clients[idx].saldo_corrente = (Number(clients[idx].saldo_corrente) || 0) - totalPreco;
+      await window.store.saveClient(clients[idx]);
+      this.currentClient.saldo_corrente = clients[idx].saldo_corrente;
+    }
     
     const dtNow = new Date().toISOString();
     
@@ -329,25 +403,25 @@ window.selfserviceModule = {
       data_criacao: dtNow,
       dias_entrega: 2,
       previsao_entrega: dtNow.split('T')[0],
-      itens: [{
+      itens: this.cart.map(item => ({
         produto_id: '',
-        descricao: template.name + ' (Autoatendimento) - ' + nome,
+        descricao: `${item.templateName} (Autoatendimento) - ${item.nome}`,
         quantidade: 1,
         tipo_calculo: 'unidade',
-        preco_base: preco,
-        preco_unitario: preco,
-        valor_total: preco,
-        arte_url: finalImageFront,
-        arte_verso_url: finalImageBack
-      }],
-      historico: [{ data: dtNow, usuario: 'Autoatendimento', acao: 'Pedido gerado. Pago usando Saldo.' }]
+        preco_base: item.preco,
+        preco_unitario: item.preco,
+        valor_total: item.preco,
+        arte_url: item.frontUrl,
+        arte_verso_url: item.backUrl
+      })),
+      historico: [{ data: dtNow, usuario: 'Autoatendimento', acao: `Pedido gerado com ${this.cart.length} item(ns). Pago usando Saldo.` }]
     };
 
     await window.store.saveOrder(pedido);
     await window.store.saveFinanceEntry({
       tipo: 'receber',
-      descricao: 'Pagamento de ' + template.name + ' via Saldo - Pedido #' + pedido.numero,
-      valor: preco,
+      descricao: `Pagamento de Autoatendimento (${this.cart.length} itens) via Saldo - Pedido #${pedido.numero}`,
+      valor: totalPreco,
       data_vencimento: dtNow.split('T')[0],
       data_pagamento: dtNow.split('T')[0],
       status: 'pago',
@@ -356,6 +430,7 @@ window.selfserviceModule = {
     });
 
     alert('PEDIDO ENVIADO PARA PRODUÇÃO!\n\nSeu pedido foi registrado e o valor descontado da conta.');
+    this.cart = []; // Limpa o carrinho
     this.setTab('pedidos');
   },
 
@@ -387,7 +462,11 @@ window.selfserviceModule = {
     }
     
     listEl.innerHTML = orders.map(o => {
-      const itemDesc = o.itens && o.itens.length ? o.itens[0].descricao : 'Produto Genérico';
+      let desc = 'Produto Genérico';
+      if (o.itens && o.itens.length > 0) {
+        if (o.itens.length === 1) desc = o.itens[0].descricao;
+        else desc = `Pedido com ${o.itens.length} crachás`;
+      }
       const total = (o.itens || []).reduce((acc, it) => acc + (it.valor_total || 0), 0);
       const dataFormat = new Date(o.data_criacao).toLocaleDateString('pt-BR');
       return `
@@ -397,7 +476,7 @@ window.selfserviceModule = {
               <span class="font-bold text-slate-800">Pedido #${o.numero}</span>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">${o.status_fase}</span>
             </div>
-            <p class="text-sm text-slate-600">${itemDesc}</p>
+            <p class="text-sm text-slate-600">${desc}</p>
             <p class="text-xs text-slate-400 mt-1">Realizado em ${dataFormat}</p>
           </div>
           <div class="text-right">
@@ -438,7 +517,7 @@ window.selfserviceModule = {
     
     document.getElementById('pix-modal').remove();
     this.render();
-    alert(`Recarga PIX de R$ ${valor.toFixed(2)} realizada com sucesso (Simulada). O saldo já está disponível na sua conta.`);
+    alert(\`Recarga PIX de R$ \${valor.toFixed(2)} realizada com sucesso (Simulada). O saldo já está disponível na sua conta.\`);
   },
 
   // ==========================================
@@ -499,8 +578,8 @@ window.selfserviceModule = {
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <div class="flex justify-between items-center mb-6 border-b pb-4">
           <h3 class="text-lg font-bold text-slate-800">Modelos Base de Produtos (Templates)</h3>
-          <button onclick="selfserviceModule.editTemplate('new')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition">Novo Modelo</button>
         </div>
+        <p class="text-sm text-slate-600 mb-4">Apenas o primeiro modelo desta lista é usado como base para os novos crachás.</p>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
@@ -520,12 +599,11 @@ window.selfserviceModule = {
                   <td class="p-3 text-center">${t.bg_front ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">Não</span>'}</td>
                   <td class="p-3 text-center">${t.bg_back ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">Não</span>'}</td>
                   <td class="p-3 text-right">
-                    <button onclick="selfserviceModule.editTemplate('${t.id}')" class="text-indigo-600 font-bold text-sm mr-3 hover:underline">Editar</button>
-                    <button onclick="selfserviceModule.deleteTemplate('${t.id}')" class="text-red-500 font-bold text-sm hover:underline">Excluir</button>
+                    <button onclick="selfserviceModule.editTemplate('${t.id}')" class="text-indigo-600 font-bold text-sm hover:underline">Editar Arte Base</button>
                   </td>
                 </tr>
               `).join('')}
-              ${templates.length === 0 ? '<tr><td colspan="5" class="p-6 text-center text-slate-500 font-bold">Nenhum modelo cadastrado. Clique em Novo Modelo para adicionar.</td></tr>' : ''}
+              ${templates.length === 0 ? '<tr><td colspan="5" class="p-6 text-center text-slate-500 font-bold">Nenhum modelo cadastrado.</td></tr>' : ''}
             </tbody>
           </table>
         </div>
@@ -542,25 +620,25 @@ window.selfserviceModule = {
     const html = `
       <div id="tpl-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 max-h-[95vh] overflow-y-auto">
-           <h2 class="font-bold text-xl text-slate-800 mb-4 border-b pb-2">${id === 'new' ? 'Novo Modelo Base' : 'Editar Modelo Base'}</h2>
+           <h2 class="font-bold text-xl text-slate-800 mb-4 border-b pb-2">Editar Arte Base do Crachá</h2>
            <input type="hidden" id="tpl-id" value="${t.id}">
            
            <div class="space-y-5">
              <div class="grid grid-cols-3 gap-4">
-               <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">Nome do Produto</label><input type="text" id="tpl-name" value="${t.name}" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50" placeholder="Ex: Adesivo de Festa"></div>
+               <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">Nome do Produto</label><input type="text" id="tpl-name" value="${t.name}" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50" placeholder="Ex: Crachá Padrão"></div>
                <div><label class="block text-xs font-bold text-slate-700 mb-1">Preço (R$)</label><input type="number" step="0.01" id="tpl-price" value="${t.price}" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50 text-blue-700 font-bold"></div>
              </div>
              
              <div class="bg-orange-50 p-4 rounded-xl border border-orange-200">
                <label class="block text-sm font-black text-orange-800 mb-1">Imagem FRENTE (Arte Base)</label>
-               <p class="text-[10px] text-orange-600 mb-2">Tamanho recomendado: 250x395 pixels (retrato). O sistema vai pintar a foto no meio e o nome embaixo.</p>
+               <p class="text-[10px] text-orange-600 mb-2">Tamanho recomendado: 250x395 pixels (retrato).</p>
                <input type="file" id="tpl-front" accept="image/*" class="w-full text-xs p-2 bg-white rounded border border-orange-200">
                ${t.bg_front ? '<p class="text-green-700 text-xs mt-2 font-bold">✓ Imagem carregada. Envie outra apenas se quiser substituir.</p>' : ''}
              </div>
              
              <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
                <label class="block text-sm font-black text-yellow-800 mb-1">Imagem VERSO (Arte Complementar)</label>
-               <p class="text-[10px] text-yellow-600 mb-2">Se enviada, será mostrada na 2ª prévia. O sistema adiciona apenas o nome no verso atualmente.</p>
+               <p class="text-[10px] text-yellow-600 mb-2">Se enviada, será mostrada na 2ª prévia.</p>
                <input type="file" id="tpl-back" accept="image/*" class="w-full text-xs p-2 bg-white rounded border border-yellow-200">
                ${t.bg_back ? '<p class="text-green-700 text-xs mt-2 font-bold">✓ Imagem carregada. Envie outra apenas se quiser substituir.</p>' : ''}
              </div>
@@ -606,13 +684,6 @@ window.selfserviceModule = {
 
     this.saveSettings(settings);
     document.getElementById('tpl-modal').remove();
-    this.render();
-  },
-  deleteTemplate(id) {
-    if (!confirm('Excluir este modelo de produto permanentemente?')) return;
-    const settings = this.getSettings();
-    settings.templates = settings.templates.filter(x => x.id !== id);
-    this.saveSettings(settings);
     this.render();
   }
 };
