@@ -3,6 +3,7 @@
   currentTab: 'pedido',
   cart: [],
   photoDataUrl: null,
+  currentOrderId: null,
   
   layoutConfig: {
     width: 685,
@@ -208,36 +209,35 @@
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <form id="cracha-form" class="space-y-5" onsubmit="selfserviceModule.addToCart(event)">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Nome no Crachá *</label>
-                <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="EX: JOÃO SILVA" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Matrícula / ID *</label>
-                  <input type="text" id="cr-mat" required oninput="selfserviceModule.preview()" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Tipo Sanguíneo</label>
-                  <input type="text" id="cr-sangue" oninput="selfserviceModule.preview()" placeholder="EX: O+" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
-                </div>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Sua Foto (Selfie ou Arquivo) *</label>
-                <input type="file" id="cr-foto" required accept="image/*" onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-3 border border-slate-300 rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition">
-              </div>
-              
-              <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                  <span class="font-bold text-slate-600 text-sm">Valor do Crachá:</span>
-                  <span class="font-black text-blue-700 text-xl">R$ ${preco.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow flex justify-center items-center gap-2 uppercase tracking-wide text-sm">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                  Adicionar Crachá ao Pedido
-                </button>
-              </div>
+            <form id="cracha-form" class="space-y-4" onsubmit="selfserviceModule.addToCart(event)">
+              ${(() => {
+                let html = '';
+                const fields = [...template.layout_front, ...template.layout_back];
+                
+                const hasPhoto = fields.some(f => f.type === 'photo' && f.visible !== false);
+                if (hasPhoto) {
+                  html += `<div><label class="block text-xs font-bold text-slate-700 mb-1">Foto do CrachÃ¡ *</label>
+                           <input type="file" id="cr-foto" required accept="image/*" onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>`;
+                }
+
+                const uniqueFields = {};
+                fields.forEach(f => {
+                   if (f.type === 'text' && f.field && f.visible !== false && !uniqueFields[f.field]) {
+                      uniqueFields[f.field] = true;
+                      html += `<div><label class="block text-xs font-bold text-slate-700 mb-1">${f.label || f.field} *</label>
+                               <input type="text" id="cr-${f.field}" required oninput="selfserviceModule.preview()" class="w-full px-4 py-3 border rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800"></div>`;
+                   }
+                });
+                return html;
+              })()}
+              <label class="inline-flex items-center gap-2 mt-2 cursor-pointer">
+                <input type="checkbox" id="cr-blank-back" onchange="selfserviceModule.preview()" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <span class="text-sm font-bold text-slate-700">Deixar Verso em Branco</span>
+              </label>
+
+              <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider mt-4">
+                Adicionar ao Carrinho
+              </button>
             </form>
           </div>
 
@@ -288,11 +288,22 @@
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
     
-    const formVals = {
-      nome: document.getElementById('cr-nome')?.value.trim().toUpperCase() || 'NOME DO CLIENTE',
-      mat: document.getElementById('cr-mat')?.value.trim().toUpperCase() || '123456',
-      sangue: document.getElementById('cr-sangue')?.value.trim().toUpperCase() || 'O+'
-    };
+    const formVals = {};
+      const fields = ['nome', 'mat', 'sangue', 'campo1', 'campo2', 'campo3', 'campov1', 'campov2', 'campov3', 'campov4'];
+      fields.forEach(f => {
+         const el = document.getElementById('cr-' + f);
+         if (el) formVals[f] = el.value.toUpperCase();
+      });
+      const blankBackEl = document.getElementById('cr-blank-back');
+      const blankBack = blankBackEl ? blankBackEl.checked : false;
+      if (blankBack && targetTab === 'back') {
+         // Render blank back
+         const canvas = document.getElementById('preview-canvas');
+         const ctx = canvas.getContext('2d');
+         ctx.fillStyle = '#ffffff';
+         ctx.fillRect(0,0, canvas.width, canvas.height);
+         return;
+      }
 
     const drawElements = () => {
       layoutArr.forEach(el => {
@@ -313,28 +324,56 @@
             ctx.fillText('FOTO', el.x + el.w/2, el.y + el.h/2);
           }
         } else if (el.type === 'text') {
-          let text = el.label || '';
-          if (el.field && formVals[el.field] !== undefined) {
-            if (text.includes(`{${el.field}}`)) {
-              text = text.replace(`{${el.field}}`, formVals[el.field]);
-            } else if (!text || text === 'Nome do Cliente' || text.startsWith('Matrícula') || text.startsWith('Sangue')) {
-              text = formVals[el.field];
-              if (el.field === 'mat' && text) text = 'MATRÍCULA: ' + text;
-              if (el.field === 'sangue' && text) text = 'SANGUE: ' + text;
-            } else {
-               text = formVals[el.field]; 
+            if (el.visible === false) { ctx.restore(); return; }
+            let text = el.label || '';
+            if (el.field && formVals[el.field] !== undefined) {
+               if (text.includes(`{${el.field}}`)) {
+                 text = text.replace(`{${el.field}}`, formVals[el.field] || '');
+               } else {
+                 text = formVals[el.field];
+               }
+            }
+            if (!text && el.field === 'sangue') text = '';
+            if (text) {
+               const bw = el.w || 200;
+               const bh = el.h || 50;
+               const align = el.align || 'center';
+               let bx = el.x;
+               if (align === 'center') bx = el.x - bw/2;
+               else if (align === 'right') bx = el.x - bw;
+               
+               if (el.bgColor) {
+                 ctx.fillStyle = el.bgColor;
+                 if (el.radius) {
+                   ctx.beginPath(); ctx.roundRect(bx, el.y, bw, bh, el.radius); ctx.fill();
+                 } else {
+                   ctx.fillRect(bx, el.y, bw, bh);
+                 }
+               }
+               if (el.borderColor) {
+                 ctx.strokeStyle = el.borderColor;
+                 ctx.lineWidth = el.borderWidth || 2;
+                 if (el.radius) {
+                   ctx.beginPath(); ctx.roundRect(bx, el.y, bw, bh, el.radius); ctx.stroke();
+                 } else {
+                   ctx.strokeRect(bx, el.y, bw, bh);
+                 }
+               }
+
+               ctx.fillStyle = el.color || '#000000';
+               ctx.font = el.font || 'bold 30px Arial';
+               ctx.textAlign = align;
+               ctx.textBaseline = 'middle';
+               
+               let tx = el.x;
+               let ty = el.y + bh/2;
+               if (align === 'left') tx = bx + 10;
+               if (align === 'right') tx = bx + bw - 10;
+
+               ctx.fillText(text, tx, ty, bw);
             }
           }
-          if (!text && el.field === 'sangue') text = '';
-          if (text) {
-             ctx.fillStyle = el.color || '#000000';
-             ctx.font = el.font || 'bold 30px Arial';
-             ctx.textAlign = el.align || 'center';
-             ctx.textBaseline = 'top';
-             ctx.fillText(text, el.x, el.y, width - 40);
-          }
-        }
-        ctx.restore();
+          ctx.restore();
       });
 
       this.drawCropMarks(ctx, template.crop_marks);
@@ -343,7 +382,7 @@
     if (bgDataUrl) {
       const bg = new Image();
       bg.onload = () => {
-        ctx.drawImage(bg, offsetX, offsetY, safeWidth, safeHeight);
+        ctx.drawImage(bg, 0, 0, width, height);
         drawElements();
       };
       bg.src = bgDataUrl;
@@ -433,36 +472,48 @@
   },
 
   async addToCart(e) {
-    e.preventDefault();
-    const template = this.getSettings().templates[0];
-    const preco = Number(template.price) || 0;
-    
-    const nome = document.getElementById('cr-nome').value.trim();
-    const mat = document.getElementById('cr-mat').value.trim();
-    const sangue = document.getElementById('cr-sangue').value.trim();
-    
-    if (!this.photoDataUrl) {
-      alert("Por favor, selecione uma foto.");
-      return;
-    }
-    
-    await new Promise(r => setTimeout(r, 100));
+      e.preventDefault();
+      const template = this.getSettings().templates[0];
+      const preco = Number(template.price) || 0;
+      
+      const fields = ['nome', 'mat', 'sangue', 'campo1', 'campo2', 'campo3', 'campov1', 'campov2', 'campov3', 'campov4'];
+      const details = {};
+      fields.forEach(f => {
+         const el = document.getElementById('cr-' + f);
+         if (el) details[f] = el.value.trim();
+      });
 
-    const canvasF = document.getElementById('cracha-canvas-front');
-    const canvasB = document.getElementById('cracha-canvas-back');
-    const finalImageFront = canvasF.toDataURL('image/png', 0.9);
-    const finalImageBack = canvasB.toDataURL('image/png', 0.9);
+      const photoEl = document.getElementById('cr-foto');
+      if (photoEl && !this.photoDataUrl) {
+        alert("Por favor, selecione uma foto.");
+        return;
+      }
+      
+      if (!this.currentOrderId) {
+         this.currentOrderId = "ORD-" + Math.floor(1000 + Math.random() * 9000);
+      }
 
-    this.cart.push({
-      nome,
-      mat,
-      sangue,
-      foto: this.photoDataUrl,
-      preco,
-      frontUrl: finalImageFront,
-      backUrl: finalImageBack,
-      templateName: template.name || 'Crachá'
-    });
+      await new Promise(r => setTimeout(r, 100));
+  
+      const canvasF = document.getElementById('cracha-canvas-front');
+      const canvasB = document.getElementById('cracha-canvas-back');
+      const finalImageFront = canvasF.toDataURL('image/png', 0.9);
+      
+      const blankBackEl = document.getElementById('cr-blank-back');
+      const blankBack = blankBackEl ? blankBackEl.checked : false;
+      const finalImageBack = blankBack ? '' : canvasB.toDataURL('image/png', 0.9);
+  
+      this.cart.push({
+        details,
+        nome: details.nome || details.campo1 || 'CrachÃ¡',
+        mat: details.mat || details.campo2 || '',
+        sangue: details.sangue || details.campo3 || '',
+        foto: this.photoDataUrl,
+        preco,
+        frontUrl: finalImageFront,
+        backUrl: finalImageBack,
+        templateName: template.name || 'CrachÃ¡'
+      });
 
     this.photoDataUrl = null;
     this.renderDashboard();
@@ -1040,3 +1091,4 @@ window.layoutEditorModule = {
     }
   }
 };
+
