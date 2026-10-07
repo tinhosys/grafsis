@@ -20,7 +20,7 @@
     const defaultLayoutFront = [
       { id: 'photo_1', type: 'photo', x: 282, y: 350, w: 120, h: 120, radius: 60 },
       { id: 'text_1', type: 'text', field: 'nome', label: 'Nome do Cliente', x: 342, y: 550, color: '#1e293b', font: '900 40px Arial', align: 'center' },
-      { id: 'text_2', type: 'text', field: 'mat', label: 'MatrÃ­cula: {mat}', x: 342, y: 600, color: '#64748b', font: 'bold 24px Arial', align: 'center' },
+      { id: 'text_2', type: 'text', field: 'mat', label: 'Matrícula: {mat}', x: 342, y: 600, color: '#64748b', font: 'bold 24px Arial', align: 'center' },
       { id: 'text_3', type: 'text', field: 'sangue', label: 'Sangue: {sangue}', x: 342, y: 650, color: '#e11d48', font: '900 28px Arial', align: 'center' }
     ];
     const defaultLayoutBack = [
@@ -28,11 +28,11 @@
     ];
 
     if (parsed.price !== undefined && !parsed.templates) {
-      parsed = { templates: [{ id: 'tpl_1', name: 'CrachÃ¡ PadrÃ£o', price: parsed.price || 15, bg_front: parsed.bg_url || '', bg_back: '', crop_marks: 'green', layout_front: defaultLayoutFront, layout_back: defaultLayoutBack }] };
+      parsed = { templates: [{ id: 'tpl_1', name: 'Crachá Padrão', price: parsed.price || 15, bg_front: parsed.bg_url || '', bg_back: '', crop_marks: 'green', layout_front: defaultLayoutFront, layout_back: defaultLayoutBack }] };
       this.saveSettings(parsed);
     }
     if (!parsed.templates || parsed.templates.length === 0) {
-      parsed.templates = [{ id: 'tpl_1', name: 'CrachÃ¡ PadrÃ£o', price: 15, bg_front: '', bg_back: '', crop_marks: 'green', layout_front: defaultLayoutFront, layout_back: defaultLayoutBack }];
+      parsed.templates = [{ id: 'tpl_1', name: 'Crachá Padrão', price: 15, bg_front: '', bg_back: '', crop_marks: 'green', layout_front: defaultLayoutFront, layout_back: defaultLayoutBack }];
       this.saveSettings(parsed);
     } else {
       parsed.templates.forEach(t => {
@@ -84,7 +84,7 @@
       this.photoDataUrl = null;
       this.renderDashboard();
     } else {
-      alert('Cliente nÃ£o encontrado. Verifique o nÃºmero digitado ou dirija-se ao balcÃ£o.');
+      alert('Cliente não encontrado. Verifique o número digitado ou dirija-se ao balcão.');
     }
   },
 
@@ -117,7 +117,7 @@
       <div class="max-w-5xl mx-auto py-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-blue-600 text-white p-6 rounded-2xl shadow-lg mb-6 gap-4">
           <div>
-            <h2 class="text-xl font-bold">OlÃ¡, ${c.nome}!</h2>
+            <h2 class="text-xl font-bold">Olá, ${c.nome}!</h2>
             <p class="text-blue-100 text-sm">Bem-vindo ao Autoatendimento</p>
           </div>
           <div class="sm:text-right bg-blue-700/50 p-3 rounded-xl border border-blue-500 w-full sm:w-auto flex justify-between sm:block items-center">
@@ -132,7 +132,7 @@
           <button onclick="selfserviceModule.setTab('pedido')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'pedido' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'} flex-1 sm:flex-none text-center">Novo Pedido</button>
           <button onclick="selfserviceModule.setTab('pedidos')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'pedidos' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'} flex-1 sm:flex-none text-center">Meus Pedidos</button>
           <button onclick="selfserviceModule.setTab('perfil')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'perfil' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'} flex-1 sm:flex-none text-center">Perfil</button>
-          ${isAdmin ? \`<button onclick="selfserviceModule.setTab('config')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'config' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'} flex-1 sm:flex-none text-center">ConfiguraÃ§Ã£o (Admin)</button>\` : ''}
+          ${isAdmin ? `<button onclick="selfserviceModule.setTab('config')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${this.currentTab === 'config' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'} flex-1 sm:flex-none text-center">Configuração (Admin)</button>` : ''}
         </div>
 
         ${tabContent}
@@ -149,8 +149,8 @@
 
   switchPreviewTab(tab) {
     window.ssPreviewTab = tab;
-    document.getElementById('btn-prev-front').className = \`flex-1 py-2 text-sm font-bold rounded-l-lg transition \${tab === 'front' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}\`;
-    document.getElementById('btn-prev-back').className = \`flex-1 py-2 text-sm font-bold rounded-r-lg transition \${tab === 'back' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}\`;
+    document.getElementById('btn-prev-front').className = `flex-1 py-2 text-sm font-bold rounded-l-lg transition ${tab === 'front' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
+    document.getElementById('btn-prev-back').className = `flex-1 py-2 text-sm font-bold rounded-r-lg transition ${tab === 'back' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
     
     document.getElementById('container-prev-front').style.display = tab === 'front' ? 'flex' : 'none';
     document.getElementById('container-prev-back').style.display = tab === 'back' ? 'flex' : 'none';
@@ -165,61 +165,61 @@
     let cartTotal = 0;
     if (this.cart.length > 0) {
       cartTotal = this.cart.reduce((acc, item) => acc + item.preco, 0);
-      cartHtml = \`
+      cartHtml = `
         <div class="mt-8 border-t pt-6">
           <h4 class="font-black text-slate-800 mb-4 flex items-center justify-between">
-            <span>CrachÃ¡s no Pedido Atual (\${this.cart.length})</span>
-            <span class="text-blue-700 text-xl">Total: R$ \${cartTotal.toFixed(2)}</span>
+            <span>Crachás no Pedido Atual (${this.cart.length})</span>
+            <span class="text-blue-700 text-xl">Total: R$ ${cartTotal.toFixed(2)}</span>
           </h4>
           <div class="space-y-3 mb-6">
-            \${this.cart.map((item, idx) => \`
+            ${this.cart.map((item, idx) => `
               <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
-                    \${item.foto ? \`<img src="\${item.foto}" class="w-full h-full object-cover">\` : ''}
+                    ${item.foto ? `<img src="${item.foto}" class="w-full h-full object-cover">` : ''}
                   </div>
                   <div>
-                    <p class="text-sm font-bold text-slate-800">\${item.nome}</p>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase">MAT: \${item.mat || '--'} | TIPO: \${item.sangue || '--'}</p>
+                    <p class="text-sm font-bold text-slate-800">${item.nome}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase">MAT: ${item.mat || '--'} | TIPO: ${item.sangue || '--'}</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="font-black text-slate-700 text-sm">R$ \${item.preco.toFixed(2)}</span>
-                  <button type="button" onclick="selfserviceModule.removeFromCart(\${idx})" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover">
+                  <span class="font-black text-slate-700 text-sm">R$ ${item.preco.toFixed(2)}</span>
+                  <button type="button" onclick="selfserviceModule.removeFromCart(${idx})" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </button>
                 </div>
               </div>
-            \`).join('')}
+            `).join('')}
           </div>
           <button type="button" onclick="selfserviceModule.checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider flex justify-center items-center gap-2 text-lg">
-            FINALIZAR COMPRA (Descontar R$ \${cartTotal.toFixed(2)})
+            FINALIZAR COMPRA (Descontar R$ ${cartTotal.toFixed(2)})
           </button>
         </div>
-      \`;
+      `;
     }
 
-    return \`
+    return `
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
-           Solicitar Novo CrachÃ¡
+           Solicitar Novo Crachá
         </h3>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
             <form id="cracha-form" class="space-y-5" onsubmit="selfserviceModule.addToCart(event)">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Nome no CrachÃ¡ *</label>
-                <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="EX: JOÃƒO SILVA" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nome no Crachá *</label>
+                <input type="text" id="cr-nome" required oninput="selfserviceModule.preview()" placeholder="EX: JOÃO SILVA" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">MatrÃ­cula / ID *</label>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Matrícula / ID *</label>
                   <input type="text" id="cr-mat" required oninput="selfserviceModule.preview()" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Tipo SanguÃ­neo</label>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Tipo Sanguíneo</label>
                   <input type="text" id="cr-sangue" oninput="selfserviceModule.preview()" placeholder="EX: O+" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 uppercase focus:ring-2 focus:ring-blue-500 font-bold text-slate-800">
                 </div>
               </div>
@@ -230,19 +230,19 @@
               
               <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
-                  <span class="font-bold text-slate-600 text-sm">Valor do CrachÃ¡:</span>
-                  <span class="font-black text-blue-700 text-xl">R$ \${preco.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  <span class="font-bold text-slate-600 text-sm">Valor do Crachá:</span>
+                  <span class="font-black text-blue-700 text-xl">R$ ${preco.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow flex justify-center items-center gap-2 uppercase tracking-wide text-sm">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                  Adicionar CrachÃ¡ ao Pedido
+                  Adicionar Crachá ao Pedido
                 </button>
               </div>
             </form>
           </div>
 
           <div class="flex flex-col items-center justify-start border-t lg:border-t-0 lg:border-l pt-6 lg:pt-0 lg:pl-8 border-slate-200 overflow-x-auto">
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">PrÃ©-visualizaÃ§Ã£o do CrachÃ¡</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Pré-visualização do Crachá</p>
             
             <div class="w-full max-w-[250px] flex mb-4 bg-slate-100 rounded-lg shadow-sm border border-slate-200">
                <button id="btn-prev-front" onclick="selfserviceModule.switchPreviewTab('front')" class="flex-1 py-2 text-sm font-bold bg-blue-600 text-white rounded-l-lg transition">FRENTE</button>
@@ -254,7 +254,7 @@
                 <span class="absolute text-slate-400 text-xs font-bold preview-loading" id="load-front">GERANDO...</span>
                 <canvas id="cracha-canvas-front" width="685" height="1051" class="w-full h-full relative z-10" style="object-fit: contain;"></canvas>
               </div>
-              <p class="text-[10px] text-slate-500 mt-2 text-center leading-tight">A arte final contÃ©m sangria para impressÃ£o (58x89mm).<br>As linhas mostram a Ã¡rea segura (54x85mm).</p>
+              <p class="text-[10px] text-slate-500 mt-2 text-center leading-tight">A arte final contém sangria para impressão (58x89mm).<br>As linhas mostram a área segura (54x85mm).</p>
             </div>
             
             <div id="container-prev-back" class="flex-col items-center" style="display: none;">
@@ -262,13 +262,13 @@
                 <span class="absolute text-slate-400 text-xs font-bold preview-loading" id="load-back">GERANDO...</span>
                 <canvas id="cracha-canvas-back" width="685" height="1051" class="w-full h-full relative z-10" style="object-fit: contain;"></canvas>
               </div>
-              <p class="text-[10px] text-slate-500 mt-2 text-center leading-tight">A arte final contÃ©m sangria para impressÃ£o (58x89mm).<br>As linhas mostram a Ã¡rea segura (54x85mm).</p>
+              <p class="text-[10px] text-slate-500 mt-2 text-center leading-tight">A arte final contém sangria para impressão (58x89mm).<br>As linhas mostram a área segura (54x85mm).</p>
             </div>
           </div>
         </div>
-        \${cartHtml}
+        ${cartHtml}
       </div>
-    \`;
+    `;
   },
 
   handlePhoto(input) {
@@ -315,11 +315,11 @@
         } else if (el.type === 'text') {
           let text = el.label || '';
           if (el.field && formVals[el.field] !== undefined) {
-            if (text.includes(\`{\${el.field}}\`)) {
-              text = text.replace(\`{\${el.field}}\`, formVals[el.field]);
-            } else if (!text || text === 'Nome do Cliente' || text.startsWith('MatrÃ­cula') || text.startsWith('Sangue')) {
+            if (text.includes(`{${el.field}}`)) {
+              text = text.replace(`{${el.field}}`, formVals[el.field]);
+            } else if (!text || text === 'Nome do Cliente' || text.startsWith('Matrícula') || text.startsWith('Sangue')) {
               text = formVals[el.field];
-              if (el.field === 'mat' && text) text = 'MATRÃCULA: ' + text;
+              if (el.field === 'mat' && text) text = 'MATRÍCULA: ' + text;
               if (el.field === 'sangue' && text) text = 'SANGUE: ' + text;
             } else {
                text = formVals[el.field]; 
@@ -461,7 +461,7 @@
       preco,
       frontUrl: finalImageFront,
       backUrl: finalImageBack,
-      templateName: template.name || 'CrachÃ¡'
+      templateName: template.name || 'Crachá'
     });
 
     this.photoDataUrl = null;
@@ -480,11 +480,11 @@
     this.currentClient.saldo_corrente = Number(this.currentClient.saldo_corrente) || 0;
     
     if (this.currentClient.saldo_corrente < totalPreco) {
-      alert(\`SALDO INSUFICIENTE!\\n\\nVocÃª possui R$ \${this.currentClient.saldo_corrente.toFixed(2)}.\\nO pedido custa R$ \${totalPreco.toFixed(2)}.\\n\\nVÃ¡ na aba "Meus Pedidos" para recarregar com PIX.\`);
+      alert(`SALDO INSUFICIENTE!\\n\\nVocê possui R$ ${this.currentClient.saldo_corrente.toFixed(2)}.\\nO pedido custa R$ ${totalPreco.toFixed(2)}.\\n\\nVá na aba "Meus Pedidos" para recarregar com PIX.`);
       return;
     }
 
-    if(!confirm(\`CONFIRMAR PEDIDO DE \${this.cart.length} CRACHÃ(S)?\\n\\nSerÃ£o descontados R$ \${totalPreco.toFixed(2)} do seu saldo.\`)) return;
+    if(!confirm(`CONFIRMAR PEDIDO DE ${this.cart.length} CRACHÁ(S)?\\n\\nSerão descontados R$ ${totalPreco.toFixed(2)} do seu saldo.`)) return;
 
     const clients = window.store.getClients();
     const idx = clients.findIndex(c => c.id === this.currentClient.id);
@@ -508,7 +508,7 @@
       previsao_entrega: dtNow.split('T')[0],
       itens: this.cart.map(item => ({
         produto_id: '',
-        descricao: \`\${item.templateName} (Autoatendimento) - \${item.nome}\`,
+        descricao: `${item.templateName} (Autoatendimento) - ${item.nome}`,
         quantidade: 1,
         tipo_calculo: 'unidade',
         preco_base: item.preco,
@@ -517,13 +517,13 @@
         arte_url: item.frontUrl,
         arte_verso_url: item.backUrl
       })),
-      historico: [{ data: dtNow, usuario: 'Autoatendimento', acao: \`Pedido gerado com \${this.cart.length} item(ns). Pago usando Saldo.\` }]
+      historico: [{ data: dtNow, usuario: 'Autoatendimento', acao: `Pedido gerado com ${this.cart.length} item(ns). Pago usando Saldo.` }]
     };
 
     await window.store.saveOrder(pedido);
     await window.store.saveFinanceEntry({
       tipo: 'receber',
-      descricao: \`Pagamento de Autoatendimento (\${this.cart.length} itens) via Saldo - Pedido #\${pedido.numero}\`,
+      descricao: `Pagamento de Autoatendimento (${this.cart.length} itens) via Saldo - Pedido #${pedido.numero}`,
       valor: totalPreco,
       data_vencimento: dtNow.split('T')[0],
       data_pagamento: dtNow.split('T')[0],
@@ -532,13 +532,13 @@
       pedido_id: pedido.id
     });
 
-    alert('PEDIDO ENVIADO PARA PRODUÃ‡ÃƒO!\\n\\nSeu pedido foi registrado e o valor descontado da conta.');
+    alert('PEDIDO ENVIADO PARA PRODUÇÃO!\\n\\nSeu pedido foi registrado e o valor descontado da conta.');
     this.cart = []; 
     this.setTab('pedidos');
   },
 
   getPedidosTabHtml() {
-    return \`
+    return `
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <div class="flex justify-between items-center mb-6 border-b pb-4">
           <h3 class="text-lg font-bold text-slate-800">Meus Pedidos</h3>
@@ -549,7 +549,7 @@
         </div>
         <div id="ss-pedidos-list" class="space-y-4">Carregando pedidos...</div>
       </div>
-    \`;
+    `;
   },
   loadPedidosList() {
     const listEl = document.getElementById('ss-pedidos-list');
@@ -562,35 +562,35 @@
     }
     
     listEl.innerHTML = orders.map(o => {
-      let desc = 'Produto GenÃ©rico';
+      let desc = 'Produto Genérico';
       if (o.itens && o.itens.length > 0) {
         if (o.itens.length === 1) desc = o.itens[0].descricao;
-        else desc = \`Pedido com \${o.itens.length} crachÃ¡s\`;
+        else desc = `Pedido com ${o.itens.length} crachás`;
       }
       const total = (o.itens || []).reduce((acc, it) => acc + (it.valor_total || 0), 0);
       const dataFormat = new Date(o.data_criacao).toLocaleDateString('pt-BR');
-      return \`
+      return `
         <div class="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 hover:bg-slate-100 transition">
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-bold text-slate-800">Pedido #\${o.numero}</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">\${o.status_fase}</span>
+              <span class="font-bold text-slate-800">Pedido #${o.numero}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">${o.status_fase}</span>
             </div>
-            <p class="text-sm text-slate-600">\${desc}</p>
-            <p class="text-xs text-slate-400 mt-1">Realizado em \${dataFormat}</p>
+            <p class="text-sm text-slate-600">${desc}</p>
+            <p class="text-xs text-slate-400 mt-1">Realizado em ${dataFormat}</p>
           </div>
           <div class="text-right">
-            <p class="font-black text-lg text-slate-800">R$ \${total.toFixed(2)}</p>
+            <p class="font-black text-lg text-slate-800">R$ ${total.toFixed(2)}</p>
           </div>
         </div>
-      \`;
+      `;
     }).join('');
   },
   openPixModal() {
-    const html = \`
+    const html = `
       <div id="pix-modal" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl border border-slate-100">
-           <h2 class="font-bold text-lg text-slate-800 mb-4 border-b pb-2">Recarga via PIX (SimulaÃ§Ã£o)</h2>
+           <h2 class="font-bold text-lg text-slate-800 mb-4 border-b pb-2">Recarga via PIX (Simulação)</h2>
            <label class="block text-xs font-bold text-slate-600 text-left mb-1">Valor da Recarga (R$)</label>
            <input type="number" id="pix-valor" class="w-full border border-slate-300 p-3 mb-6 rounded-lg text-center text-xl font-black text-green-700 focus:ring-2 focus:ring-green-500" value="50.00" step="10.00">
            <div class="bg-slate-100 w-48 h-48 mx-auto flex flex-col items-center justify-center mb-4 rounded-xl border border-slate-200 shadow-inner">
@@ -601,7 +601,7 @@
            <button onclick="document.getElementById('pix-modal').remove()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Cancelar</button>
         </div>
       </div>
-    \`;
+    `;
     document.body.insertAdjacentHTML('beforeend', html);
   },
   async confirmPix() {
@@ -611,23 +611,23 @@
     await window.store.saveClient(this.currentClient);
     document.getElementById('pix-modal').remove();
     this.render();
-    alert(\`Recarga PIX de R$ \${valor.toFixed(2)} realizada com sucesso (Simulada).\`);
+    alert(`Recarga PIX de R$ ${valor.toFixed(2)} realizada com sucesso (Simulada).`);
   },
 
   getPerfilTabHtml() {
     const c = this.currentClient;
-    return \`
+    return `
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Meu Perfil</h3>
         <form onsubmit="selfserviceModule.saveProfile(event)" class="space-y-4 max-w-3xl">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div><label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo</label><input type="text" id="pf-nome" value="\${c.nome || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" required></div>
-            <div><label class="block text-xs font-bold text-slate-700 mb-1">Telefone/WhatsApp</label><input type="text" id="pf-tel" value="\${c.telefone_whatsapp || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" required></div>
-            <div><label class="block text-xs font-bold text-slate-700 mb-1">E-mail</label><input type="email" id="pf-email" value="\${c.email || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo</label><input type="text" id="pf-nome" value="${c.nome || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" required></div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">Telefone/WhatsApp</label><input type="text" id="pf-tel" value="${c.telefone_whatsapp || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" required></div>
+            <div><label class="block text-xs font-bold text-slate-700 mb-1">E-mail</label><input type="email" id="pf-email" value="${c.email || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>
             <div>
               <div class="grid grid-cols-3 gap-2">
-                 <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">Cidade</label><input type="text" id="pf-cid" value="\${c.cidade || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>
-                 <div><label class="block text-xs font-bold text-slate-700 mb-1">UF</label><input type="text" id="pf-uf" value="\${c.uf || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" maxlength="2"></div>
+                 <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">Cidade</label><input type="text" id="pf-cid" value="${c.cidade || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>
+                 <div><label class="block text-xs font-bold text-slate-700 mb-1">UF</label><input type="text" id="pf-uf" value="${c.uf || ''}" class="w-full border border-slate-300 p-3 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500" maxlength="2"></div>
               </div>
             </div>
             <div class="md:col-span-2 border-t pt-4">
@@ -636,11 +636,11 @@
             </div>
           </div>
           <div class="border-t pt-4 mt-6">
-             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-md uppercase text-sm">Salvar AlteraÃ§Ãµes do Perfil</button>
+             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-md uppercase text-sm">Salvar Alterações do Perfil</button>
           </div>
         </form>
       </div>
-    \`;
+    `;
   },
   async saveProfile(e) {
     e.preventDefault();
@@ -652,7 +652,7 @@
     const s = document.getElementById('pf-senha').value;
     if (s) {
       if (!this.currentClient.observacoes) this.currentClient.observacoes = '';
-      this.currentClient.observacoes += \`\\n[Senha Atualizada no Autoatendimento]\`;
+      this.currentClient.observacoes += `\\n[Senha Atualizada no Autoatendimento]`;
     }
     
     await window.store.saveClient(this.currentClient);
@@ -662,42 +662,43 @@
 
   getConfigTabHtml() {
     const templates = this.getSettings().templates;
-    return \`
+    return `
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <div class="flex justify-between items-center mb-6 border-b pb-4">
           <h3 class="text-lg font-bold text-slate-800">Modelos Base de Produtos (Templates)</h3>
         </div>
-        <p class="text-sm text-slate-600 mb-4">Apenas o primeiro modelo desta lista Ã© usado como base para os novos crachÃ¡s.</p>
+        <p class="text-sm text-slate-600 mb-4">Apenas o primeiro modelo desta lista é usado como base para os novos crachás.</p>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 text-slate-600 text-sm">
                 <th class="p-3 border-b font-bold rounded-tl-lg">Nome do Produto</th>
-                <th class="p-3 border-b font-bold">PreÃ§o Base</th>
+                <th class="p-3 border-b font-bold">Preço Base</th>
                 <th class="p-3 border-b font-bold text-center">Frente</th>
                 <th class="p-3 border-b font-bold text-center">Verso</th>
-                <th class="p-3 border-b font-bold text-right rounded-tr-lg">AÃ§Ãµes</th>
+                <th class="p-3 border-b font-bold text-right rounded-tr-lg">Ações</th>
               </tr>
             </thead>
             <tbody>
-              \${templates.map(t => \`
+              ${templates.map(t => `
                 <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                  <td class="p-3 font-semibold text-slate-800">\${t.name}</td>
-                  <td class="p-3 text-blue-700 font-bold">R$ \${Number(t.price).toFixed(2)}</td>
-                  <td class="p-3 text-center">\${t.bg_front ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">NÃ£o</span>'}</td>
-                  <td class="p-3 text-center">\${t.bg_back ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">NÃ£o</span>'}</td>
+                  <td class="p-3 font-semibold text-slate-800">${t.name}</td>
+                  <td class="p-3 text-blue-700 font-bold">R$ ${Number(t.price).toFixed(2)}</td>
+                  <td class="p-3 text-center">${t.bg_front ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">Não</span>'}</td>
+                  <td class="p-3 text-center">${t.bg_back ? '<span class="text-green-600 font-bold text-xs">Sim</span>' : '<span class="text-slate-400 text-xs">Não</span>'}</td>
                   <td class="p-3 text-right">
-                    <button onclick="window.layoutEditorModule.openEditor('\${t.id}')" class="text-indigo-600 font-bold text-sm hover:underline">Editar Layout</button>
+                    <button onclick="window.layoutEditorModule.openEditor('${t.id}')" class="text-indigo-600 font-bold text-sm hover:underline">Editar Layout</button>
                   </td>
                 </tr>
-              \`).join('')}
+              `).join('')}
             </tbody>
           </table>
         </div>
       </div>
-    \`;
+    `;
   }
 };
+
 window.layoutEditorModule = {
   currentTemplateId: null,
   currentTab: 'front', // 'front' or 'back'
@@ -714,7 +715,7 @@ window.layoutEditorModule = {
     let t = settings.templates.find(x => x.id === templateId);
     
     if (!t) {
-       alert("Modelo nÃ£o encontrado."); return;
+       alert("Modelo não encontrado."); return;
     }
 
     this.layoutFront = JSON.parse(JSON.stringify(t.layout_front || []));
@@ -736,19 +737,19 @@ window.layoutEditorModule = {
   renderEditorModal() {
     let el = document.getElementById('layout-editor-modal');
     if (!el) {
-      document.body.insertAdjacentHTML('beforeend', \`<div id="layout-editor-modal" class="fixed inset-0 z-[200] bg-slate-900/90 flex flex-col"></div>\`);
+      document.body.insertAdjacentHTML('beforeend', `<div id="layout-editor-modal" class="fixed inset-0 z-[200] bg-slate-900/90 flex flex-col"></div>`);
       el = document.getElementById('layout-editor-modal');
     }
 
     const currentLayout = this.currentTab === 'front' ? this.layoutFront : this.layoutBack;
     const currentBg = this.currentTab === 'front' ? this.bgFront : this.bgBack;
 
-    el.innerHTML = \`
+    el.innerHTML = `
       <!-- Header -->
       <div class="bg-white p-4 flex justify-between items-center shadow-md z-10">
         <div>
-          <h2 class="text-xl font-black text-slate-800">Editor de Layout de CrachÃ¡</h2>
-          <p class="text-xs text-slate-500">Arraste os elementos. Arte: 58x89mm (sangria). Ãrea Segura: 54x85mm.</p>
+          <h2 class="text-xl font-black text-slate-800">Editor de Layout de Crachá</h2>
+          <p class="text-xs text-slate-500">Arraste os elementos. Arte: 58x89mm (sangria). Área Segura: 54x85mm.</p>
         </div>
         <div class="flex gap-4">
           <button onclick="layoutEditorModule.closeEditor()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 font-bold rounded-lg text-sm transition">Cancelar</button>
@@ -762,13 +763,13 @@ window.layoutEditorModule = {
         <!-- Sidebar Tools -->
         <div class="w-64 bg-slate-50 border-r border-slate-200 flex flex-col p-4 overflow-y-auto">
           <div class="flex bg-slate-200 rounded-lg p-1 mb-6">
-            <button onclick="layoutEditorModule.switchTab('front')" class="flex-1 py-1.5 text-xs font-bold rounded \${this.currentTab === 'front' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">FRENTE</button>
-            <button onclick="layoutEditorModule.switchTab('back')" class="flex-1 py-1.5 text-xs font-bold rounded \${this.currentTab === 'back' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">VERSO</button>
+            <button onclick="layoutEditorModule.switchTab('front')" class="flex-1 py-1.5 text-xs font-bold rounded ${this.currentTab === 'front' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">FRENTE</button>
+            <button onclick="layoutEditorModule.switchTab('back')" class="flex-1 py-1.5 text-xs font-bold rounded ${this.currentTab === 'back' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">VERSO</button>
           </div>
 
           <h3 class="text-xs font-black text-slate-800 uppercase mb-3">Adicionar Elemento</h3>
           <button onclick="layoutEditorModule.addElement('text')" class="w-full text-left px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-blue-50 hover:border-blue-300 mb-2 transition">+ Campo de Texto</button>
-          <button onclick="layoutEditorModule.addElement('photo')" class="w-full text-left px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-blue-50 hover:border-blue-300 mb-6 transition">+ Ãrea da Foto</button>
+          <button onclick="layoutEditorModule.addElement('photo')" class="w-full text-left px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-blue-50 hover:border-blue-300 mb-6 transition">+ Área da Foto</button>
           
           <h3 class="text-xs font-black text-slate-800 uppercase mb-3">Fundo & Guias</h3>
           <div class="mb-4">
@@ -778,16 +779,16 @@ window.layoutEditorModule = {
           <div class="mb-6">
             <label class="block text-[10px] font-bold text-slate-600 mb-1">Cor da Linha de Corte</label>
             <select onchange="layoutEditorModule.changeCropMarks(this.value)" class="w-full p-2 border rounded bg-white text-xs">
-               <option value="green" \${this.cropMarks === 'green' ? 'selected' : ''}>Verde LimÃ£o</option>
-               <option value="white" \${this.cropMarks === 'white' ? 'selected' : ''}>Branco</option>
-               <option value="black" \${this.cropMarks === 'black' ? 'selected' : ''}>Preto</option>
-               <option value="none" \${this.cropMarks === 'none' ? 'selected' : ''}>Nenhuma</option>
+               <option value="green" ${this.cropMarks === 'green' ? 'selected' : ''}>Verde Limão</option>
+               <option value="white" ${this.cropMarks === 'white' ? 'selected' : ''}>Branco</option>
+               <option value="black" ${this.cropMarks === 'black' ? 'selected' : ''}>Preto</option>
+               <option value="none" ${this.cropMarks === 'none' ? 'selected' : ''}>Nenhuma</option>
             </select>
           </div>
 
           <hr class="my-2">
           <div id="element-properties">
-            \${this.renderPropertiesPanel()}
+            ${this.renderPropertiesPanel()}
           </div>
         </div>
 
@@ -795,17 +796,17 @@ window.layoutEditorModule = {
         <div class="flex-1 bg-slate-800 flex justify-center items-center overflow-auto p-8 relative" id="canvas-wrapper">
           <div id="layout-canvas-container" class="relative bg-white shadow-2xl" style="width: 685px; height: 1051px; transform-origin: top left; transform: scale(0.6);">
              <!-- Render Background -->
-             \${currentBg ? \`<img src="\${currentBg}" class="absolute pointer-events-none" style="left: 23.5px; top: 23.5px; width: 638px; height: 1004px;">\` : ''}
+             ${currentBg ? `<img src="${currentBg}" class="absolute pointer-events-none" style="left: 23.5px; top: 23.5px; width: 638px; height: 1004px;">` : ''}
              
              <!-- Render Crop Marks -->
-             \${this.renderEditorCropMarks()}
+             ${this.renderEditorCropMarks()}
 
              <!-- Render Elements -->
-             \${currentLayout.map(el => this.renderDraggableElement(el)).join('')}
+             ${currentLayout.map(el => this.renderDraggableElement(el)).join('')}
           </div>
         </div>
       </div>
-    \`;
+    `;
 
     // Make elements draggable
     setTimeout(() => this.initDraggables(), 100);
@@ -815,7 +816,7 @@ window.layoutEditorModule = {
     const container = document.getElementById('layout-canvas-container');
     if (wrapper && container) {
        const scale = Math.min((wrapper.clientWidth - 100) / 685, (wrapper.clientHeight - 100) / 1051);
-       if(scale < 1) container.style.transform = \`scale(\${scale})\`;
+       if(scale < 1) container.style.transform = `scale(${scale})`;
        else container.style.transform = 'scale(1)';
     }
   },
@@ -826,15 +827,15 @@ window.layoutEditorModule = {
     if (this.cropMarks === 'white') color = '#ffffff';
     if (this.cropMarks === 'black') color = '#000000';
     
-    const d = \`M 23.5 -16.5 L 23.5 23.5 L -16.5 23.5 M 661.5 -16.5 L 661.5 23.5 L 701.5 23.5 M 23.5 1067.5 L 23.5 1027.5 L -16.5 1027.5 M 661.5 1067.5 L 661.5 1027.5 L 701.5 1027.5\`;
+    const d = `M 23.5 -16.5 L 23.5 23.5 L -16.5 23.5 M 661.5 -16.5 L 661.5 23.5 L 701.5 23.5 M 23.5 1067.5 L 23.5 1027.5 L -16.5 1027.5 M 661.5 1067.5 L 661.5 1027.5 L 701.5 1027.5`;
 
-    return \`
+    return `
       <svg class="absolute inset-0 pointer-events-none overflow-visible" style="width: 100%; height: 100%; z-index: 50;">
-         <path d="\${d}" stroke="\${color}" stroke-width="2" fill="none"></path>
+         <path d="${d}" stroke="${color}" stroke-width="2" fill="none"></path>
          <!-- Safe area dashed border -->
-         <rect x="23.5" y="23.5" width="638" height="1004" stroke="\${color}" stroke-width="1" stroke-dasharray="10,10" fill="none" opacity="0.4"></rect>
+         <rect x="23.5" y="23.5" width="638" height="1004" stroke="${color}" stroke-width="1" stroke-dasharray="10,10" fill="none" opacity="0.4"></rect>
       </svg>
-    \`;
+    `;
   },
 
   renderDraggableElement(el) {
@@ -843,17 +844,17 @@ window.layoutEditorModule = {
     
     if (el.type === 'photo') {
        let borderRadius = el.radius > 0 ? (el.radius >= el.w/2 ? '50%' : el.radius + 'px') : '0';
-       return \`
-         <div id="\${el.id}" class="absolute cursor-move flex items-center justify-center bg-slate-200/80 text-slate-500 font-bold text-2xl \${border}" style="left: \${el.x}px; top: \${el.y}px; width: \${el.w}px; height: \${el.h}px; border-radius: \${borderRadius}; z-index: 10;" onmousedown="layoutEditorModule.selectElement('\${el.id}', event)">
+       return `
+         <div id="${el.id}" class="absolute cursor-move flex items-center justify-center bg-slate-200/80 text-slate-500 font-bold text-2xl ${border}" style="left: ${el.x}px; top: ${el.y}px; width: ${el.w}px; height: ${el.h}px; border-radius: ${borderRadius}; z-index: 10;" onmousedown="layoutEditorModule.selectElement('${el.id}', event)">
             FOTO
          </div>
-       \`;
+       `;
     } else {
-       return \`
-         <div id="\${el.id}" class="absolute cursor-move \${border}" style="left: \${el.x}px; top: \${el.y}px; color: \${el.color}; font: \${el.font}; text-align: \${el.align}; white-space: nowrap; z-index: 10;" onmousedown="layoutEditorModule.selectElement('\${el.id}', event)">
-            \${el.label || '{Texto}'}
+       return `
+         <div id="${el.id}" class="absolute cursor-move ${border}" style="left: ${el.x}px; top: ${el.y}px; color: ${el.color}; font: ${el.font}; text-align: ${el.align}; white-space: nowrap; z-index: 10;" onmousedown="layoutEditorModule.selectElement('${el.id}', event)">
+            ${el.label || '{Texto}'}
          </div>
-       \`;
+       `;
     }
   },
 
@@ -866,63 +867,63 @@ window.layoutEditorModule = {
     const el = currentLayout.find(x => x.id === this.selectedElementId);
     if (!el) return '';
 
-    let html = \`
+    let html = `
       <div class="flex justify-between items-center mb-4">
          <h3 class="text-xs font-black text-slate-800 uppercase">Propriedades</h3>
          <button onclick="layoutEditorModule.deleteSelected()" class="text-xs text-red-500 hover:underline font-bold">Excluir</button>
       </div>
-    \`;
+    `;
 
-    html += \`<div class="grid grid-cols-2 gap-2 mb-3">
-       <div><label class="block text-[10px] font-bold text-slate-600">X (px)</label><input type="number" value="\${el.x}" onchange="layoutEditorModule.updateProp('x', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
-       <div><label class="block text-[10px] font-bold text-slate-600">Y (px)</label><input type="number" value="\${el.y}" onchange="layoutEditorModule.updateProp('y', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
-    </div>\`;
+    html += `<div class="grid grid-cols-2 gap-2 mb-3">
+       <div><label class="block text-[10px] font-bold text-slate-600">X (px)</label><input type="number" value="${el.x}" onchange="layoutEditorModule.updateProp('x', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
+       <div><label class="block text-[10px] font-bold text-slate-600">Y (px)</label><input type="number" value="${el.y}" onchange="layoutEditorModule.updateProp('y', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
+    </div>`;
 
     if (el.type === 'photo') {
-      html += \`
+      html += `
         <div class="grid grid-cols-2 gap-2 mb-3">
-           <div><label class="block text-[10px] font-bold text-slate-600">Largura (px)</label><input type="number" value="\${el.w}" onchange="layoutEditorModule.updateProp('w', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
-           <div><label class="block text-[10px] font-bold text-slate-600">Altura (px)</label><input type="number" value="\${el.h}" onchange="layoutEditorModule.updateProp('h', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
+           <div><label class="block text-[10px] font-bold text-slate-600">Largura (px)</label><input type="number" value="${el.w}" onchange="layoutEditorModule.updateProp('w', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
+           <div><label class="block text-[10px] font-bold text-slate-600">Altura (px)</label><input type="number" value="${el.h}" onchange="layoutEditorModule.updateProp('h', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
         </div>
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Bordas (Raio px)</label>
-           <input type="number" value="\${el.radius}" onchange="layoutEditorModule.updateProp('radius', parseInt(this.value))" class="w-full text-xs p-1 border rounded">
-           <p class="text-[9px] text-slate-500 mt-1">Coloque \${el.w/2} para redondo perfeito.</p>
+           <input type="number" value="${el.radius}" onchange="layoutEditorModule.updateProp('radius', parseInt(this.value))" class="w-full text-xs p-1 border rounded">
+           <p class="text-[9px] text-slate-500 mt-1">Coloque ${el.w/2} para redondo perfeito.</p>
         </div>
-      \`;
+      `;
     } else {
-      html += \`
+      html += `
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Texto / Label</label>
-           <input type="text" value="\${el.label || ''}" onchange="layoutEditorModule.updateProp('label', this.value)" class="w-full text-xs p-1 border rounded">
+           <input type="text" value="${el.label || ''}" onchange="layoutEditorModule.updateProp('label', this.value)" class="w-full text-xs p-1 border rounded">
            <p class="text-[9px] text-slate-500 mt-1">Use {nome}, {mat}, {sangue} para os campos do form.</p>
         </div>
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Vincular ao Campo</label>
            <select onchange="layoutEditorModule.updateProp('field', this.value)" class="w-full text-xs p-1 border rounded bg-white">
-              <option value="">Nenhum (Texto EstÃ¡tico)</option>
-              <option value="nome" \${el.field === 'nome' ? 'selected' : ''}>Nome</option>
-              <option value="mat" \${el.field === 'mat' ? 'selected' : ''}>MatrÃ­cula</option>
-              <option value="sangue" \${el.field === 'sangue' ? 'selected' : ''}>Sangue</option>
+              <option value="">Nenhum (Texto Estático)</option>
+              <option value="nome" ${el.field === 'nome' ? 'selected' : ''}>Nome</option>
+              <option value="mat" ${el.field === 'mat' ? 'selected' : ''}>Matrícula</option>
+              <option value="sangue" ${el.field === 'sangue' ? 'selected' : ''}>Sangue</option>
            </select>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-3">
-           <div><label class="block text-[10px] font-bold text-slate-600">Cor</label><input type="color" value="\${el.color}" onchange="layoutEditorModule.updateProp('color', this.value)" class="w-full h-6 p-0 border-0"></div>
+           <div><label class="block text-[10px] font-bold text-slate-600">Cor</label><input type="color" value="${el.color}" onchange="layoutEditorModule.updateProp('color', this.value)" class="w-full h-6 p-0 border-0"></div>
            <div>
               <label class="block text-[10px] font-bold text-slate-600">Alinhamento</label>
               <select onchange="layoutEditorModule.updateProp('align', this.value)" class="w-full text-xs p-1 border rounded">
-                 <option value="left" \${el.align === 'left' ? 'selected' : ''}>Esquerda</option>
-                 <option value="center" \${el.align === 'center' ? 'selected' : ''}>Centro</option>
-                 <option value="right" \${el.align === 'right' ? 'selected' : ''}>Direita</option>
+                 <option value="left" ${el.align === 'left' ? 'selected' : ''}>Esquerda</option>
+                 <option value="center" ${el.align === 'center' ? 'selected' : ''}>Centro</option>
+                 <option value="right" ${el.align === 'right' ? 'selected' : ''}>Direita</option>
               </select>
            </div>
         </div>
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Fonte (CSS format)</label>
-           <input type="text" value="\${el.font}" onchange="layoutEditorModule.updateProp('font', this.value)" class="w-full text-xs p-1 border rounded">
+           <input type="text" value="${el.font}" onchange="layoutEditorModule.updateProp('font', this.value)" class="w-full text-xs p-1 border rounded">
            <p class="text-[9px] text-slate-500 mt-1">Ex: bold 30px Arial</p>
         </div>
-      \`;
+      `;
     }
 
     return html;
