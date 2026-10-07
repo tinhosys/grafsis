@@ -174,25 +174,28 @@ window.selfserviceModule = {
           </h4>
           <div class="space-y-3 mb-6">
             ${this.cart.map((item, idx) => `
-              <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
-                    ${item.foto ? `<img src="${item.foto}" class="w-full h-full object-cover">` : ''}
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div class="flex items-center gap-4 w-full sm:w-auto">
+                    <div class="rounded overflow-hidden border border-slate-300 shadow-sm shrink-0 bg-white" style="width: 48px; height: 73px;" title="Tamanho Real (58x89mm)">
+                      ${item.frontUrl ? `<img src="${item.frontUrl}" class="w-full h-full object-fill">` : ''}
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-bold text-slate-800">${item.nome}</p>
+                      <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MAT: ${item.mat || '--'} | TIPO: ${item.sangue || '--'}</p>
+                      <div class="flex items-center gap-2 mt-2">
+                         <button type="button" onclick="selfserviceModule.downloadBadge(${idx}, 'front')" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition shadow-sm">Baixar Frente</button>
+                         ${item.backUrl ? `<button type="button" onclick="selfserviceModule.downloadBadge(${idx}, 'back')" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition shadow-sm">Baixar Verso</button>` : ''}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p class="text-sm font-bold text-slate-800">${item.nome}</p>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase">MAT: ${item.mat || '--'} | TIPO: ${item.sangue || '--'}</p>
+                  <div class="flex items-center justify-between sm:justify-end gap-4 mt-3 sm:mt-0 w-full sm:w-auto">
+                    <span class="font-black text-slate-700 text-sm">R$ ${item.preco.toFixed(2)}</span>
+                    <button type="button" onclick="selfserviceModule.removeFromCart(${idx})" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
                   </div>
                 </div>
-                <div class="flex items-center gap-4">
-                  <span class="font-black text-slate-700 text-sm">R$ ${item.preco.toFixed(2)}</span>
-                  <button type="button" onclick="selfserviceModule.removeFromCart(${idx})" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Remover">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                  </button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
+              `).join('')}         </div>
           <button type="button" onclick="selfserviceModule.checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider flex justify-center items-center gap-2 text-lg">
             FINALIZAR COMPRA (Descontar R$ ${cartTotal.toFixed(2)})
           </button>
@@ -517,6 +520,19 @@ window.selfserviceModule = {
 
     this.photoDataUrl = null;
     this.renderDashboard();
+  },
+
+  downloadBadge(idx, side) {
+    const item = this.cart[idx];
+    if (!item) return;
+    const url = side === 'front' ? item.frontUrl : item.backUrl;
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cracha_${this.currentOrderId || 'NOVO'}_${(item.nome||'').replace(/\s+/g, '_')}_${side}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   },
 
   removeFromCart(idx) {
