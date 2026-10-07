@@ -955,7 +955,10 @@ window.layoutEditorModule = {
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Bordas (Raio px)</label>
            <input type="number" value="${el.radius}" onchange="layoutEditorModule.updateProp('radius', parseInt(this.value))" class="w-full text-xs p-1 border rounded">
-           <p class="text-[9px] text-slate-500 mt-1">Coloque ${el.w/2    } else {
+           <p class="text-[9px] text-slate-500 mt-1">Coloque ${el.w/2} para redondo perfeito.</p>
+        </div>
+      `;
+    } else {
       html += `
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Texto / Label (Estático ou Rótulo)</label>
