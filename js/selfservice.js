@@ -1,4 +1,4 @@
-﻿window.selfserviceModule = {
+window.selfserviceModule = {
   currentClient: null,
   currentTab: 'pedido',
   cart: [],
@@ -342,7 +342,7 @@
                if (align === 'center') bx = el.x - bw/2;
                else if (align === 'right') bx = el.x - bw;
                
-               if (el.bgColor) {
+               if (el.bgColor && el.bgTransparent === false) {
                  ctx.fillStyle = el.bgColor;
                  if (el.radius) {
                    ctx.beginPath(); ctx.roundRect(bx, el.y, bw, bh, el.radius); ctx.fill();
@@ -350,7 +350,7 @@
                    ctx.fillRect(bx, el.y, bw, bh);
                  }
                }
-               if (el.borderColor) {
+               if (el.borderColor && el.borderTransparent === false) {
                  ctx.strokeStyle = el.borderColor;
                  ctx.lineWidth = el.borderWidth || 2;
                  if (el.radius) {
@@ -847,7 +847,7 @@ window.layoutEditorModule = {
         <div class="flex-1 bg-slate-800 flex justify-center items-center overflow-auto p-8 relative" id="canvas-wrapper">
           <div id="layout-canvas-container" class="relative bg-white shadow-2xl" style="width: 685px; height: 1051px; transform-origin: top left; transform: scale(0.6);">
              <!-- Render Background -->
-             ${currentBg ? `<img src="${currentBg}" class="absolute pointer-events-none" style="left: 23.5px; top: 23.5px; width: 638px; height: 1004px;">` : ''}
+             ${currentBg ? `<img src="${currentBg}" class="absolute pointer-events-none" style="left: 0; top: 0; width: 100%; height: 100%; object-fit: fill;">` : ''}
              
              <!-- Render Crop Marks -->
              ${this.renderEditorCropMarks()}
@@ -939,27 +939,62 @@ window.layoutEditorModule = {
         <div class="mb-3">
            <label class="block text-[10px] font-bold text-slate-600">Bordas (Raio px)</label>
            <input type="number" value="${el.radius}" onchange="layoutEditorModule.updateProp('radius', parseInt(this.value))" class="w-full text-xs p-1 border rounded">
-           <p class="text-[9px] text-slate-500 mt-1">Coloque ${el.w/2} para redondo perfeito.</p>
-        </div>
-      `;
-    } else {
+           <p class="text-[9px] text-slate-500 mt-1">Coloque ${el.w/2    } else {
       html += `
         <div class="mb-3">
-           <label class="block text-[10px] font-bold text-slate-600">Texto / Label</label>
+           <label class="block text-[10px] font-bold text-slate-600">Texto / Label (Estático ou Rótulo)</label>
            <input type="text" value="${el.label || ''}" onchange="layoutEditorModule.updateProp('label', this.value)" class="w-full text-xs p-1 border rounded">
-           <p class="text-[9px] text-slate-500 mt-1">Use {nome}, {mat}, {sangue} para os campos do form.</p>
-        </div>
-        <div class="mb-3">
-           <label class="block text-[10px] font-bold text-slate-600">Vincular ao Campo</label>
-           <select onchange="layoutEditorModule.updateProp('field', this.value)" class="w-full text-xs p-1 border rounded bg-white">
-              <option value="">Nenhum (Texto Estático)</option>
-              <option value="nome" ${el.field === 'nome' ? 'selected' : ''}>Nome</option>
-              <option value="mat" ${el.field === 'mat' ? 'selected' : ''}>Matrícula</option>
-              <option value="sangue" ${el.field === 'sangue' ? 'selected' : ''}>Sangue</option>
-           </select>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-3">
-           <div><label class="block text-[10px] font-bold text-slate-600">Cor</label><input type="color" value="${el.color}" onchange="layoutEditorModule.updateProp('color', this.value)" class="w-full h-6 p-0 border-0"></div>
+           <div>
+             <label class="block text-[10px] font-bold text-slate-600">Vincular ao Campo</label>
+             <select onchange="layoutEditorModule.updateProp('field', this.value)" class="w-full text-xs p-1 border rounded bg-white">
+                <option value="">Nenhum (Fixo)</option>
+                <option value="campo1" ${el.field === 'campo1' ? 'selected' : ''}>Campo 1</option>
+                <option value="campo2" ${el.field === 'campo2' ? 'selected' : ''}>Campo 2</option>
+                <option value="campo3" ${el.field === 'campo3' ? 'selected' : ''}>Campo 3</option>
+                <option value="campov1" ${el.field === 'campov1' ? 'selected' : ''}>Verso 1</option>
+                <option value="campov2" ${el.field === 'campov2' ? 'selected' : ''}>Verso 2</option>
+                <option value="campov3" ${el.field === 'campov3' ? 'selected' : ''}>Verso 3</option>
+                <option value="campov4" ${el.field === 'campov4' ? 'selected' : ''}>Verso 4</option>
+             </select>
+           </div>
+           <div>
+             <label class="block text-[10px] font-bold text-slate-600">Visível no Form</label>
+             <select onchange="layoutEditorModule.updateProp('visible', this.value === 'true')" class="w-full text-xs p-1 border rounded bg-white">
+                <option value="true" ${el.visible !== false ? 'selected' : ''}>Sim</option>
+                <option value="false" ${el.visible === false ? 'selected' : ''}>Não (Oculto)</option>
+             </select>
+           </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+           <div><label class="block text-[10px] font-bold text-slate-600">Largura (px)</label><input type="number" value="${el.w || 200}" onchange="layoutEditorModule.updateProp('w', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
+           <div><label class="block text-[10px] font-bold text-slate-600">Altura (px)</label><input type="number" value="${el.h || 50}" onchange="layoutEditorModule.updateProp('h', parseInt(this.value))" class="w-full text-xs p-1 border rounded"></div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+           <div><label class="block text-[10px] font-bold text-slate-600">Cor Texto</label><input type="color" value="${el.color || '#000000'}" onchange="layoutEditorModule.updateProp('color', this.value)" class="w-full h-6 p-0 border-0"></div>
+           <div>
+             <label class="block text-[10px] font-bold text-slate-600">Cor Fundo</label>
+             <input type="color" value="${el.bgColor || '#ffffff'}" onchange="layoutEditorModule.updateProp('bgColor', this.value)" class="w-full h-6 p-0 border-0" ${el.bgTransparent ? 'disabled' : ''}>
+             <label class="flex items-center gap-1 mt-1"><input type="checkbox" ${el.bgTransparent !== false ? 'checked' : ''} onchange="layoutEditorModule.updateProp('bgTransparent', this.checked)"><span class="text-[9px]">Transparente</span></label>
+           </div>
+           <div>
+             <label class="block text-[10px] font-bold text-slate-600">Cor Borda</label>
+             <input type="color" value="${el.borderColor || '#000000'}" onchange="layoutEditorModule.updateProp('borderColor', this.value)" class="w-full h-6 p-0 border-0" ${el.borderTransparent ? 'disabled' : ''}>
+             <label class="flex items-center gap-1 mt-1"><input type="checkbox" ${el.borderTransparent !== false ? 'checked' : ''} onchange="layoutEditorModule.updateProp('borderTransparent', this.checked)"><span class="text-[9px]">Transparente</span></label>
+           </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+           <div>
+             <label class="block text-[10px] font-bold text-slate-600">Raio Borda (px)</label>
+             <input type="number" value="${el.radius || 0}" onchange="layoutEditorModule.updateProp('radius', parseInt(this.value))" class="w-full text-xs p-1 border rounded">
+           </div>
+           <div>
+             <label class="block text-[10px] font-bold text-slate-600">Espessura Borda</label>
+             <input type="number" value="${el.borderWidth || 2}" onchange="layoutEditorModule.updateProp('borderWidth', parseInt(this.value))" class="w-full text-xs p-1 border rounded">
+           </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
            <div>
               <label class="block text-[10px] font-bold text-slate-600">Alinhamento</label>
               <select onchange="layoutEditorModule.updateProp('align', this.value)" class="w-full text-xs p-1 border rounded">
@@ -968,11 +1003,10 @@ window.layoutEditorModule = {
                  <option value="right" ${el.align === 'right' ? 'selected' : ''}>Direita</option>
               </select>
            </div>
-        </div>
-        <div class="mb-3">
-           <label class="block text-[10px] font-bold text-slate-600">Fonte (CSS format)</label>
-           <input type="text" value="${el.font}" onchange="layoutEditorModule.updateProp('font', this.value)" class="w-full text-xs p-1 border rounded">
-           <p class="text-[9px] text-slate-500 mt-1">Ex: bold 30px Arial</p>
+           <div>
+              <label class="block text-[10px] font-bold text-slate-600">Fonte</label>
+              <input type="text" value="${el.font}" onchange="layoutEditorModule.updateProp('font', this.value)" class="w-full text-xs p-1 border rounded">
+           </div>
         </div>
       `;
     }
@@ -1041,8 +1075,10 @@ window.layoutEditorModule = {
     const id = type + '_' + Date.now();
     if (type === 'photo') {
        currentLayout.push({ id, type: 'photo', x: 282, y: 350, w: 120, h: 120, radius: 60 });
+    } else if (type === 'label') {
+       currentLayout.push({ id, type: 'text', field: '', label: 'TEXTO FIXO', x: 342, y: 500, w: 200, h: 50, color: '#000000', bgTransparent: true, borderTransparent: true, font: 'bold 30px Arial', align: 'center' });
     } else {
-       currentLayout.push({ id, type: 'text', field: '', label: 'Novo Texto', x: 342, y: 500, color: '#000000', font: 'bold 30px Arial', align: 'center' });
+       currentLayout.push({ id, type: 'text', field: 'campo1', label: 'Novo Campo', x: 342, y: 500, w: 200, h: 50, color: '#000000', bgTransparent: true, borderTransparent: true, font: 'bold 30px Arial', align: 'center' });
     }
     this.selectedElementId = id;
     this.renderEditorModal();
