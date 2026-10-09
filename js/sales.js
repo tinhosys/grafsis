@@ -1,49 +1,227 @@
-window.salesModule = {
+﻿window.salesModule = {
   activeItems: [],
+  filters: { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' },
+  
   render() {
-    const orders = window.store.getOrders();
-    const clients = window.store.getClients();
     const container = document.getElementById('view-container');
+    if (!this.filters) this.filters = { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' };
+    
     let html = `
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h1 class="text-2xl font-black text-slate-800">Vendas & Pre-Vendas</h1>
-          <p class="text-slate-500 text-sm">Emissao de orcamentos, vendas, layouts e protocolos</p>
+          <h1 class="text-2xl font-black text-slate-800">Vendas & Pré-Vendas</h1>
+          <p class="text-slate-500 text-sm">Emissão de orçamentos, vendas, layouts e protocolos</p>
         </div>
-        <button onclick="salesModule.openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm">Novo Orcamento / Venda</button>
+        <button onclick="salesModule.openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Novo Orçamento / Venda
+        </button>
       </div>
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table class="w-full text-sm text-left">
-          <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
-            <tr><th class="p-4">Codigo</th><th class="p-4">Cliente</th><th class="p-4">Valor</th><th class="p-4">Fase</th><th class="p-4 text-right">Acoes</th></tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
+      
+      <!-- CONTROLE DE BUSCA -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
+        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          Filtro Avançado de Pedidos
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Cliente</label>
+            <input type="text" id="filter-cliente" oninput="salesModule.updateFilters()" placeholder="Nome ou Documento" class="w-full text-sm px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.cliente}">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Produto (Itens)</label>
+            <input type="text" id="filter-produto" oninput="salesModule.updateFilters()" placeholder="Lona, Adesivo..." class="w-full text-sm px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.produto}">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Status / Fase</label>
+            <select id="filter-status" onchange="salesModule.updateFilters()" class="w-full text-sm px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all">
+              <option value="">Todas as fases</option>
+              <option value="orcamento" ${this.filters.status==='orcamento'?'selected':''}>1. Orçamento</option>
+              <option value="prevenda" ${this.filters.status==='prevenda'?'selected':''}>2. Pré-Venda</option>
+              <option value="aprovacao" ${this.filters.status==='aprovacao'?'selected':''}>3. Aprovação</option>
+              <option value="liberado" ${this.filters.status==='liberado'?'selected':''}>4. Liberado O.S.</option>
+              <option value="producao" ${this.filters.status==='producao'?'selected':''}>5. Em Produção</option>
+              <option value="acabamento" ${this.filters.status==='acabamento'?'selected':''}>6. Acabamento</option>
+              <option value="embalagem" ${this.filters.status==='embalagem'?'selected':''}>7. Embalagem</option>
+              <option value="entregue" ${this.filters.status==='entregue'?'selected':''}>8. Expedição / Entregue</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Saldo Financeiro</label>
+            <select id="filter-pagamento" onchange="salesModule.updateFilters()" class="w-full text-sm px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all">
+              <option value="">Todos</option>
+              <option value="devedor" ${this.filters.pagamento==='devedor'?'selected':''}>Apenas c/ Saldo Devedor</option>
+              <option value="pago" ${this.filters.pagamento==='pago'?'selected':''}>Totalmente Pagos</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <div class="flex-1">
+              <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Início</label>
+              <input type="date" id="filter-data-inicio" onchange="salesModule.updateFilters()" class="w-full text-sm px-2 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.dataInicio}">
+            </div>
+            <div class="flex-1">
+              <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Fim</label>
+              <input type="date" id="filter-data-fim" onchange="salesModule.updateFilters()" class="w-full text-sm px-2 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.dataFim}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="p-4">Data</th>
+                <th class="p-4">Código</th>
+                <th class="p-4">Cliente</th>
+                <th class="p-4">Valor & Saldo</th>
+                <th class="p-4">Fase Atual</th>
+                <th class="p-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="sales-tbody" class="divide-y divide-slate-100">
+            </tbody>
+          </table>
+        </div>
+      </div>
     `;
-    if (orders.length === 0) { html += `<tr><td colspan="5" class="p-8 text-center text-slate-500">Nenhum pedido encontrado.</td></tr>`; }
+    container.innerHTML = html;
+    this.renderTable();
+  },
+
+  updateFilters() {
+    this.filters.cliente = document.getElementById('filter-cliente').value.toLowerCase();
+    this.filters.produto = document.getElementById('filter-produto').value.toLowerCase();
+    this.filters.status = document.getElementById('filter-status').value;
+    this.filters.dataInicio = document.getElementById('filter-data-inicio').value;
+    this.filters.dataFim = document.getElementById('filter-data-fim').value;
+    this.filters.pagamento = document.getElementById('filter-pagamento').value;
+    this.renderTable();
+  },
+
+  renderTable() {
+    const tbody = document.getElementById('sales-tbody');
+    if (!tbody) return;
     
+    let orders = window.store.getOrders();
+    const clients = window.store.getClients();
+    const allFinance = window.store.getFinance();
+
+    // ORDENAÇÃO: Mais recentes primeiro
+    orders.sort((a, b) => new Date(b.data_criacao || 0) - new Date(a.data_criacao || 0));
+
+    // APLICAR FILTROS
+    const f = this.filters;
+    orders = orders.filter(o => {
+      const client = clients.find(cl => cl.id === o.cliente_id) || { nome: 'Desconhecido', cpf_cnpj: '' };
+      
+      // Filtro Cliente (nome ou documento)
+      if (f.cliente) {
+        const term = f.cliente;
+        if (!client.nome.toLowerCase().includes(term) && !(client.cpf_cnpj && client.cpf_cnpj.includes(term))) {
+          return false;
+        }
+      }
+      
+      // Filtro Status / Fase
+      if (f.status && o.status_fase !== f.status) return false;
+      
+      // Filtro Data Início e Fim (Baseado na data de criação)
+      if (f.dataInicio || f.dataFim) {
+        const orderDate = new Date(o.data_criacao);
+        if (f.dataInicio) {
+           const dInicio = new Date(f.dataInicio + 'T00:00:00');
+           if (orderDate < dInicio) return false;
+        }
+        if (f.dataFim) {
+           const dFim = new Date(f.dataFim + 'T23:59:59');
+           if (orderDate > dFim) return false;
+        }
+      }
+      
+      // Filtro Produto (buscando nos itens)
+      if (f.produto) {
+         const hasProd = (o.itens || []).some(item => (item.descricao || '').toLowerCase().includes(f.produto));
+         if (!hasProd) return false;
+      }
+      
+      // Filtro Saldo Devedor
+      if (f.pagamento) {
+         const payments = allFinance.filter(fin => fin.pedido_id === o.id && fin.tipo === 'recebimento');
+         const totalPaid = payments.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0);
+         const balance = parseFloat(o.valor_final) - totalPaid;
+         
+         if (f.pagamento === 'devedor' && balance <= 0.01) return false;
+         if (f.pagamento === 'pago' && balance > 0.01) return false;
+      }
+      
+      return true;
+    });
+
+    if (orders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-400">
+        <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Nenhum pedido encontrado com estes filtros.
+      </td></tr>`;
+      return;
+    }
+
+    let html = '';
     orders.forEach(o => {
       const c = clients.find(cl => cl.id === o.cliente_id);
       const cName = c ? c.nome : 'Desconhecido';
+      
+      const payments = allFinance.filter(fin => fin.pedido_id === o.id && fin.tipo === 'recebimento');
+      const totalPaid = payments.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0);
+      const balance = parseFloat(o.valor_final) - totalPaid;
+      
+      let balanceBadge = '';
+      if (balance > 0.01) {
+         balanceBadge = `<span class="block text-[10px] font-bold text-rose-600 uppercase mt-1">Falta: R$ ${balance.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>`;
+      } else {
+         balanceBadge = `<span class="block text-[10px] font-bold text-emerald-600 uppercase mt-1">Quitado</span>`;
+      }
+      
+      let orderDateStr = '--';
+      if (o.data_criacao) {
+         const d = new Date(o.data_criacao);
+         orderDateStr = ('0'+d.getDate()).slice(-2) + '/' + ('0'+(d.getMonth()+1)).slice(-2) + '/' + d.getFullYear() + ' ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+      }
+
       html += `
-        <tr class="hover:bg-slate-50 transition">
-          <td class="p-4 font-mono font-bold text-blue-600">#${o.numero || o.id.substring(0,6)}</td>
-          <td class="p-4 font-bold text-slate-800 uppercase">${cName}</td>
-          <td class="p-4 font-bold text-slate-800">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0 group">
+          <td class="p-4 text-xs font-bold text-slate-500">${orderDateStr}</td>
+          <td class="p-4 font-mono font-black text-blue-600">#${o.numero || o.id.substring(0,6)}</td>
+          <td class="p-4 font-bold text-slate-800 uppercase truncate max-w-[200px]" title="${cName}">${cName}</td>
+          <td class="p-4">
+            <span class="font-black text-slate-800">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            ${balanceBadge}
+          </td>
           <td class="p-4">${this.getPhaseBadge(o.status_fase)}</td>
-          <td class="p-4 text-right space-x-2">
-            <button onclick="salesModule.quickView('${o.id}')" class="text-slate-600 font-bold hover:underline">Ver</button>
-            <button onclick="salesModule.openModal({orderId: '${o.id}'})" class="text-blue-600 font-bold hover:underline">Editar</button>
-            <button onclick="salesModule.openProtocolModal('${o.id}')" class="text-emerald-600 font-bold hover:underline">OS/Protocolo</button>
-            <button onclick="financeModule.openCashierModal('${o.id}')" class="text-yellow-600 font-bold hover:underline bg-yellow-50 px-2 py-1 rounded">💰 Caixa</button>
-            <button onclick="salesModule.delete('${o.id}')" class="text-red-500 font-bold hover:underline">Excluir</button>
+          <td class="p-4 text-right space-x-1 opacity-80 group-hover:opacity-100 transition">
+            <button onclick="salesModule.quickView('${o.id}')" class="text-slate-600 font-bold hover:text-blue-600 px-2 py-1 rounded hover:bg-slate-100 transition" title="Visualizar Detalhes">
+              <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            </button>
+            <button onclick="salesModule.openModal({orderId: '${o.id}'})" class="text-blue-600 font-bold hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition" title="Editar Pedido">
+              <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            </button>
+            <button onclick="salesModule.openProtocolModal('${o.id}')" class="text-emerald-600 font-bold hover:text-emerald-800 px-2 py-1 rounded hover:bg-emerald-50 transition" title="O.S e Protocolo">
+              <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            </button>
+            <button onclick="financeModule.openCashierModal('${o.id}')" class="text-yellow-600 font-bold hover:text-yellow-800 px-2 py-1 rounded hover:bg-yellow-50 transition" title="Caixa e Pagamentos">
+              <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </button>
+            <button onclick="salesModule.delete('${o.id}')" class="text-rose-500 font-bold hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition" title="Excluir">
+              <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
           </td>
         </tr>
       `;
     });
-    html += `</tbody></table></div>`;
-    container.innerHTML = html;
-  },
-  getPhaseBadge(phase) {
+    tbody.innerHTML = html;
+  },  getPhaseBadge(phase) {
     const badges = {
       'orcamento': '<span class="px-2 py-1 bg-yellow-400 text-yellow-900 rounded text-[10px] font-black uppercase">1. ORCAMENTO</span>',
       'prevenda': '<span class="px-2 py-1 bg-emerald-500 text-white rounded text-[10px] font-black uppercase">2. PRE-VENDA</span>',
@@ -109,7 +287,7 @@ window.salesModule = {
         cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2';
         cancelBtn.innerHTML = 'CANCELAR';
         cancelBtn.onclick = () => {
-            if(confirm('Cancelar edição e limpar formulário?')) {
+            if(confirm('Cancelar ediÃ§Ã£o e limpar formulÃ¡rio?')) {
                 salesModule.activeItems.splice(idx, 0, it);
                 document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml();
                 document.getElementById('item-desc').value = '';
@@ -195,7 +373,7 @@ window.salesModule = {
                         ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
                       </select>
                     </div>
-                    <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto RÃ¡pido">+ NOVO</button>
+                    <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto RÃƒÂ¡pido">+ NOVO</button>
                   </div>
                   <div class="col-span-6 sm:col-span-3">
                     <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
@@ -206,8 +384,8 @@ window.salesModule = {
                     </select>
                   </div>
                   <div class="col-span-6 sm:col-span-3">
-                    <label class="block font-semibold mb-1 text-slate-700">Base mÂ² / un</label>
-                    <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="PreÃ§o base - Fica invisÃ­vel ao perder o foco">
+                    <label class="block font-semibold mb-1 text-slate-700">Base mÃ‚Â² / un</label>
+                    <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="PreÃƒÂ§o base - Fica invisÃƒÂ­vel ao perder o foco">
                   </div>
                 </div>
                 <div>
@@ -304,11 +482,11 @@ window.salesModule = {
                 <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Producao / Status Inicial</label>
                 <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
                   ${(window.productionModule ? window.productionModule.phases : [
-                      {id:'orcamento', name:'1. ORÃ‡AMENTO'},
-                      {id:'prevenda', name:'2. PRÃ‰-VENDA'},
-                      {id:'aprovacao', name:'3. APROVAÃ‡ÃƒO'},
+                      {id:'orcamento', name:'1. ORÃƒâ€¡AMENTO'},
+                      {id:'prevenda', name:'2. PRÃƒâ€°-VENDA'},
+                      {id:'aprovacao', name:'3. APROVAÃƒâ€¡ÃƒÆ’O'},
                       {id:'liberado', name:'4. LIBERADO'},
-                      {id:'producao', name:'5. PRODUÃ‡ÃƒO'},
+                      {id:'producao', name:'5. PRODUÃƒâ€¡ÃƒÆ’O'},
                       {id:'acabamento', name:'6. ACABAMENTO'},
                       {id:'embalagem', name:'7. EMBALAGEM'},
                       {id:'entregue', name:'8. ENTREGA'}
@@ -356,7 +534,7 @@ window.salesModule = {
       if(!input.files || input.files.length === 0) return;
       const file = input.files[0];
       if (file.size > 2 * 1024 * 1024) {
-        alert("A imagem deve ter no mÃ¡ximo 2MB.");
+        alert("A imagem deve ter no mÃƒÂ¡ximo 2MB.");
         input.value = "";
         return;
       }
@@ -385,10 +563,10 @@ window.salesModule = {
       }
   },
       numeroPorExtenso(v) {
-    const unidades = ["", "um", "dois", "trÃªs", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+    const unidades = ["", "um", "dois", "trÃƒÂªs", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
     const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
     const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-    const milhares = ["", "mil", "milhÃµes", "bilhÃµes"];
+    const milhares = ["", "mil", "milhÃƒÂµes", "bilhÃƒÂµes"];
     if (v === 0) return "zero reais";
     let reais = Math.floor(v);
     let centavos = Math.round((v - reais) * 100);
@@ -786,28 +964,28 @@ window.salesModule = {
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
     const displayEl = document.getElementById('item-piece-price');
-    if(displayEl) displayEl.innerText = `PeÃ§a: R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    if(displayEl) displayEl.innerText = `PeÃƒÂ§a: R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
   },
   openNewProductModal() {
     const modalHtml = `
       <div id="quick-product-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-xl max-w-sm w-full p-5 shadow-2xl">
-          <h3 class="font-black text-lg text-slate-800 mb-4 border-b pb-2">Cadastrar Produto RÃ¡pido</h3>
+          <h3 class="font-black text-lg text-slate-800 mb-4 border-b pb-2">Cadastrar Produto RÃƒÂ¡pido</h3>
           <div class="space-y-3">
             <div>
               <label class="block text-xs font-semibold mb-1">Nome do Produto</label>
               <input type="text" id="qp-nome" class="w-full p-2 border rounded text-sm bg-slate-50" placeholder="Ex: Lona Frontlight 440g">
             </div>
             <div>
-              <label class="block text-xs font-semibold mb-1">CÃ¡lculo</label>
+              <label class="block text-xs font-semibold mb-1">CÃƒÂ¡lculo</label>
               <select id="qp-tipo" class="w-full p-2 border rounded text-sm bg-slate-50">
-                <option value="m2">Por mÂ²</option>
+                <option value="m2">Por mÃ‚Â²</option>
                 <option value="linear">Metro Linear</option>
                 <option value="unidade">Por Unidade</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold mb-1">PreÃ§o Base (R$)</label>
+              <label class="block text-xs font-semibold mb-1">PreÃƒÂ§o Base (R$)</label>
               <input type="number" id="qp-preco" step="0.01" class="w-full p-2 border rounded text-sm bg-slate-50" placeholder="0.00">
             </div>
           </div>
@@ -1015,7 +1193,7 @@ window.salesModule = {
     if(!input.files || input.files.length === 0) return;
     const file = input.files[0];
     if (file.size > 1.5 * 1024 * 1024) {
-      alert("A imagem da arte deve ter no mÃ¡ximo 1.5MB.");
+      alert("A imagem da arte deve ter no mÃƒÂ¡ximo 1.5MB.");
       input.value = "";
       return;
     }
@@ -1154,7 +1332,7 @@ window.salesModule = {
     if (!order) return;
     const client = window.store.getClients().find(c => c.id === order.cliente_id);
     if (!client || !client.telefone_whatsapp) { alert('Cliente sem WhatsApp'); return; }
-    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlÃ¡ ' + client.nome + '!%0A';
+    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlÃƒÂ¡ ' + client.nome + '!%0A';
     order.itens.forEach((it, i) => {
       msg += (i+1) + '. ' + it.descricao + ' | R$ ' + Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%0A';
     });
@@ -1213,7 +1391,7 @@ window.salesModule = {
             <button onclick="document.getElementById('protocol-modal-wrap').remove()" class="px-4 py-2 text-xs text-slate-600">Fechar</button>
             <div class="flex gap-2">
               <button onclick="salesModule.confirmDelivery('${order.id}')" class="px-4 py-2 text-xs bg-emerald-600 text-white rounded font-bold">Marcar Entregue</button>
-              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${order.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">💰 Caixa</button>
+              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${order.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">ðŸ’° Caixa</button>
             </div>
           </div>
         </div>
@@ -1238,6 +1416,13 @@ window.salesModule = {
 
 
 };
+
+
+
+
+
+
+
 
 
 
