@@ -1,4 +1,4 @@
-﻿window.salesModule = {
+window.salesModule = {
   activeItems: [],
   filters: { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' },
   
@@ -287,7 +287,7 @@
         cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2';
         cancelBtn.innerHTML = 'CANCELAR';
         cancelBtn.onclick = () => {
-            if(confirm('Cancelar ediÃ§Ã£o e limpar formulÃ¡rio?')) {
+            if(confirm('Cancelar edição e limpar formulário?')) {
                 salesModule.activeItems.splice(idx, 0, it);
                 document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml();
                 document.getElementById('item-desc').value = '';
@@ -373,7 +373,7 @@
                         ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
                       </select>
                     </div>
-                    <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto RÃƒÂ¡pido">+ NOVO</button>
+                    <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto Rápido">+ NOVO</button>
                   </div>
                   <div class="col-span-6 sm:col-span-3">
                     <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
@@ -384,8 +384,8 @@
                     </select>
                   </div>
                   <div class="col-span-6 sm:col-span-3">
-                    <label class="block font-semibold mb-1 text-slate-700">Base mÃ‚Â² / un</label>
-                    <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="PreÃƒÂ§o base - Fica invisÃƒÂ­vel ao perder o foco">
+                    <label class="block font-semibold mb-1 text-slate-700">Base m² / un</label>
+                    <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="Preço base - Fica invisível ao perder o foco">
                   </div>
                 </div>
                 <div>
@@ -482,11 +482,11 @@
                 <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Producao / Status Inicial</label>
                 <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
                   ${(window.productionModule ? window.productionModule.phases : [
-                      {id:'orcamento', name:'1. ORÃƒâ€¡AMENTO'},
-                      {id:'prevenda', name:'2. PRÃƒâ€°-VENDA'},
-                      {id:'aprovacao', name:'3. APROVAÃƒâ€¡ÃƒÆ’O'},
+                      {id:'orcamento', name:'1. ORÇAMENTO'},
+                      {id:'prevenda', name:'2. PRÉ-VENDA'},
+                      {id:'aprovacao', name:'3. APROVAÇÃO'},
                       {id:'liberado', name:'4. LIBERADO'},
-                      {id:'producao', name:'5. PRODUÃƒâ€¡ÃƒÆ’O'},
+                      {id:'producao', name:'5. PRODUÇÃO'},
                       {id:'acabamento', name:'6. ACABAMENTO'},
                       {id:'embalagem', name:'7. EMBALAGEM'},
                       {id:'entregue', name:'8. ENTREGA'}
@@ -534,7 +534,7 @@
       if(!input.files || input.files.length === 0) return;
       const file = input.files[0];
       if (file.size > 2 * 1024 * 1024) {
-        alert("A imagem deve ter no mÃƒÂ¡ximo 2MB.");
+        alert("A imagem deve ter no máximo 2MB.");
         input.value = "";
         return;
       }
@@ -563,10 +563,10 @@
       }
   },
       numeroPorExtenso(v) {
-    const unidades = ["", "um", "dois", "trÃƒÂªs", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+    const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
     const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
     const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-    const milhares = ["", "mil", "milhÃƒÂµes", "bilhÃƒÂµes"];
+    const milhares = ["", "mil", "milhões", "bilhões"];
     if (v === 0) return "zero reais";
     let reais = Math.floor(v);
     let centavos = Math.round((v - reais) * 100);
@@ -964,28 +964,28 @@
     const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
     const piecePrice = type === 'unidade' ? price : (area * price);
     const displayEl = document.getElementById('item-piece-price');
-    if(displayEl) displayEl.innerText = `PeÃƒÂ§a: R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    if(displayEl) displayEl.innerText = `Peça: R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
   },
   openNewProductModal() {
     const modalHtml = `
       <div id="quick-product-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-xl max-w-sm w-full p-5 shadow-2xl">
-          <h3 class="font-black text-lg text-slate-800 mb-4 border-b pb-2">Cadastrar Produto RÃƒÂ¡pido</h3>
+          <h3 class="font-black text-lg text-slate-800 mb-4 border-b pb-2">Cadastrar Produto Rápido</h3>
           <div class="space-y-3">
             <div>
               <label class="block text-xs font-semibold mb-1">Nome do Produto</label>
               <input type="text" id="qp-nome" class="w-full p-2 border rounded text-sm bg-slate-50" placeholder="Ex: Lona Frontlight 440g">
             </div>
             <div>
-              <label class="block text-xs font-semibold mb-1">CÃƒÂ¡lculo</label>
+              <label class="block text-xs font-semibold mb-1">Cálculo</label>
               <select id="qp-tipo" class="w-full p-2 border rounded text-sm bg-slate-50">
-                <option value="m2">Por mÃ‚Â²</option>
+                <option value="m2">Por m²</option>
                 <option value="linear">Metro Linear</option>
                 <option value="unidade">Por Unidade</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold mb-1">PreÃƒÂ§o Base (R$)</label>
+              <label class="block text-xs font-semibold mb-1">Preço Base (R$)</label>
               <input type="number" id="qp-preco" step="0.01" class="w-full p-2 border rounded text-sm bg-slate-50" placeholder="0.00">
             </div>
           </div>
@@ -1193,7 +1193,7 @@
     if(!input.files || input.files.length === 0) return;
     const file = input.files[0];
     if (file.size > 1.5 * 1024 * 1024) {
-      alert("A imagem da arte deve ter no mÃƒÂ¡ximo 1.5MB.");
+      alert("A imagem da arte deve ter no máximo 1.5MB.");
       input.value = "";
       return;
     }
@@ -1332,7 +1332,7 @@
     if (!order) return;
     const client = window.store.getClients().find(c => c.id === order.cliente_id);
     if (!client || !client.telefone_whatsapp) { alert('Cliente sem WhatsApp'); return; }
-    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlÃƒÂ¡ ' + client.nome + '!%0A';
+    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlá ' + client.nome + '!%0A';
     order.itens.forEach((it, i) => {
       msg += (i+1) + '. ' + it.descricao + ' | R$ ' + Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%0A';
     });
@@ -1391,7 +1391,7 @@
             <button onclick="document.getElementById('protocol-modal-wrap').remove()" class="px-4 py-2 text-xs text-slate-600">Fechar</button>
             <div class="flex gap-2">
               <button onclick="salesModule.confirmDelivery('${order.id}')" class="px-4 py-2 text-xs bg-emerald-600 text-white rounded font-bold">Marcar Entregue</button>
-              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${order.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">ðŸ’° Caixa</button>
+              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${order.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">💰 Caixa</button>
             </div>
           </div>
         </div>

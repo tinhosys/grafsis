@@ -1,4 +1,4 @@
-﻿window.selfserviceModule = {
+window.selfserviceModule = {
   currentClient: null,
   currentTab: 'pedido',
   cart: [],
@@ -187,7 +187,7 @@
                       <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MAT: ${item.mat || '--'} | TIPO: ${item.sangue || '--'}</p>
                       <div class="flex items-center gap-2 mt-2">
                          <button type="button" onclick="selfserviceModule.downloadBadge(${idx}, 'front')" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition shadow-sm">Baixar Frente</button>
-                         ${item.backUrl ? `<button type="button" onclick="selfserviceModule.downloadBadge(${idx}, 'back')" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition shadow-sm">Baixar versão</button>` : ''}
+                         ${item.backUrl ? `<button type="button" onclick="selfserviceModule.downloadBadge(${idx}, 'back')" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition shadow-sm">Baixar Verso</button>` : ''}
                       </div>
                     </div>
                   </div>
@@ -222,7 +222,7 @@
                 
                 const hasPhoto = fields.some(f => f.type === 'photo' && f.visible !== false);
                 if (hasPhoto) {
-                  html += `<div><label class="block text-xs font-bold text-slate-700 mb-1">Foto do CrachÃ¡ *</label>
+                  html += `<div><label class="block text-xs font-bold text-slate-700 mb-1">Foto do Crachá *</label>
                            <input type="file" id="cr-foto" required accept="image/*" onchange="selfserviceModule.handlePhoto(this)" class="w-full text-sm p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500"></div>`;
                 }
 
@@ -238,7 +238,7 @@
               })()}
               <label class="inline-flex items-center gap-2 mt-2 cursor-pointer">
                 <input type="checkbox" id="cr-blank-back" onchange="selfserviceModule.preview()" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                <span class="text-sm font-bold text-slate-700">Deixar versão em Branco</span>
+                <span class="text-sm font-bold text-slate-700">Deixar Verso em Branco</span>
               </label>
 
               <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition shadow-md uppercase tracking-wider mt-4">
@@ -252,7 +252,7 @@
             
             <div class="w-full max-w-[250px] flex mb-4 bg-slate-100 rounded-lg shadow-sm border border-slate-200">
                <button id="btn-prev-front" onclick="selfserviceModule.switchPreviewTab('front')" class="flex-1 py-2 text-sm font-bold bg-blue-600 text-white rounded-l-lg transition">FRENTE</button>
-               <button id="btn-prev-back" onclick="selfserviceModule.switchPreviewTab('back')" class="flex-1 py-2 text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-r-lg transition">versão</button>
+               <button id="btn-prev-back" onclick="selfserviceModule.switchPreviewTab('back')" class="flex-1 py-2 text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-r-lg transition">Verso</button>
             </div>
 
             <div id="container-prev-front" class="flex flex-col items-center">
@@ -511,14 +511,14 @@
   
       this.cart.push({
         details,
-        nome: details.nome || details.campo1 || 'CrachÃ¡',
+        nome: details.nome || details.campo1 || 'Crachá',
         mat: details.mat || details.campo2 || '',
         sangue: details.sangue || details.campo3 || '',
         foto: this.photoDataUrl,
         preco,
         frontUrl: finalImageFront,
         backUrl: finalImageBack,
-        templateName: template.name || 'CrachÃ¡'
+        templateName: template.name || 'Crachá'
       });
 
     this.photoDataUrl = null;
@@ -550,7 +550,7 @@
     this.currentClient.saldo_corrente = Number(this.currentClient.saldo_corrente) || 0;
     
     if (this.currentClient.saldo_corrente < totalPreco) {
-      alert(`SALDO INSUFICIENTE!\\n\\nVocêê possui R$ ${this.currentClient.saldo_corrente.toFixed(2)}.\\nO pedido custa R$ ${totalPreco.toFixed(2)}.\\n\\nVá na aba "Meus Pedidos" para recarregar com PIX.`);
+      alert(`SALDO INSUFICIENTE!\\n\\nVocê possui R$ ${this.currentClient.saldo_corrente.toFixed(2)}.\\nO pedido custa R$ ${totalPreco.toFixed(2)}.\\n\\nVá na aba "Meus Pedidos" para recarregar com PIX.`);
       return;
     }
 
@@ -585,7 +585,7 @@
         preco_unitario: item.preco,
         valor_total: item.preco,
         arte_url: item.frontUrl,
-        arte_versão_url: item.backUrl
+        arte_verso_url: item.backUrl
       })),
       historico: [{ data: dtNow, usuario: 'Autoatendimento', acao: `Pedido gerado com ${this.cart.length} item(ns). Pago usando Saldo.` }]
     };
@@ -745,7 +745,7 @@
                 <th class="p-3 border-b font-bold rounded-tl-lg">Nome do Produto</th>
                 <th class="p-3 border-b font-bold">Preço Base</th>
                 <th class="p-3 border-b font-bold text-center">Frente</th>
-                <th class="p-3 border-b font-bold text-center">versão</th>
+                <th class="p-3 border-b font-bold text-center">Verso</th>
                 <th class="p-3 border-b font-bold text-right rounded-tr-lg">Ações</th>
               </tr>
             </thead>
@@ -834,7 +834,7 @@ window.layoutEditorModule = {
         <div class="w-64 bg-slate-50 border-r border-slate-200 flex flex-col p-4 overflow-y-auto">
           <div class="flex bg-slate-200 rounded-lg p-1 mb-6">
             <button onclick="layoutEditorModule.switchTab('front')" class="flex-1 py-1.5 text-xs font-bold rounded ${this.currentTab === 'front' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">FRENTE</button>
-            <button onclick="layoutEditorModule.switchTab('back')" class="flex-1 py-1.5 text-xs font-bold rounded ${this.currentTab === 'back' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">versão</button>
+            <button onclick="layoutEditorModule.switchTab('back')" class="flex-1 py-1.5 text-xs font-bold rounded ${this.currentTab === 'back' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}">Verso</button>
           </div>
 
           <h3 class="text-xs font-black text-slate-800 uppercase mb-3">Adicionar Elemento</h3>
@@ -975,10 +975,10 @@ window.layoutEditorModule = {
                 <option value="campo1" ${el.field === 'campo1' ? 'selected' : ''}>Campo 1</option>
                 <option value="campo2" ${el.field === 'campo2' ? 'selected' : ''}>Campo 2</option>
                 <option value="campo3" ${el.field === 'campo3' ? 'selected' : ''}>Campo 3</option>
-                <option value="campov1" ${el.field === 'campov1' ? 'selected' : ''}>versão 1</option>
-                <option value="campov2" ${el.field === 'campov2' ? 'selected' : ''}>versão 2</option>
-                <option value="campov3" ${el.field === 'campov3' ? 'selected' : ''}>versão 3</option>
-                <option value="campov4" ${el.field === 'campov4' ? 'selected' : ''}>versão 4</option>
+                <option value="campov1" ${el.field === 'campov1' ? 'selected' : ''}>Verso 1</option>
+                <option value="campov2" ${el.field === 'campov2' ? 'selected' : ''}>Verso 2</option>
+                <option value="campov3" ${el.field === 'campov3' ? 'selected' : ''}>Verso 3</option>
+                <option value="campov4" ${el.field === 'campov4' ? 'selected' : ''}>Verso 4</option>
              </select>
            </div>
            <div>
