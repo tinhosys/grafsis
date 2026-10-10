@@ -186,6 +186,9 @@ class GrafsisStore {
         window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
       ]);
 
+      // 3. Corrigir pedidos com o mesmo número (ID de venda duplicado)
+      await this.fixDuplicateOrderNumbers();
+
       console.log('[Supabase Sync] Sincronização concluída com sucesso!');
       if (window.app && window.app.currentTab) {
         window.app.navigate(window.app.currentTab);
@@ -337,11 +340,72 @@ class GrafsisStore {
 
   // Pedidos
   getOrders() { return this.getLocal(STORAGE_KEYS.ORDERS); }
-  async saveOrder(order) {
+
+  // Próximo número de pedido no formato AA + sequência (ex: 260001)
+  getNextOrderNumber(orders) {
+    const list = orders || this.getOrders();
+    const yy = new Date().getFullYear().toString().slice(-2);
+    let maxSeq = 0;
+    list.forEach(o => {
+      if (o.numero && String(o.numero).startsWith(yy)) {
+        const seq = parseInt(String(o.numero).slice(2), 10);
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    });
+    return yy + String(maxSeq + 1).padStart(4, '0');
+  }
+
+  // Renumera pedidos que compartilham o mesmo número (o mais antigo mantém o número)
+  async fixDuplicateOrderNumbers() {
     const orders = this.getOrders();
-    if (!order.id || !isValidUUID(order.id)) {
+    const groups = new Map();
+    orders.forEach(o => {
+      if (!o.numero) return;
+      const k = String(o.numero);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(o);
+    });
+    const changed = [];
+    groups.forEach(list => {
+      if (list.length < 2) return;
+      list.sort((a, b) => {
+        const da = new Date(a.created_at || a.data_criacao || 0) - new Date(b.created_at || b.data_criacao || 0);
+        return da !== 0 ? da : String(a.id).localeCompare(String(b.id));
+      });
+      list.slice(1).forEach(o => {
+        const old = o.numero;
+        o.numero = this.getNextOrderNumber(orders);
+        o.historico = o.historico || [];
+        o.historico.push({
+          fase: o.status_fase,
+          data: new Date().toISOString(),
+          usuario: 'Sistema',
+          acao: `Número duplicado #${old} corrigido para #${o.numero}`
+        });
+        changed.push(o);
+      });
+    });
+    if (changed.length === 0) return [];
+    this.saveLocal(STORAGE_KEYS.ORDERS, orders);
+    for (const o of changed) await this.pushRecord('pedidos', o);
+    console.warn('[GRAFSIS] Pedidos com número duplicado renumerados:', changed.map(o => o.numero));
+    return changed;
+  }
+
+  async saveOrder(order) {
+    const isNew = !order.id || !isValidUUID(order.id);
+    // Antes de criar um pedido novo, puxa os pedidos da nuvem para não repetir número
+    if (isNew && this.supabaseClient) {
+      await this.pullTable('pedidos', STORAGE_KEYS.ORDERS);
+    }
+    const orders = this.getOrders();
+    if (!order.numero || orders.some(o => o.id !== order.id && String(o.numero) === String(order.numero))) {
+      order.numero = this.getNextOrderNumber(orders);
+    }
+    if (isNew) {
       order.id = grafsisUUID();
       order.created_at = new Date().toISOString();
+      if (!order.data_criacao) order.data_criacao = order.created_at;
       orders.unshift(order);
     } else {
       const index = orders.findIndex(o => o.id === order.id);
