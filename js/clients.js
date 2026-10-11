@@ -145,17 +145,20 @@ window.clientsModule = {
                 <!-- Chave Ativo/Bloqueado (Rosa) -->
                 <label class="flex items-center cursor-pointer">
                   <div class="relative">
-                    <input type="checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full');">
+                    <input type="checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full'); this.parentElement.nextElementSibling.innerText = this.checked ? 'Ativo' : 'Bloqueado';">
                     <div class="block w-10 h-6 rounded-full transition-colors ${!client || client.status !== 'bloqueado' ? 'bg-blue-600' : 'bg-slate-300'}">
                       <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${!client || client.status !== 'bloqueado' ? 'translate-x-full' : ''}"></div>
                     </div>
                   </div>
-                  <span class="ml-2 text-xs font-semibold text-slate-600">Ativo</span>
+                  <span class="ml-2 text-xs font-semibold text-slate-600">${!client || client.status !== 'bloqueado' ? 'Ativo' : 'Bloqueado'}</span>
                 </label>
               </div>
-              <button type="button" onclick="document.getElementById('client-modal').remove()" class="text-slate-400 hover:text-slate-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
+              <div class="flex items-center gap-3">
+                ${client ? `<div class="text-[10px] text-slate-400 text-right leading-tight border-r border-slate-200 pr-3">Cadastrado: ${new Date(client.created_at || new Date()).toLocaleString('pt-BR')}<br>Editado: ${new Date(client.updated_at || new Date()).toLocaleString('pt-BR')}</div>` : ''}
+                <button type="button" onclick="document.getElementById('client-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
             </div>
             ${!isEdit ? `
             <!-- Busca Localize (Verde) -->
@@ -188,7 +191,7 @@ window.clientsModule = {
                     <svg id="client-foto-icon" class="w-8 h-8 text-slate-300 ${client && client.foto_url ? 'hidden' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   </div>
                   <input type="text" name="foto_url" id="client-foto-url" value="${client ? (client.foto_url || '') : ''}" placeholder="URL da foto" class="hidden w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none mb-1" oninput="document.getElementById('client-foto-preview').src=this.value; document.getElementById('client-foto-preview').classList.remove('hidden'); document.getElementById('client-foto-icon').classList.add('hidden');">
-                  <input type="file" accept="image/*" onchange="clientsModule.handlePhotoUpload(this)" class="w-full text-[10px] text-slate-500 file:mr-1 file:py-1 file:px-1 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                  <input type="file" accept="image/*" capture="environment" onchange="clientsModule.handlePhotoUpload(this)" class="w-full text-[10px] text-slate-500 file:mr-1 file:py-1 file:px-1 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 </div>
 
                 <div class="col-span-3 space-y-4">
@@ -233,38 +236,39 @@ window.clientsModule = {
                 </div>
               </div>
 
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">CEP</label>
-                <input type="text" name="cep" id="client-cep" onblur="clientsModule.buscaCep(this.value)" value="${client ? (client.cep || '') : ''}" placeholder="00000-000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-              </div>
-
               <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="col-span-2 relative">
+                <div class="col-span-3 relative">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Logradouro</label>
                   <input type="text" name="logradouro" id="client-logradouro" autocomplete="off" value="${client ? (client.logradouro || client.endereco || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="clientsModule.searchAddress(this.value)">
                   <div id="address-suggestions" class="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-slate-200 hidden max-h-48 overflow-y-auto"></div>
                   <input type="hidden" name="endereco" value="">
                 </div>
-                <div>
+                <div class="col-span-1">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Número</label>
                   <input type="text" name="numero" id="client-numero" value="${client ? (client.numero || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
-                <div>
+                
+                <div class="col-span-2">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Bairro</label>
                   <input type="text" name="bairro" id="client-bairro" value="${client ? (client.bairro || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
+                <div class="col-span-2">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">CEP</label>
+                  <input type="text" name="cep" id="client-cep" onblur="clientsModule.buscaCep(this.value)" value="${client ? (client.cep || '') : ''}" placeholder="00000-000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
                 <div class="col-span-4">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Complemento</label>
                   <input type="text" name="complemento" id="client-complemento" value="${client ? (client.complemento || '') : ''}" placeholder="Apto, Sala, Bloco..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
               </div>
 
-              <div class="grid grid-cols-3 gap-2">
-                <div class="col-span-2">
+              <div class="grid grid-cols-4 gap-2">
+                <div class="col-span-3">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade</label>
                   <input type="text" name="cidade" id="client-cidade" value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
-                <div>
+                <div class="col-span-1">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">UF</label>
                   <input type="text" name="uf" id="client-uf" maxlength="2" value="${client ? (client.uf || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
@@ -291,9 +295,15 @@ window.clientsModule = {
               </div>
             </div>
 
-            <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
-              <button type="button" onclick="document.getElementById('client-modal').remove()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
-              <button type="submit" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm">Salvar Cliente</button>
+            <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
+              <div>
+                ${isEdit ? <button type="button" onclick="clientsModule.deleteClient('${client.id}')" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium">Excluir</button> : '<div></div>'}
+              </div>
+              <div class="flex gap-2">
+                <button type="button" onclick="document.getElementById('client-modal').remove()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                ${isEdit ? <button type="button" id="btn-editar-cliente" onclick="clientsModule.enableEditMode()" class="px-5 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium shadow-sm">Editar</button> : ''}
+                <button type="submit" id="btn-salvar-cliente" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm ${isEdit ? 'hidden' : ''}">Salvar Cliente</button>
+              </div>
             </div>
           </form>
         </div>
@@ -347,7 +357,15 @@ window.clientsModule = {
 
   editModal(id) {
     const client = window.store.getClients().find(c => c.id === id);
-    if (client) this.openModal(client);
+    if (client) {
+      this.openModal(client);
+      setTimeout(() => {
+        const form = document.getElementById('client-form');
+        if(!form) return;
+        const elements = form.querySelectorAll('input, select, textarea, button[type="button"]:not([onclick*="remove"]):not([onclick*="deleteClient"]):not(#btn-editar-cliente):not([onclick*="getLocation"])');
+        elements.forEach(el => el.disabled = true);
+      }, 50);
+    }
   },
 
   toggleTipoPessoa(tipo) {
@@ -388,9 +406,36 @@ window.clientsModule = {
     }
   },
 
+  enableEditMode() {
+    const form = document.getElementById('client-form');
+    const elements = form.querySelectorAll('input, select, textarea, button[type="button"]:not(#btn-editar-cliente):not([onclick*="remove"]):not([onclick*="deleteClient"]):not([onclick*="getLocation"])');
+    elements.forEach(el => el.disabled = false);
+    document.getElementById('btn-editar-cliente').classList.add('hidden');
+    document.getElementById('btn-salvar-cliente').classList.remove('hidden');
+  },
+
+  deleteClient(id) {
+    const orders = window.store.getOrders();
+    const hasOrders = orders.some(o => o.cliente_id === id);
+    if (hasOrders) {
+      alert("Operação negada: Este cliente não pode ser excluído pois possui pedidos vinculados (Regra de Integridade).");
+      return;
+    }
+    if (confirm("Tem certeza que deseja excluir este cliente permanentemente?")) {
+      window.store.deleteClient(id);
+      document.getElementById('client-modal').remove();
+      this.render();
+    }
+  },
+
   handlePhotoUpload(input) {
     const file = input.files[0];
     if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        alert('A foto não pode ter mais de 3 MB.');
+        input.value = '';
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => {
         document.getElementById('client-foto-url').value = e.target.result;
