@@ -1,4 +1,4 @@
-/* ==============================================================================
+﻿/* ==============================================================================
    GRAFSIS - Módulo de Clientes
    Cadastro Completo: Nome, Apelido, WhatsApp, Plus Code, Foto, CEP, etc.
    ============================================================================== */
@@ -463,24 +463,41 @@ window.clientsModule = {
   handlePhotoUpload(input) {
     const file = input.files[0];
     if (file) {
-      if (file.size > 3 * 1024 * 1024) {
-        alert('A foto não pode ter mais de 3 MB.');
-        input.value = '';
-        return;
-      }
       const reader = new FileReader();
       reader.onload = (e) => {
-        document.getElementById('client-foto-url').value = e.target.result;
-        if(document.getElementById('client-foto-preview')) {
-          document.getElementById('client-foto-preview').src = e.target.result;
-          document.getElementById('client-foto-preview').classList.remove('hidden');
-          document.getElementById('client-foto-icon').classList.add('hidden');
-        }
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 250;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+          document.getElementById('client-foto-url').value = compressedDataUrl;
+          if (document.getElementById('client-foto-preview')) {
+            document.getElementById('client-foto-preview').src = compressedDataUrl;
+            document.getElementById('client-foto-preview').classList.remove('hidden');
+            document.getElementById('client-foto-icon').classList.add('hidden');
+          }
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
   },
-
   syncUF(cidade) {
     if (!cidade) return;
     const ufInput = document.getElementById('client-uf');

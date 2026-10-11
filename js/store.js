@@ -188,6 +188,23 @@ class GrafsisStore {
       localStorage.setItem(key, JSON.stringify(data));
       return true;
     } catch (e) {
+      console.warn('[Store] QuotaExceededError ao salvar ' + key, e);
+      try {
+        if (Array.isArray(data)) {
+          const sanitized = data.map(item => {
+            if (item && item.foto_url && item.foto_url.length > 30000) {
+              const copy = { ...item };
+              delete copy.foto_url;
+              return copy;
+            }
+            return item;
+          });
+          localStorage.setItem(key, JSON.stringify(sanitized));
+          return true;
+        }
+      } catch (inner) {
+        console.error('[Store] Falha definitiva no localStorage:', inner);
+      }
       return false;
     }
   }
