@@ -1,4 +1,4 @@
-/* ==============================================================================
+﻿/* ==============================================================================
    GRAFSIS - Camada de Dados (Store) & Sincronização Supabase Cloud em Tempo Real
    Suporte a LocalStorage (Offline First) + Supabase (PostgreSQL Nuvem)
    ============================================================================== */
@@ -116,8 +116,35 @@ class GrafsisStore {
         this.supabaseClient = window.supabase.createClient(config.url, config.key);
         console.log('[Supabase] Cliente conectado com sucesso:', config.url);
         this.updateSyncBadge(true);
-        // Sincroniza em segundo plano ao iniciar
-        setTimeout(() => this.syncAllWithCloud(), 300);
+        // Sincroniza imediatamente ao iniciar
+        setTimeout(() => this.syncAllWithCloud(), 100);
+
+        // Auto-sincronizacao ao focar na janela (ao alternar entre abas ou celular/PC)
+        if (!this._focusListenerAttached) {
+          this._focusListenerAttached = true;
+          window.addEventListener('focus', () => this.syncAllWithCloud());
+        }
+
+        // Auto-sincronizacao periodica em segundo plano (a cada 20 segundos)
+        if (!this._syncInterval) {
+          this._syncInterval = setInterval(() => this.syncAllWithCloud(), 20000);
+        }
+
+        // Supabase Realtime (detecta alteracoes instantaneas entre PC e celular)
+        if (!this._realtimeSubscribed) {
+          this._realtimeSubscribed = true;
+          try {
+            this.supabaseClient
+              .channel('public-sync')
+              .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+                console.log('[Supabase Realtime] Mudanca detectada na nuvem, sincronizando...');
+                this.syncAllWithCloud();
+              })
+              .subscribe();
+          } catch (rtErr) {
+            console.warn('[Supabase Realtime] Falha ao assinar canal:', rtErr);
+          }
+        }
       } catch (err) {
         console.warn('[Supabase] Falha ao inicializar cliente:', err);
         this.updateSyncBadge(false);
@@ -126,7 +153,6 @@ class GrafsisStore {
       this.updateSyncBadge(false);
     }
   }
-
   updateSyncBadge(connected) {
     const badge = document.getElementById('cloud-sync-status');
     if (badge) {
@@ -170,13 +196,14 @@ class GrafsisStore {
   async syncAllWithCloud() {
     if (!this.supabaseClient || this.isSyncing) return;
     this.isSyncing = true;
-    console.log('[Supabase Sync] Iniciando sincronização bidirecional...');
+  // Sincronizacao Bidirecional Completa com o Supabase
+  async syncAllWithCloud() {
+    if (!this.supabaseClient || this.isSyncing) return;
+    this.isSyncing = true;
+    console.log('[Supabase Sync] Iniciando sincronizacao bidirecional...');
 
     try {
-      // 1. Enviar registros locais pré-existentes para a nuvem
-      await this.pushAllLocalRecords();
-
-      // 2. Puxar todos os registros da nuvem para atualizar o dispositivo
+      // 1. Puxar todos os registros da nuvem IMEDIATAMENTE (Prioridade maxima: atualizar a tela)
       await Promise.all([
         this.pullTable('clientes', STORAGE_KEYS.CLIENTS),
         this.pullTable('fornecedores', STORAGE_KEYS.SUPPLIERS),
@@ -186,57 +213,65 @@ class GrafsisStore {
         window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
       ]);
 
-      // 3. Corrigir pedidos com o mesmo número (ID de venda duplicado)
-      await this.fixDuplicateOrderNumbers();
-
-      console.log('[Supabase Sync] Sincronização concluída com sucesso!');
+      // Atualiza a tela imediatamente com os dados recem-baixados da nuvem
       if (window.app && window.app.currentTab) {
         window.app.navigate(window.app.currentTab);
       }
+
+      // 2. Enviar registros locais em lote para a nuvem
+      await this.pushAllLocalRecords();
+
+      // 3. Corrigir pedidos com o mesmo numero (ID de venda duplicado)
+      await this.fixDuplicateOrderNumbers();
+
+      console.log('[Supabase Sync] Sincronizacao concluida com sucesso!');
     } catch (e) {
-      console.warn('[Supabase Sync] Erro na sincronização:', e);
+      console.warn('[Supabase Sync] Erro na sincronizacao:', e);
     } finally {
       this.isSyncing = false;
     }
   }
 
   async pushAllLocalRecords() {
-    const clients = this.getClients();
-    for (const c of clients) {
-      if (!isValidUUID(c.id)) c.id = grafsisUUID();
-      await this.pushRecord('clientes', c);
-    }
-    this.saveLocal(STORAGE_KEYS.CLIENTS, clients);
+    try {
+      const clients = this.getClients();
+      await Promise.all(clients.map(c => {
+        if (!isValidUUID(c.id)) c.id = grafsisUUID();
+        return this.pushRecord('clientes', c);
+      }));
+      this.saveLocal(STORAGE_KEYS.CLIENTS, clients);
 
-    const products = this.getProducts();
-    for (const p of products) {
-      if (!isValidUUID(p.id)) p.id = grafsisUUID();
-      await this.pushRecord('produtos', p);
-    }
-    this.saveLocal(STORAGE_KEYS.PRODUCTS, products);
+      const products = this.getProducts();
+      await Promise.all(products.map(p => {
+        if (!isValidUUID(p.id)) p.id = grafsisUUID();
+        return this.pushRecord('produtos', p);
+      }));
+      this.saveLocal(STORAGE_KEYS.PRODUCTS, products);
 
-    const suppliers = this.getSuppliers();
-    for (const s of suppliers) {
-      if (!isValidUUID(s.id)) s.id = grafsisUUID();
-      await this.pushRecord('fornecedores', s);
-    }
-    this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
+      const suppliers = this.getSuppliers();
+      await Promise.all(suppliers.map(s => {
+        if (!isValidUUID(s.id)) s.id = grafsisUUID();
+        return this.pushRecord('fornecedores', s);
+      }));
+      this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
 
-    const orders = this.getOrders();
-    for (const o of orders) {
-      if (!isValidUUID(o.id)) o.id = grafsisUUID();
-      await this.pushRecord('pedidos', o);
-    }
-    this.saveLocal(STORAGE_KEYS.ORDERS, orders);
+      const orders = this.getOrders();
+      await Promise.all(orders.map(o => {
+        if (!isValidUUID(o.id)) o.id = grafsisUUID();
+        return this.pushRecord('pedidos', o);
+      }));
+      this.saveLocal(STORAGE_KEYS.ORDERS, orders);
 
-    const finance = this.getFinance();
-    for (const f of finance) {
-      if (!isValidUUID(f.id)) f.id = grafsisUUID();
-      await this.pushRecord('financeiro_lancamentos', f);
+      const finance = this.getFinance();
+      await Promise.all(finance.map(f => {
+        if (!isValidUUID(f.id)) f.id = grafsisUUID();
+        return this.pushRecord('financeiro_lancamentos', f);
+      }));
+      this.saveLocal(STORAGE_KEYS.FINANCE, finance);
+    } catch (err) {
+      console.warn('[Supabase Sync] Erro no push local:', err);
     }
-    this.saveLocal(STORAGE_KEYS.FINANCE, finance);
   }
-
   async pullTable(tableName, storageKey) {
     if (!this.supabaseClient) return;
     try {
