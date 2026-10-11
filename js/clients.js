@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Módulo de Clientes
    Cadastro Completo: Nome, Apelido, WhatsApp, Plus Code, Foto, CEP, etc.
    ============================================================================== */
@@ -297,11 +297,11 @@ window.clientsModule = {
 
             <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
               <div>
-                ${isEdit ? <button type="button" onclick="clientsModule.deleteClient('${client.id}')" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium">Excluir</button> : '<div></div>'}
+                ${isEdit ? `<button type="button" onclick="clientsModule.deleteClient('${client.id}')" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium">Excluir</button>` : '<div></div>'}
               </div>
               <div class="flex gap-2">
                 <button type="button" onclick="document.getElementById('client-modal').remove()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                ${isEdit ? <button type="button" id="btn-editar-cliente" onclick="clientsModule.enableEditMode()" class="px-5 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium shadow-sm">Editar</button> : ''}
+                ${isEdit ? `<button type="button" id="btn-editar-cliente" onclick="clientsModule.enableEditMode()" class="px-5 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium shadow-sm">Editar</button>` : ''}
                 <button type="submit" id="btn-salvar-cliente" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm ${isEdit ? 'hidden' : ''}">Salvar Cliente</button>
               </div>
             </div>
