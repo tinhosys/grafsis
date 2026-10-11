@@ -232,7 +232,7 @@
           <span class="text-slate-400">Banco de Dados Cloud Supabase</span>
           <span>•</span>
           <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
-            Versão 3.3.0 (Ver Notas)
+            Versão 3.4.0 (Ver Notas)
           </button>
         </div>
       </footer>
@@ -241,16 +241,16 @@
   </div> <!-- Fim de #app-layout -->
 
   <!-- Tela Inicial de Autenticação / Login Profissional (v3.2.0 - Imagem Oficial) -->
-  <div id="auth-modal" class="fixed inset-0 z-50 bg-[#eef3f9] items-center justify-center p-3 sm:p-6 lg:p-10 overflow-y-auto" style="display: flex;">
-    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto border border-slate-200/60 min-h-[580px]">
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-[#eef3f9] items-center justify-center p-2.5 sm:p-6 lg:p-10 overflow-y-auto" style="display: flex;">
+    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto border border-slate-200/60 min-h-0 md:min-h-[580px]">
       
-      <!-- Lado Esquerdo: Banner Oficial Grafsis com Ilustrações e Marca Exata -->
-      <div class="md:w-1/2 relative overflow-hidden flex items-center justify-center bg-[#071d38] min-h-[380px] md:min-h-full select-none">
-        <img src="assets/grafsis-banner-login.png?v=3.2.1" alt="Grafsis - Sua Gráfica nas Nuvens" class="w-full h-full object-cover object-center absolute inset-0">
+      <!-- Lado Esquerdo / Topo Mobile: Banner Oficial Grafsis com Ilustrações e Marca Exata (Imagem 3) -->
+      <div class="w-full md:w-1/2 relative overflow-hidden flex items-center justify-center bg-[#071d38] h-48 sm:h-64 md:h-auto md:min-h-full select-none shrink-0 border-b md:border-b-0 md:border-r border-slate-800/40">
+        <img src="assets/grafsis-banner-login.png?v=3.4.0" alt="Grafsis - Sua Gráfica nas Nuvens" class="w-full h-full object-cover object-center md:absolute md:inset-0">
       </div>
 
-      <!-- Lado Direito: Formulário de Login Minimalista e Limpo -->
-      <div class="md:w-1/2 bg-[#f8fafc] p-8 sm:p-12 lg:p-14 flex flex-col justify-between">
+      <!-- Lado Direito / Abaixo Mobile: Formulário de Login Minimalista e Limpo (Imagem 4) -->
+      <div class="w-full md:w-1/2 bg-[#f8fafc] p-6 sm:p-10 md:p-12 lg:p-14 flex flex-col justify-between">
         
         <div class="w-full max-w-sm mx-auto">
           <!-- Título e Subtítulo -->
@@ -602,7 +602,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.3.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.4.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -610,23 +610,23 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.3.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Campos Numéricos Puros no Login</span>
+            <h4 class="font-bold text-slate-800">Versão 3.4.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Auditoria de Sincronização & Mobile Vertical</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Entrada Numérica Estrita:</strong> Tanto o CPF quanto a senha aceitam exclusivamente números, sem pontuação, traços ou letras.</li>
-            <li><strong>Bloqueio Automático de Caracteres Inválidos:</strong> Limpeza imediata em tempo real de qualquer caractere não numérico digitado ou colado.</li>
-            <li><strong>Teclado Numérico Otimizado:</strong> Ativação de <code>inputmode="numeric"</code> para facilitar digitação rápida em dispositivos móveis e touch.</li>
-            <li><strong>Identidade Visual Oficial:</strong> Banner gráfico Grafsis em alta resolução com a marca e ilustrações 3D.</li>
+            <li><strong>Proteção de Formulários Ativos:</strong> Corrigido fechamento involuntário do formulário de Nova Venda / Orçamento durante a sincronização em segundo plano. Qualquer formulário ou digitação ativa bloqueia reset de tela.</li>
+            <li><strong>Login Responsivo Vertical no Mobile (Imagens 3 e 4):</strong> Banner com ilustrações Grafsis e formulário de login posicionados perfeitamente na vertical para smartphones e telas estreitas.</li>
+            <li><strong>Fases da Produção Vertical & Sanfona (Imagem 5):</strong> No mobile, as etapas do Kanban agora são apresentadas na vertical com recurso de 'Mostre e Esconde' (acordeão), facilitando o controle de pedidos na palma da mão.</li>
+            <li><strong>Manutenção do Kanban Desktop:</strong> No computador, as 8 abas horizontais com suporte a arrastar e soltar (drag & drop) permanecem 100% ativas e preservadas.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.2.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Nova Tela Inicial Grafsis Oficial</span>
+            <h4 class="font-bold text-slate-800">Versão 3.3.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Campos Numéricos Puros</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Nova Identidade Visual da Tela Inicial com banner azul marinho, ilustrações 3D e card de acesso moderno.</li>
+            <li>Campos de CPF e Senha estritamente numéricos com bloqueio instantâneo de caracteres especiais.</li>
           </ul>
         </div>
       </div>
@@ -639,15 +639,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=3.3.0"></script>
-  <script src="js/auth.js?v=3.3.0"></script>
-  <script src="js/store.js?v=3.3.0"></script>
-  <script src="js/clients.js?v=3.3.0"></script>
-  <script src="js/suppliers.js?v=3.3.0"></script>
-  <script src="js/products.js?v=3.3.0"></script>
-  <script src="js/sales.js?v=3.3.0"></script>
-  <script src="js/production.js?v=3.3.0"></script>
-  <script src="js/finance.js?v=3.3.0"></script>
-  <script src="js/app.js?v=3.3.0"></script>
+  <script src="js/config.js?v=3.4.0"></script>
+  <script src="js/auth.js?v=3.4.0"></script>
+  <script src="js/store.js?v=3.4.0"></script>
+  <script src="js/clients.js?v=3.4.0"></script>
+  <script src="js/suppliers.js?v=3.4.0"></script>
+  <script src="js/products.js?v=3.4.0"></script>
+  <script src="js/sales.js?v=3.4.0"></script>
+  <script src="js/production.js?v=3.4.0"></script>
+  <script src="js/finance.js?v=3.4.0"></script>
+  <script src="js/app.js?v=3.4.0"></script>
 </body>
 </html>

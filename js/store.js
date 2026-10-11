@@ -252,9 +252,32 @@ class GrafsisStore {
         window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
       ]);
 
-      // Atualiza a tela imediatamente com os dados recem-baixados da nuvem (se autenticado)
-      if (window.app && window.app.currentTab && window.authModule && window.authModule.isAuthenticated()) {
-        window.app.navigate(window.app.currentTab);
+      // Auditoria & Proteção: Se houver qualquer formulário aberto ou foco ativo de digitação,
+      // NUNCA recarrega nem altera o DOM para não fechar formulários do usuário (ex: Nova Venda / Orçamento)
+      const isUserEditing = document.getElementById('order-form') ||
+                            (window.salesModule && window.salesModule.isFormOpen) ||
+                            document.querySelector('.modal:not(.hidden):not(#auth-modal)') ||
+                            (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName));
+
+      if (!isUserEditing && window.app && window.app.currentTab && window.authModule && window.authModule.isAuthenticated()) {
+        try {
+          // Atualiza apenas a lista passiva sem resetar a navegação global (app.navigate)
+          if (window.app.currentTab === 'production' && window.productionModule) {
+            window.productionModule.render();
+          } else if (window.app.currentTab === 'orders' && window.salesModule && !window.salesModule.isFormOpen) {
+            window.salesModule.render();
+          } else if (window.app.currentTab === 'clients' && window.clientsModule) {
+            window.clientsModule.render();
+          } else if (window.app.currentTab === 'finance' && window.financeModule) {
+            window.financeModule.render();
+          } else if (window.app.currentTab === 'suppliers' && window.suppliersModule) {
+            window.suppliersModule.render();
+          } else if (window.app.currentTab === 'products' && window.productsModule) {
+            window.productsModule.render();
+          }
+        } catch (uiErr) {
+          console.warn('[Sync UI] Erro não impeditivo ao atualizar dados:', uiErr);
+        }
       }
 
       // 2. Enviar registros locais em lote para a nuvem

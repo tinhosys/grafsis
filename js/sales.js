@@ -1,8 +1,10 @@
-﻿window.salesModule = {
+window.salesModule = {
+  isFormOpen: false,
   activeItems: [],
   filters: { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' },
   
   render() {
+    this.isFormOpen = false;
     const container = document.getElementById('view-container');
     if (!this.filters) this.filters = { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' };
     
@@ -335,7 +337,8 @@
         if (insertBtn) insertBtn.parentNode.appendChild(cancelBtn);
     }
   },
-    openModal(params = {}) {
+  openModal(params = {}) {
+    this.isFormOpen = true;
     const clients = window.store.getClients();
     const products = window.store.getProducts();
     const isEdit = params.orderId ? true : false;

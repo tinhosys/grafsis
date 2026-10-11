@@ -1,4 +1,4 @@
-﻿window.productionModule = {
+window.productionModule = {
   phases: [
     { id: 'orcamento', name: '1. ORÇAMENTO', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     { id: 'prevenda', name: '2. PRÉ-VENDA', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
@@ -10,11 +10,35 @@
     { id: 'entregue', name: '8. ENTREGA', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' }
   ],
   currentTab: 'orcamento',
+  mobileOpenPhases: null,
   
+  toggleMobilePhase(phaseId) {
+    if (!this.mobileOpenPhases) {
+      this.mobileOpenPhases = {};
+      this.mobileOpenPhases[this.currentTab] = true;
+    }
+    this.mobileOpenPhases[phaseId] = !this.mobileOpenPhases[phaseId];
+    this.currentTab = phaseId;
+    this.render();
+  },
+
+  toggleAllMobilePhases(open) {
+    if (!this.mobileOpenPhases) this.mobileOpenPhases = {};
+    this.phases.forEach(p => {
+      this.mobileOpenPhases[p.id] = open;
+    });
+    this.render();
+  },
+
   render() {
     const orders = window.store.getOrders();
     const clients = window.store.getClients();
     const container = document.getElementById('view-container');
+
+    if (!this.mobileOpenPhases) {
+      this.mobileOpenPhases = {};
+      this.mobileOpenPhases[this.currentTab] = true;
+    }
 
     const tabsHtml = this.phases.map((p, index) => {
       const isActive = this.currentTab === p.id;
@@ -39,6 +63,58 @@
     const activePhase = this.phases.find(p => p.id === this.currentTab) || this.phases[0];
     const activeOrders = orders.filter(o => o.status_fase === activePhase.id);
 
+    // Layout Vertical Sanfona (Mostre e Esconde) para Mobile (Imagem 5)
+    const mobileAccordionHtml = this.phases.map(p => {
+      const isOpen = !!this.mobileOpenPhases[p.id];
+      const isSelected = this.currentTab === p.id;
+      const phaseOrders = orders.filter(o => o.status_fase === p.id);
+      
+      return `
+        <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white transition-all">
+          <button 
+            type="button" 
+            onclick="productionModule.toggleMobilePhase('${p.id}')"
+            class="w-full p-4 flex items-center justify-between text-left transition select-none ${isSelected ? 'bg-blue-50/90 border-b border-blue-200' : 'bg-slate-50/80 hover:bg-slate-100'}">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${p.icon}"></path></svg>
+              </div>
+              <div>
+                <div class="font-extrabold text-xs ${isSelected ? 'text-blue-900' : 'text-slate-800'} uppercase tracking-wide flex items-center gap-2">
+                  ${p.name}
+                </div>
+                <div class="text-[11px] text-slate-500 font-medium">${phaseOrders.length} pedido(s) nesta etapa</div>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-2.5">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${phaseOrders.length > 0 ? (isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 text-white') : 'bg-slate-200 text-slate-600'}">
+                ${phaseOrders.length}
+              </span>
+              <div class="w-6 h-6 rounded-full flex items-center justify-center bg-white/80 border border-slate-200 text-slate-500">
+                <svg class="w-4 h-4 transform transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-600' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+          </button>
+
+          <!-- Conteúdo da Fase (Mostre e Esconde) -->
+          <div class="${isOpen ? 'block' : 'hidden'} p-3.5 bg-slate-50/50 border-t border-slate-100">
+            ${phaseOrders.length === 0 ? `
+              <div class="py-6 text-center text-slate-400 font-medium text-xs">
+                Nenhum pedido nesta fase.
+              </div>
+            ` : `
+              <div class="space-y-3">
+                ${phaseOrders.map(o => this.renderCard(o, clients)).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
     container.innerHTML = `
       <div class="space-y-4">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -53,14 +129,29 @@
           </div>
         </div>
 
-        <div class="flex flex-wrap md:flex-nowrap w-full gap-1 border-b-2 border-blue-600">
+        <!-- Versão Desktop: Abas Horizontais com Drag & Drop (oculto em mobile) -->
+        <div class="hidden md:flex flex-wrap md:flex-nowrap w-full gap-1 border-b-2 border-blue-600">
           ${tabsHtml}
         </div>
 
-        <div class="bg-slate-50 border border-slate-200 rounded-b-xl p-4 min-h-[60vh]">
+        <!-- Versão Desktop: Grid de Cards da Fase Selecionada (oculto em mobile) -->
+        <div class="hidden md:block bg-slate-50 border border-slate-200 rounded-b-xl p-4 min-h-[60vh]">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" ondragover="productionModule.allowDrop(event)" ondrop="productionModule.handleDrop(event, '${activePhase.id}')">
             ${activeOrders.length === 0 ? `<div class="col-span-full py-12 text-center text-slate-400 font-bold">Nenhum pedido nesta fase.</div>` : activeOrders.map(o => this.renderCard(o, clients)).join('')}
           </div>
+        </div>
+
+        <!-- Versão Mobile: Fases na Vertical Sanfona com 'Mostre e Esconde' (Imagem 5) -->
+        <div class="md:hidden space-y-3 pb-8">
+          <div class="flex justify-between items-center px-1 pt-1">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fases na Vertical</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="productionModule.toggleAllMobilePhases(true)" class="text-[11px] font-bold text-blue-600 hover:underline">Expandir todas</button>
+              <span class="text-slate-300">|</span>
+              <button type="button" onclick="productionModule.toggleAllMobilePhases(false)" class="text-[11px] font-bold text-slate-500 hover:underline">Recolher</button>
+            </div>
+          </div>
+          ${mobileAccordionHtml}
         </div>
       </div>
     `;
