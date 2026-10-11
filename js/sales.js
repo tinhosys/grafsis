@@ -244,16 +244,33 @@ window.salesModule = {
   },
   createOrderForClient(clientId) { this.openModal({ clientId }); },
 
+  getUserRole() {
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    return (user?.role || user?.nivel || '').toUpperCase();
+  },
+
+  canManagePermutaPatrocinio() {
+    const role = this.getUserRole();
+    return ['ADMIN', 'PROPRIETARIO', 'GERENTE'].includes(role);
+  },
+
   checkClientStatusAndAge(selectElement) {
     const clientId = selectElement.value;
-    if (!clientId) return;
+    if (!clientId) {
+      this.updateFormState();
+      return;
+    }
     const client = window.store.getClients().find(c => c.id === clientId);
-    if (!client) return;
+    if (!client) {
+      this.updateFormState();
+      return;
+    }
     
     // Bloqueio de venda para cliente inativo/bloqueado
     if (client.status === 'bloqueado') {
       alert(`Operação negada: O cliente ${client.nome} encontra-se BLOQUEADO. Atualize o cadastro do cliente para liberar vendas.`);
       selectElement.value = '';
+      this.updateFormState();
       return;
     }
 
@@ -272,8 +289,239 @@ window.salesModule = {
         }
       }
     }
+    this.updateFormState();
   },
-    getNextOrderId() {
+
+  handleOperationTypeChange(select) {
+    const op = select.value;
+    if ((op === 'permuta' || op === 'patrocinio') && !this.canManagePermutaPatrocinio()) {
+      alert('Operação restrita: Permuta e Patrocínio só podem ser autorizados pelos perfis Gerente ou Proprietário.');
+      select.value = 'venda';
+    }
+    this.updateFormState();
+  },
+
+  updateDateFromDays() {
+    const days = parseInt(document.getElementById('dias-entrega')?.value) || 0;
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const dataInput = document.getElementById('previsao_entrega');
+    if (dataInput) dataInput.value = date.toISOString().split('T')[0];
+  },
+
+  updateDaysFromDate() {
+    const dataInput = document.getElementById('previsao_entrega');
+    if (!dataInput || !dataInput.value) return;
+    const targetDate = new Date(dataInput.value + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = targetDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysInput = document.getElementById('dias-entrega');
+    if (daysInput) daysInput.value = Math.max(0, diffDays);
+  },
+
+  updateValidadeDateFromDays() {
+    const days = parseInt(document.getElementById('dias-validade')?.value) || 0;
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const dataInput = document.getElementById('data-validade');
+    if (dataInput) dataInput.value = date.toISOString().split('T')[0];
+  },
+
+  updateValidadeDaysFromDate() {
+    const dataInput = document.getElementById('data-validade');
+    if (!dataInput || !dataInput.value) return;
+    const targetDate = new Date(dataInput.value + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = targetDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysInput = document.getElementById('dias-validade');
+    if (daysInput) daysInput.value = Math.max(0, diffDays);
+  },
+
+  updateFormState() {
+    const clientSelect = document.querySelector('select[name="cliente_id"]');
+    const clientId = clientSelect ? clientSelect.value : '';
+    const opSelect = document.querySelector('select[name="tipo_operacao"]');
+    const op = opSelect ? opSelect.value : 'venda';
+
+    const hasClient = Boolean(clientId);
+
+    // 1. Mensagem de aviso e opacidade dos blocos
+    const clientNotice = document.getElementById('client-required-notice');
+    if (clientNotice) {
+      clientNotice.style.display = hasClient ? 'none' : 'block';
+    }
+
+    const itemsContainer = document.getElementById('secao-itens-pedido');
+    const entregaContainer = document.getElementById('secao-entrega-pedido');
+    const prodContainer = document.getElementById('secao-producao-validacoes');
+    const finContainer = document.getElementById('secao-fechamento-financeiro');
+    const botoesContainer = document.getElementById('secao-botoes-acoes');
+
+    if (itemsContainer) itemsContainer.style.opacity = hasClient ? '1' : '0.45';
+    if (entregaContainer) entregaContainer.style.opacity = hasClient ? '1' : '0.45';
+    if (prodContainer) prodContainer.style.opacity = hasClient ? '1' : '0.45';
+    if (finContainer) finContainer.style.opacity = hasClient ? '1' : '0.45';
+    if (botoesContainer) botoesContainer.style.opacity = hasClient ? '1' : '0.45';
+
+    // 2. Se NÃO houver cliente selecionado, desabilita todos os inputs e botões (exceto o próprio select de cliente)
+    if (!hasClient) {
+      if (opSelect) opSelect.disabled = true;
+      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"])');
+      allFormElements.forEach(el => {
+        el.disabled = true;
+      });
+      return;
+    }
+
+    // 3. Se TEM cliente, habilita os elementos gerais
+    if (opSelect) opSelect.disabled = false;
+    const itemElements = document.querySelectorAll('#secao-itens-pedido input, #secao-itens-pedido select, #secao-itens-pedido button');
+    itemElements.forEach(el => {
+      if (el.id !== 'item-type') el.disabled = false;
+    });
+
+    const prodElements = document.querySelectorAll('#secao-producao-validacoes input, #secao-producao-validacoes textarea');
+    prodElements.forEach(el => el.disabled = false);
+
+    const finElements = document.querySelectorAll('#secao-fechamento-financeiro input');
+    finElements.forEach(el => el.disabled = false);
+
+    // 4. Colunas dinâmicas no cabeçalho superior conforme o Tipo de Operação
+    const topValidade = document.getElementById('top-col-validade');
+    const topPercentual = document.getElementById('top-col-percentual');
+    const topVenda = document.getElementById('top-col-venda');
+
+    if (op === 'orcamento' || op === 'pre-venda') {
+      if (topValidade) topValidade.classList.remove('hidden');
+      if (topPercentual) topPercentual.classList.add('hidden');
+      if (topVenda) topVenda.classList.add('hidden');
+      const valInputs = document.querySelectorAll('#top-col-validade input');
+      valInputs.forEach(i => i.disabled = false);
+    } else if (op === 'permuta' || op === 'patrocinio') {
+      if (topValidade) topValidade.classList.add('hidden');
+      if (topPercentual) topPercentual.classList.remove('hidden');
+      if (topVenda) topVenda.classList.add('hidden');
+      const percInput = document.getElementById('operacao-percentual');
+      if (percInput) percInput.disabled = false;
+    } else {
+      if (topValidade) topValidade.classList.add('hidden');
+      if (topPercentual) topPercentual.classList.add('hidden');
+      if (topVenda) topVenda.classList.remove('hidden');
+    }
+
+    // 5. Entrega do Pedido: "SÓ SE HABILITA EM VENDA, PERMUTA, PATROCINIO"
+    const canEntrega = (op === 'venda' || op === 'permuta' || op === 'patrocinio');
+    const diasEntrega = document.getElementById('dias-entrega');
+    const prevEntrega = document.getElementById('previsao_entrega');
+    const entregaBadge = document.getElementById('entrega-badge-info');
+
+    if (diasEntrega) {
+      diasEntrega.disabled = !canEntrega;
+      diasEntrega.className = canEntrega 
+        ? "w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold" 
+        : "w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed";
+    }
+    if (prevEntrega) {
+      prevEntrega.disabled = !canEntrega;
+      prevEntrega.className = canEntrega 
+        ? "w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold" 
+        : "w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 font-bold text-slate-400 cursor-not-allowed";
+    }
+    if (entregaBadge) {
+      if (canEntrega) {
+        entregaBadge.innerText = '● Habilitado para Produção';
+        entregaBadge.className = 'text-xs font-bold text-emerald-600';
+      } else {
+        entregaBadge.innerText = 'Desabilitado (Definido após aprovação da proposta)';
+        entregaBadge.className = 'text-xs font-bold text-slate-400 italic';
+      }
+    }
+
+    // 6. Fase da Produção / Status Inicial: "SÓ SE HABITA EM VENDAS, PERMUTA, PATROCINIO"
+    const statusFaseSelect = document.querySelector('select[name="status_fase"]');
+    if (statusFaseSelect) {
+      if (canEntrega) {
+        statusFaseSelect.disabled = false;
+        statusFaseSelect.className = 'w-full p-2 border border-blue-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm';
+      } else if (op === 'pre-venda') {
+        statusFaseSelect.value = 'prevenda';
+        statusFaseSelect.disabled = true;
+        statusFaseSelect.className = 'w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 font-black text-slate-500 shadow-sm cursor-not-allowed';
+      } else {
+        statusFaseSelect.value = 'orcamento';
+        statusFaseSelect.disabled = true;
+        statusFaseSelect.className = 'w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 font-black text-slate-500 shadow-sm cursor-not-allowed';
+      }
+    }
+
+    // 7. Recibo: "RECIBO SÓ SE HABITA NA VENDA, PERMUTA"
+    const btnRecibo = document.getElementById('btn-detalhes-recibo');
+    if (btnRecibo) {
+      const canRecibo = (op === 'venda' || op === 'permuta');
+      btnRecibo.disabled = !canRecibo;
+      if (canRecibo) {
+        btnRecibo.className = 'w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer';
+        btnRecibo.title = 'Lançar recebimento e emitir recibo comercial';
+      } else {
+        btnRecibo.className = 'w-full py-2 bg-slate-200 text-slate-400 font-bold rounded-lg shadow-none flex justify-center items-center gap-2 transition cursor-not-allowed';
+        btnRecibo.title = 'Recibo desabilitado para ' + (op === 'patrocinio' ? 'Patrocínio' : (op === 'pre-venda' ? 'Pré-Venda' : 'Orçamento'));
+      }
+    }
+
+    // 8. Botões de Ação Inferiores:
+    // PRÉ-VENDA: "Salvar Pré-Venda", "Emitir Pré-Venda", SEM O.S., SEM caixa
+    // ORÇAMENTO: "Salvar Orçamento", "Emitir Orçamento", SEM O.S., SEM caixa
+    // VENDA / PERMUTA / PATROCÍNIO: "Finalizar...", "Emitir Pedido", COM O.S.
+    const btnSubmit = document.getElementById('btn-submit-order');
+    const btnEmitirPedido = document.getElementById('btn-emitir-pedido');
+    const btnEmitirOS = document.getElementById('btn-emitir-os');
+
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      if (op === 'orcamento') {
+        btnSubmit.innerText = 'Salvar Orçamento';
+        btnSubmit.className = 'px-7 py-2.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md uppercase transition';
+      } else if (op === 'pre-venda') {
+        btnSubmit.innerText = 'Salvar Pré-Venda';
+        btnSubmit.className = 'px-7 py-2.5 text-sm bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl shadow-md uppercase transition';
+      } else if (op === 'permuta') {
+        btnSubmit.innerText = 'Finalizar Permuta';
+        btnSubmit.className = 'px-7 py-2.5 text-sm bg-teal-600 hover:bg-teal-700 text-white font-black rounded-xl shadow-md uppercase transition';
+      } else if (op === 'patrocinio') {
+        btnSubmit.innerText = 'Finalizar Patrocínio';
+        btnSubmit.className = 'px-7 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-md uppercase transition';
+      } else {
+        btnSubmit.innerText = 'Finalizar Pedido';
+        btnSubmit.className = 'px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition';
+      }
+    }
+
+    if (btnEmitirPedido) {
+      btnEmitirPedido.disabled = false;
+      if (op === 'orcamento') {
+        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Orçamento`;
+      } else if (op === 'pre-venda') {
+        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Pré-Venda`;
+      } else {
+        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Pedido`;
+      }
+    }
+
+    if (btnEmitirOS) {
+      if (op === 'orcamento' || op === 'pre-venda') {
+        btnEmitirOS.style.display = 'none';
+      } else {
+        btnEmitirOS.style.display = 'inline-flex';
+        btnEmitirOS.disabled = false;
+      }
+    }
+  },
+
+  getNextOrderId() {
     const orders = window.store.getOrders();
     const yy = new Date().getFullYear().toString().slice(-2);
     let maxSeq = 0;
@@ -285,13 +533,8 @@ window.salesModule = {
     });
     return yy + String(maxSeq + 1).padStart(4, '0');
   },
-  updateDateFromDays() {
-    const days = parseInt(document.getElementById('dias-entrega').value) || 0;
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    document.getElementsByName('previsao_entrega')[0].value = date.toISOString().split('T')[0];
-  },
-    editItem(idx) {
+
+  editItem(idx) {
     const it = this.activeItems[idx];
     const prodSelect = document.getElementById('item-prod-select');
     prodSelect.value = it.produto_id || '';
@@ -305,44 +548,57 @@ window.salesModule = {
     document.getElementById('item-qty').value = it.quantidade || '1';
     
     const itemArteInput = document.getElementById('item-arte-url');
-    if(itemArteInput) itemArteInput.value = it.arte_url || '';
+    if (itemArteInput) itemArteInput.value = it.arte_url || '';
+    
+    const prevContainer = document.getElementById('item-arte-preview-container');
+    const prevImg = document.getElementById('item-arte-img');
     const arteBtn = document.getElementById('item-arte-btn');
-    if(arteBtn) {
-      if(it.arte_url) {
-        arteBtn.className = 'w-full h-full bg-blue-100 border border-blue-400 rounded flex items-center justify-center text-blue-600';
-      } else {
+    if (it.arte_url) {
+      if (prevContainer && prevImg) {
+        prevImg.src = it.arte_url;
+        prevContainer.classList.remove('hidden');
+      }
+      if (arteBtn) {
+        arteBtn.className = 'w-full h-full bg-emerald-100 border border-emerald-400 rounded flex items-center justify-center text-emerald-600';
+      }
+    } else {
+      if (prevContainer) prevContainer.classList.add('hidden');
+      if (arteBtn) {
         arteBtn.className = 'w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors';
       }
     }
+
     this.toggleDimensionInputs();
     this.calcPiecePrice();
     this.removeItem(idx);
     
     let cancelBtn = document.getElementById('cancel-edit-btn');
     if (!cancelBtn) {
-        cancelBtn = document.createElement('button');
-        cancelBtn.id = 'cancel-edit-btn';
-        cancelBtn.type = 'button';
-        cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2';
-        cancelBtn.innerHTML = 'CANCELAR';
-        cancelBtn.onclick = () => {
-            if(confirm('Cancelar edição e limpar formulário?')) {
-                salesModule.activeItems.splice(idx, 0, it);
-                document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml();
-                document.getElementById('item-desc').value = '';
-                document.getElementById('item-prod-select').value = '';
-                document.getElementById('item-price').value = '0.00';
-                document.getElementById('item-width').value = '0.00';
-                document.getElementById('item-height').value = '0.00';
-                document.getElementById('item-qty').value = '1';
-                cancelBtn.remove();
-                salesModule.recalcTotals('val');
-            }
-        };
-        const insertBtn = document.querySelector('button[onclick="salesModule.addItemToOrder()"]');
-        if (insertBtn) insertBtn.parentNode.appendChild(cancelBtn);
+      cancelBtn = document.createElement('button');
+      cancelBtn.id = 'cancel-edit-btn';
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2';
+      cancelBtn.innerHTML = 'CANCELAR';
+      cancelBtn.onclick = () => {
+        if (confirm('Cancelar edição e limpar formulário?')) {
+          salesModule.activeItems.splice(idx, 0, it);
+          document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml();
+          document.getElementById('item-desc').value = '';
+          document.getElementById('item-prod-select').value = '';
+          document.getElementById('item-price').value = '0.00';
+          document.getElementById('item-width').value = '0.00';
+          document.getElementById('item-height').value = '0.00';
+          document.getElementById('item-qty').value = '1';
+          salesModule.removeItemArte();
+          cancelBtn.remove();
+          salesModule.recalcTotals('val');
+        }
+      };
+      const insertBtn = document.querySelector('button[onclick="salesModule.addItemToOrder()"]');
+      if (insertBtn) insertBtn.parentNode.appendChild(cancelBtn);
     }
   },
+
   openModal(params = {}) {
     this.isFormOpen = true;
     const clients = window.store.getClients();
@@ -353,230 +609,325 @@ window.salesModule = {
     if (params.preItem) { this.activeItems.push(params.preItem); }
     
     const displayId = isEdit ? order.numero : this.getNextOrderId();
+    const canPermutaPatrocinio = this.canManagePermutaPatrocinio();
+    
+    const defValidadeDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const initialClientId = (order && order.cliente_id) || params.clientId || '';
+    const initialOp = (order && (order.tipo_operacao || order.tipo)) || 'venda';
+    const isBudgetOrPre = (initialOp === 'orcamento' || initialOp === 'pre-venda');
+    const isPermutaPatrocinio = (initialOp === 'permuta' || initialOp === 'patrocinio');
 
     const formHtml = `
       <div class="space-y-4 max-w-6xl mx-auto pb-10">
-                <div class="sticky top-0 z-40 bg-white/95 backdrop-blur rounded-xl w-full p-4 mb-4 shadow-sm border border-slate-200">
+        <div class="sticky top-0 z-40 bg-white/95 backdrop-blur rounded-xl w-full p-4 mb-4 shadow-sm border border-slate-200">
           <div class="flex justify-between items-center mb-4">
             <div>
               <button type="button" onclick="salesModule.render()" class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1 mb-1">
                 &larr; Voltar para Lista
               </button>
-              <h2 class="text-2xl font-black text-slate-800">${isEdit ? 'Editar Pedido' : 'Nova Venda / Orcamento'}</h2>
+              <h2 class="text-2xl font-black text-slate-800">${isEdit ? 'Editar Pedido' : 'Nova Venda / Orçamento'}</h2>
             </div>
             <div class="text-right">
               <span class="block text-xs font-bold text-slate-500 uppercase">ID DA VENDA</span>
-              <span class="text-2xl font-black text-slate-900">#${displayId}</span><input type="hidden" id="current-display-id" value="${displayId}">
+              <span class="text-2xl font-black text-slate-900">#${displayId}</span>
+              <input type="hidden" id="current-display-id" value="${displayId}">
             </div>
           </div>
           
           <form id="order-form" onsubmit="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="space-y-4">
+            
+            <!-- GRID SUPERIOR: CLIENTE, TIPO DE OPERAÇÃO E CONTROLES ESPECÍFICOS (IMAGEM 1) -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div class="md:col-span-2">
-                <label class="block text-xs font-semibold mb-1">Cliente *</label>
-                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800" onchange="salesModule.checkClientStatusAndAge(this)">
+                <label class="block text-xs font-semibold mb-1 text-slate-800 flex items-center justify-between">
+                  <span>Cliente *</span>
+                  <span class="text-[11px] text-blue-600 font-bold">Obrigatório para prosseguir</span>
+                </label>
+                <select name="cliente_id" id="order-cliente-select" required class="w-full p-2.5 border-2 border-blue-400 rounded-lg text-sm bg-white font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" onchange="salesModule.checkClientStatusAndAge(this)">
                   <option value="">Selecione o Cliente...</option>
-                  ${clients.map(c => `<option value="${c.id}" ${(order && order.cliente_id === c.id) || params.clientId === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
+                  ${clients.map(c => `<option value="${c.id}" ${initialClientId === c.id ? 'selected' : ''}>${c.nome} ${c.cpf_cnpj ? '('+c.cpf_cnpj+')' : ''}</option>`).join('')}
                 </select>
               </div>
+
               <div>
-                <label class="block text-xs font-semibold mb-1">Tipo de Operacao</label>
-                <select name="tipo_operacao" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
-                  <option value="venda" ${order && order.tipo_operacao === 'venda' ? 'selected' : ''}>Venda</option>
-                  <option value="pre-venda" ${order && order.tipo_operacao === 'pre-venda' ? 'selected' : ''}>Pre-Venda</option>
-                  <option value="orcamento" ${order && order.tipo_operacao === 'orcamento' ? 'selected' : ''}>Orcamento</option>
-                  <option value="patrocinio" ${order && order.tipo_operacao === 'patrocinio' ? 'selected' : ''}>Patrocinio</option>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">Tipo de Operação</label>
+                <select name="tipo_operacao" id="order-tipo-operacao" onchange="salesModule.handleOperationTypeChange(this)" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white font-bold text-slate-800 shadow-sm">
+                  <option value="venda" ${initialOp === 'venda' ? 'selected' : ''}>Venda</option>
+                  <option value="pre-venda" ${initialOp === 'pre-venda' ? 'selected' : ''}>Pré-Venda</option>
+                  <option value="orcamento" ${initialOp === 'orcamento' ? 'selected' : ''}>Orçamento</option>
+                  <option value="permuta" ${initialOp === 'permuta' ? 'selected' : ''} ${!canPermutaPatrocinio ? 'disabled' : ''}>Permuta ${!canPermutaPatrocinio ? '(Requer Gerente)' : ''}</option>
+                  <option value="patrocinio" ${initialOp === 'patrocinio' ? 'selected' : ''} ${!canPermutaPatrocinio ? 'disabled' : ''}>Patrocínio ${!canPermutaPatrocinio ? '(Requer Gerente)' : ''}</option>
                 </select>
               </div>
-              <div class="grid grid-cols-2 gap-2">
+
+              <!-- 1. Coluna Dinâmica: Validade da Proposta (Orçamento e Pré-Venda) -->
+              <div id="top-col-validade" class="${isBudgetOrPre ? '' : 'hidden'} grid grid-cols-2 gap-2 bg-indigo-50/60 p-2 rounded-lg border border-indigo-200">
                 <div>
-                  <label class="block text-xs font-semibold mb-1 text-slate-700">Prazo (Dias)</label>
-                  <input type="number" id="dias-entrega" min="0" oninput="salesModule.updateDateFromDays()" placeholder="Ex: 5" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                  <label class="block text-[11px] font-bold text-indigo-900 mb-1">Validade (Dias)</label>
+                  <input type="number" name="validade_proposta_dias" id="dias-validade" min="1" value="${order && order.validade_proposta_dias ? order.validade_proposta_dias : 10}" oninput="salesModule.updateValidadeDateFromDays()" class="w-full p-1.5 border border-indigo-300 rounded text-xs bg-white font-bold text-center">
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold mb-1">Previsao</label>
-                  <input type="date" name="previsao_entrega" id="previsao_entrega" oninput="salesModule.updateDaysFromDate()" onchange="salesModule.updateDaysFromDate()" value="${order ? (order.previsao_entrega || '') : new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                  <label class="block text-[11px] font-bold text-indigo-900 mb-1">Válido Até</label>
+                  <input type="date" name="data_validade" id="data-validade" oninput="salesModule.updateValidadeDaysFromDate()" onchange="salesModule.updateValidadeDaysFromDate()" value="${order && order.data_validade ? order.data_validade : defValidadeDate}" class="w-full p-1.5 border border-indigo-300 rounded text-xs bg-white font-bold">
                 </div>
+              </div>
+
+              <!-- 2. Coluna Dinâmica: Percentual Permuta / Patrocínio -->
+              <div id="top-col-percentual" class="${isPermutaPatrocinio ? '' : 'hidden'} bg-teal-50/60 p-2 rounded-lg border border-teal-200">
+                <label class="block text-[11px] font-bold text-teal-900 mb-1">Percentual Operação (%)</label>
+                <div class="flex items-center gap-1">
+                  <input type="number" name="percentual_operacao" id="operacao-percentual" min="1" max="100" value="${order && order.percentual_operacao ? order.percentual_operacao : 100}" class="w-full p-1.5 border border-teal-300 rounded text-xs bg-white font-black text-teal-800 text-center">
+                  <span class="text-xs font-bold text-teal-700">%</span>
+                </div>
+              </div>
+
+              <!-- 3. Coluna Informativa: Venda Padrão -->
+              <div id="top-col-venda" class="${(!isBudgetOrPre && !isPermutaPatrocinio) ? '' : 'hidden'} flex items-center p-2 rounded-lg bg-blue-50/40 border border-blue-200">
+                <span class="text-xs font-semibold text-blue-800">Venda Direta / Faturamento Padrão</span>
               </div>
             </div>
-          <div class="bg-white rounded-xl w-full p-6 shadow-sm border border-slate-200 mt-4">
 
-            <div class="border border-slate-300 rounded-xl p-4 bg-white mt-4">
-              <h3 class="text-sm font-bold text-slate-800 uppercase mb-3 border-b pb-2">Itens do Pedido</h3>
-                            <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
-                <div class="grid grid-cols-12 gap-2">
-                  <div class="col-span-12 sm:col-span-6 flex items-end gap-1">
-                    <div class="flex-1">
-                      <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
-                      <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
-                        <option value="">Selecione...</option>
-                        ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
+            <!-- AVISO VISUAL QUANDO CLIENTE NÃO SELECIONADO -->
+            <div id="client-required-notice" class="${initialClientId ? 'hidden' : ''} p-4 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-center text-amber-900 font-bold text-sm shadow-sm">
+              ⚠️ <span class="underline">Selecione primeiro o Cliente</span> acima para liberar o preenchimento dos itens e opções do pedido.
+            </div>
+
+            <!-- SEÇÃO DE ITENS DO PEDIDO -->
+            <div class="bg-white rounded-xl w-full p-4 sm:p-6 shadow-sm border border-slate-200 mt-4 transition-all" id="secao-itens-pedido">
+              <div class="border border-slate-300 rounded-xl p-4 bg-white">
+                <h3 class="text-sm font-bold text-slate-800 uppercase mb-3 border-b pb-2">Itens do Pedido</h3>
+                
+                <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
+                  <div class="grid grid-cols-12 gap-2">
+                    <div class="col-span-12 sm:col-span-6 flex items-end gap-1">
+                      <div class="flex-1">
+                        <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
+                        <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
+                          <option value="">Selecione...</option>
+                          ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
+                        </select>
+                      </div>
+                      <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto Rápido">+ NOVO</button>
+                    </div>
+                    <div class="col-span-6 sm:col-span-3">
+                      <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
+                      <select id="item-type" onchange="salesModule.toggleDimensionInputs()" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
+                        <option value="m2">m2 (X x Y)</option>
+                        <option value="linear">Linear</option>
+                        <option value="unidade">Unitario</option>
                       </select>
                     </div>
-                    <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto Rápido">+ NOVO</button>
+                    <div class="col-span-6 sm:col-span-3">
+                      <label class="block font-semibold mb-1 text-slate-700">Base m² / un</label>
+                      <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="Preço base - Fica invisível ao perder o foco">
+                    </div>
                   </div>
-                  <div class="col-span-6 sm:col-span-3">
-                    <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
-                    <select id="item-type" onchange="salesModule.toggleDimensionInputs()" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
-                      <option value="m2">m2 (X x Y)</option>
-                      <option value="linear">Linear</option>
-                      <option value="unidade">Unitario</option>
-                    </select>
+
+                  <div>
+                    <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
+                    <input type="text" id="item-desc" placeholder="Ex: Adesivo com recorte" class="w-full p-2 border border-slate-300 rounded bg-white">
                   </div>
-                  <div class="col-span-6 sm:col-span-3">
-                    <label class="block font-semibold mb-1 text-slate-700">Base m² / un</label>
-                    <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="Preço base - Fica invisível ao perder o foco">
-                  </div>
-                </div>
-                <div>
-                  <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
-                  <input type="text" id="item-desc" placeholder="Ex: Adesivo com recorte" class="w-full p-2 border border-slate-300 rounded bg-white">
-                </div>
-                <div class="grid grid-cols-12 gap-2 items-end">
-                  <div class="col-span-2" id="div-width">
-                    <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Largura X (m)</label>
-                    <input type="number" step="0.01" id="item-width" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
-                  </div>
-                  <div class="col-span-2" id="div-height">
-                    <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Compr. Y (m)</label>
-                    <input type="number" step="0.01" id="item-height" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
-                  </div>
-                  <div class="col-span-2 sm:col-span-1">
-                    <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Qtd</label>
-                    <input type="number" step="1" id="item-qty" value="1" min="1" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-xs">
-                  </div>
-                  <div class="col-span-3 sm:col-span-2">
-                    <label class="block text-[10px] uppercase font-bold mb-1 text-red-600">V. Unit. (R$)</label>
-                    <div id="item-piece-price" class="w-full p-2 font-mono text-red-600 font-bold bg-red-50 border border-red-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
-                  </div>
-                  <div class="col-span-3 sm:col-span-2">
-                    <label class="block text-[10px] uppercase font-bold mb-1 text-green-600">Sub Total</label>
-                    <div id="item-subtotal-price" class="w-full p-2 font-mono text-green-700 font-bold bg-green-50 border border-green-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
-                  </div>
-                  <div class="col-span-12 sm:col-span-3 mt-2 sm:mt-0 flex gap-2">
-                    <div class="relative w-10 h-[38px] flex-shrink-0" title="Anexar Arte (Max 2MB)">
-                      <input type="file" id="item-arte-upload" accept="image/png, image/jpeg, image/jpg" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="salesModule.handleItemArteUpload(this)">
-                      <div id="item-arte-btn" class="w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+
+                  <div class="grid grid-cols-12 gap-2 items-end">
+                    <div class="col-span-2" id="div-width">
+                      <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Largura X (m)</label>
+                      <input type="number" step="0.01" id="item-width" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                    </div>
+                    <div class="col-span-2" id="div-height">
+                      <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Compr. Y (m)</label>
+                      <input type="number" step="0.01" id="item-height" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                    </div>
+                    <div class="col-span-2 sm:col-span-1">
+                      <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Qtd</label>
+                      <input type="number" step="1" id="item-qty" value="1" min="1" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-xs">
+                    </div>
+                    <div class="col-span-3 sm:col-span-2">
+                      <label class="block text-[10px] uppercase font-bold mb-1 text-red-600">V. Unit. (R$)</label>
+                      <div id="item-piece-price" class="w-full p-2 font-mono text-red-600 font-bold bg-red-50 border border-red-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
+                    </div>
+                    <div class="col-span-3 sm:col-span-2">
+                      <label class="block text-[10px] uppercase font-bold mb-1 text-green-600">Sub Total</label>
+                      <div id="item-subtotal-price" class="w-full p-2 font-mono text-green-700 font-bold bg-green-50 border border-green-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
+                    </div>
+                    <div class="col-span-12 sm:col-span-3 mt-2 sm:mt-0 flex gap-2">
+                      <div class="relative w-10 h-[38px] flex-shrink-0" title="Anexar Imagem / Arte do Item (Max 2MB)">
+                        <input type="file" id="item-arte-upload" accept="image/png, image/jpeg, image/jpg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="salesModule.handleItemArteUpload(this)">
+                        <div id="item-arte-btn" class="w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </div>
+                        <input type="hidden" id="item-arte-url" value="">
                       </div>
-                      <input type="hidden" id="item-arte-url" value="">
+                      <button type="button" onclick="salesModule.addItemToOrder()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap">+ INSERIR ITEM</button>
                     </div>
-                    <button type="button" onclick="salesModule.addItemToOrder()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap">+ INSERIR ITEM</button>
+                  </div>
+
+                  <!-- PREVIEW DA IMAGEM SUBIDA NO ITEM (IMAGEM QUE FOI SUBIDA) -->
+                  <div id="item-arte-preview-container" class="hidden mt-2 p-2.5 bg-white border border-blue-200 rounded-lg flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-3">
+                      <img id="item-arte-img" src="" class="w-12 h-12 object-cover rounded-md border-2 border-blue-400 shadow cursor-pointer" onclick="window.open(this.src, '_blank')" title="Clique para ver imagem original">
+                      <div>
+                        <span class="text-xs font-black text-blue-900 block">Arte / Imagem Anexada</span>
+                        <span class="text-[10px] text-slate-500">Pronta para inserção com o item</span>
+                      </div>
+                    </div>
+                    <button type="button" onclick="salesModule.removeItemArte()" class="text-red-600 hover:text-red-800 text-xs font-bold px-2.5 py-1 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition">Remover Imagem</button>
                   </div>
                 </div>
-              </div>
-              <div class="mt-4 border border-slate-200 rounded-lg overflow-hidden">'
-                <table class="w-full text-sm text-left">
-                  <thead class="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
-                    <tr><th class="p-3">Produto & Item</th><th class="p-3">Dimensoes</th><th class="p-3 text-center">Qtd</th><th class="p-3">Area</th><th class="p-3">Preco</th><th class="p-3 text-right">Total</th><th class="p-3 text-center">Acao</th></tr>
-                  </thead>
-                  <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
-                </table>
-              </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Produção & Validações</h3>
-                
-                <div>
-                  <label class="block text-xs font-semibold mb-1 text-slate-700">Observações Técnicas</label>
-                  <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200">
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Data Aceite Cliente</label>
-                    <input type="date" name="data_aceite" id="order-data-aceite" value="${order && order.data_aceite ? order.data_aceite.slice(0,10) : ''}" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Autorizo Produção</label>
-                    <input type="text" name="autorizo_producao" id="order-autorizo-producao" value="${order ? (order.autorizo_producao || '') : ''}" placeholder="Nome / Visto" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Conferência Arte</label>
-                    <input type="text" name="conferencia_arte" id="order-conferencia-arte" value="${order ? (order.conferencia_arte || '') : ''}" placeholder="Designer / OK" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
-                  </div>
+                <div class="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+                  <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
+                      <tr><th class="p-3">Produto & Item</th><th class="p-3">Dimensoes</th><th class="p-3 text-center">Qtd</th><th class="p-3">Area</th><th class="p-3">Preco</th><th class="p-3 text-right">Total</th><th class="p-3 text-center">Acao</th></tr>
+                    </thead>
+                    <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
+                  </table>
                 </div>
               </div>
 
-              <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
-                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
-                  <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0,00</span>
+              <!-- LINHA AMARELA: ENTREGA DO PEDIDO & PRAZOS DE PRODUÇÃO (IMAGEM 2) -->
+              <div class="border-t-4 border-yellow-400 bg-amber-50/40 p-4 rounded-xl border border-slate-200 mt-4 transition-all" id="secao-entrega-pedido">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                  <h3 class="text-xs font-black text-slate-800 uppercase flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
+                    Entrega do Pedido & Prazos de Produção
+                  </h3>
+                  <span id="entrega-badge-info" class="text-xs font-bold text-emerald-600">● Habilitado para Produção</span>
                 </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm font-semibold text-slate-600">Desconto (%):</span>
-                  <input type="number" step="0.01" id="order-discount-perc" value="0" oninput="salesModule.recalcTotals('perc')" class="w-20 p-1.5 border rounded-lg text-center font-mono text-sm bg-white text-purple-700 font-bold">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Prazo de Entrega (Dias)</label>
+                    <input type="number" id="dias-entrega" min="0" oninput="salesModule.updateDateFromDays()" placeholder="Ex: 5" value="${order && order.dias_entrega ? order.dias_entrega : ''}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Previsão de Entrega</label>
+                    <input type="date" name="previsao_entrega" id="previsao_entrega" oninput="salesModule.updateDaysFromDate()" onchange="salesModule.updateDaysFromDate()" value="${order ? (order.previsao_entrega || '') : new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                  </div>
+                  <div class="sm:col-span-2 flex items-center text-xs text-slate-500 bg-white/80 p-2.5 rounded-lg border border-slate-200">
+                    Previsão repassada ao cliente e sincronizada com as fases do Kanban da Produção. Só se habilita em Venda, Permuta e Patrocínio.
+                  </div>
                 </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm font-semibold text-slate-600">Desconto (R$):</span>
-                  <input type="number" step="0.01" id="order-discount" value="${order ? (order.desconto || 0) : 0}" oninput="salesModule.recalcTotals('val')" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white">
-                </div>
-                <div class="flex justify-between items-center pt-2 border-t border-blue-200">
-                  <span class="text-base font-black text-blue-900">Total Final:</span>
-                  <span class="text-xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
-                </div>
-                
-                <!-- ENTRADA DIRETA NO FORMULÁRIO -->
-                <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2 mt-2">
-                  <div class="flex justify-between items-center">
+              </div>
+
+              <!-- DADOS DA PRODUÇÃO & FECHAMENTO FINANCEIRO -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-producao-validacoes">
+                  <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Produção & Validações</h3>
+                  
+                  <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-700">Observações Técnicas</label>
+                    <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
+                  </div>
+
+                  <!-- ARTE GERAL DO PEDIDO COM PREVIEW -->
+                  <div class="pt-2 border-t border-slate-200">
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Arte / Mockup Geral do Pedido</label>
+                    <div class="flex items-center gap-3">
+                      <input type="file" id="order-arte-upload" accept="image/*" class="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" onchange="salesModule.handleOrderArteUpload(this)">
+                      <input type="hidden" name="foto_arte_url" id="order-arte-url" value="${order ? (order.foto_arte_url || '') : ''}">
+                    </div>
+                    <div id="order-arte-preview-container" class="${order && order.foto_arte_url ? '' : 'hidden'} mt-2 p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-3">
+                      <img id="order-arte-preview-img" src="${order ? (order.foto_arte_url || '') : ''}" class="max-h-20 max-w-xs object-contain rounded-lg border border-slate-300 shadow-sm cursor-pointer" onclick="window.open(this.src, '_blank')" title="Clique para ver arte em tamanho real">
+                      <button type="button" onclick="salesModule.removeOrderArte()" class="text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 bg-red-50 hover:bg-red-100 rounded">Remover</button>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200">
                     <div>
-                      <span class="text-xs font-black text-emerald-800 uppercase block">Valor de Entrada (R$):</span>
-                      <span class="text-[10px] text-slate-400">Sinal pago no ato</span>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Data Aceite Cliente</label>
+                      <input type="date" name="data_aceite" id="order-data-aceite" value="${order && order.data_aceite ? order.data_aceite.slice(0,10) : ''}" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
                     </div>
-                    <input type="number" step="0.01" id="order-valor-entrada" value="${order ? (order.valor_entrada || order.valor_recebido || 0) : 0}" oninput="salesModule.recalcTotals('entrada')" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black">
-                  </div>
-                  <div class="flex justify-between items-center pt-1 border-t border-slate-100">
-                    <span class="text-xs font-bold text-slate-600 uppercase">Saldo a Pagar (Falta):</span>
-                    <span class="text-base font-black text-rose-600 font-mono" id="order-saldo-restante">R$ 0,00</span>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Autorizo Produção</label>
+                      <input type="text" name="autorizo_producao" id="order-autorizo-producao" value="${order ? (order.autorizo_producao || '') : ''}" placeholder="Nome / Visto" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Conferência Arte</label>
+                      <input type="text" name="conferencia_arte" id="order-conferencia-arte" value="${order ? (order.conferencia_arte || '') : ''}" placeholder="Designer / OK" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
+                    </div>
                   </div>
                 </div>
 
-                <div class="mt-2 pt-2 border-t border-blue-100">
-                  <button type="button" onclick="salesModule.openFinanceModal()" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    DETALHES / RECIBO / CARTÃO
-                  </button>
-                  <div class="text-center mt-3 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
-                    <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
-                    <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
-                    <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || order.valor_entrada || 0) : 0}">
-                    <input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
-                    <input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
+                <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100" id="secao-fechamento-financeiro">
+                  <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
+                    <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0,00</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-semibold text-slate-600">Desconto (%):</span>
+                    <input type="number" step="0.01" id="order-discount-perc" value="0" oninput="salesModule.recalcTotals('perc')" class="w-20 p-1.5 border rounded-lg text-center font-mono text-sm bg-white text-purple-700 font-bold">
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-semibold text-slate-600">Desconto (R$):</span>
+                    <input type="number" step="0.01" id="order-discount" value="${order ? (order.desconto || 0) : 0}" oninput="salesModule.recalcTotals('val')" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white">
+                  </div>
+                  <div class="flex justify-between items-center pt-2 border-t border-blue-200">
+                    <span class="text-base font-black text-blue-900">Total Final:</span>
+                    <span class="text-xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
+                  </div>
+                  
+                  <!-- ENTRADA DIRETA NO FORMULÁRIO -->
+                  <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2 mt-2">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <span class="text-xs font-black text-emerald-800 uppercase block">Valor de Entrada (R$):</span>
+                        <span class="text-[10px] text-slate-400">Sinal pago no ato</span>
+                      </div>
+                      <input type="number" step="0.01" id="order-valor-entrada" value="${order ? (order.valor_entrada || order.valor_recebido || 0) : 0}" oninput="salesModule.recalcTotals('entrada')" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black">
+                    </div>
+                    <div class="flex justify-between items-center pt-1 border-t border-slate-100">
+                      <span class="text-xs font-bold text-slate-600 uppercase">Saldo a Pagar (Falta):</span>
+                      <span class="text-base font-black text-rose-600 font-mono" id="order-saldo-restante">R$ 0,00</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-2 pt-2 border-t border-blue-100">
+                    <button type="button" id="btn-detalhes-recibo" onclick="salesModule.openFinanceModal()" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      DETALHES / RECIBO / CARTÃO
+                    </button>
+                    <div class="text-center mt-3 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
+                      <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
+                      <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
+                      <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || order.valor_entrada || 0) : 0}">
+                      <input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
+                      <input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div class="w-full sm:w-1/3">
-                <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Producao / Status Inicial</label>
-                <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
-                  ${(window.productionModule ? window.productionModule.phases : [
-                      {id:'orcamento', name:'1. ORÇAMENTO'},
-                      {id:'prevenda', name:'2. PRÉ-VENDA'},
-                      {id:'aprovacao', name:'3. APROVAÇÃO'},
-                      {id:'liberado', name:'4. LIBERADO'},
-                      {id:'producao', name:'5. PRODUÇÃO'},
-                      {id:'acabamento', name:'6. ACABAMENTO'},
-                      {id:'embalagem', name:'7. EMBALAGEM'},
-                      {id:'entregue', name:'8. ENTREGA'}
-                  ]).map(p => `<option value="${p.id}" ${order && order.status_fase === p.id ? 'selected' : (!order && p.id === 'orcamento' ? 'selected' : '')}>${p.name}</option>`).join('')}
-                </select>
-              </div>
-              <div class="flex gap-3 w-full sm:w-auto justify-end">
-                <button type="button" onclick="salesModule.render()" class="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
-                                  <button type="submit" class="px-8 py-3 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
-                  <button type="button" onclick="salesModule.printOrder('pedido')" class="px-6 py-3 text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Pedido de Venda A4">
+
+              <!-- BARRA DE BOTÕES & FASE DA PRODUÇÃO -->
+              <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
+                <div class="w-full sm:w-1/3">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Produção / Status Inicial</label>
+                  <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
+                    ${(window.productionModule ? window.productionModule.phases : [
+                        {id:'orcamento', name:'1. ORÇAMENTO'},
+                        {id:'prevenda', name:'2. PRÉ-VENDA'},
+                        {id:'aprovacao', name:'3. APROVAÇÃO'},
+                        {id:'liberado', name:'4. LIBERADO'},
+                        {id:'producao', name:'5. PRODUÇÃO'},
+                        {id:'acabamento', name:'6. ACABAMENTO'},
+                        {id:'embalagem', name:'7. EMBALAGEM'},
+                        {id:'entregue', name:'8. ENTREGA'}
+                    ]).map(p => `<option value="${p.id}" ${order && order.status_fase === p.id ? 'selected' : (!order && p.id === 'orcamento' ? 'selected' : '')}>${p.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                  <button type="button" onclick="salesModule.render()" class="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                  <button type="submit" id="btn-submit-order" class="px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
+                  <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="px-5 py-2.5 text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Documento A4">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Emitir Pedido
                   </button>
-                  <button type="button" onclick="salesModule.printOrder('os')" class="px-6 py-3 text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Ordem de Servi\u00E7o A4">
+                  <button type="button" id="btn-emitir-os" onclick="salesModule.printOrder('os')" class="px-5 py-2.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Ordem de Serviço A4">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Emitir O.S.
                   </button>
                 </div>
+              </div>
+
             </div>
           </form>
         </div>
@@ -584,41 +935,80 @@ window.salesModule = {
     `;
     document.getElementById("view-container").innerHTML = formHtml;
     this.recalcTotals();
+    this.updateFormState();
   },
-    handleProdSelect(select) {
-    const opt = select.options[select.selectedIndex];
-    if (opt.value) {
-      document.getElementById('item-desc').value = ""; document.getElementById('item-prod-select').setAttribute("data-nome", opt.text.split(" (R$")[0]);
-      const type = opt.getAttribute('data-type');
-      document.getElementById('item-type').value = type;
-      document.getElementById('item-price').value = opt.getAttribute('data-price');
-      this.toggleDimensionInputs();
-      this.calcPiecePrice();
+
+  handleOrderArteUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      alert("A imagem da arte deve ter no máximo 2MB.");
+      input.value = "";
+      return;
     }
-  },
-      toggleDimensionInputs() {
-      const type = document.getElementById('item-type').value;
-      document.getElementById('div-width').style.display = (type === 'm2' || type === 'linear') ? 'block' : 'none';
-      document.getElementById('div-height').style.display = (type === 'm2') ? 'block' : 'none';
-      this.calcPiecePrice();
-    },
-    handleItemArteUpload(input) {
-      if(!input.files || input.files.length === 0) return;
-      const file = input.files[0];
-      if (file.size > 2 * 1024 * 1024) {
-        alert("A imagem deve ter no máximo 2MB.");
-        input.value = "";
-        return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      document.getElementById('order-arte-url').value = dataUrl;
+      const prevContainer = document.getElementById('order-arte-preview-container');
+      const prevImg = document.getElementById('order-arte-preview-img');
+      if (prevContainer && prevImg) {
+        prevImg.src = dataUrl;
+        prevContainer.classList.remove('hidden');
       }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        document.getElementById('item-arte-url').value = e.target.result;
-        const btn = document.getElementById('item-arte-btn');
-        btn.className = 'w-full h-full bg-green-100 border border-green-300 rounded flex items-center justify-center text-green-600';
+    };
+    reader.readAsDataURL(file);
+  },
+
+  removeOrderArte() {
+    const urlInput = document.getElementById('order-arte-url');
+    if (urlInput) urlInput.value = '';
+    const fileInput = document.getElementById('order-arte-upload');
+    if (fileInput) fileInput.value = '';
+    const prevContainer = document.getElementById('order-arte-preview-container');
+    if (prevContainer) prevContainer.classList.add('hidden');
+  },
+
+  removeItemArte() {
+    const itemArteInput = document.getElementById('item-arte-url');
+    if (itemArteInput) itemArteInput.value = '';
+    const uploadInput = document.getElementById('item-arte-upload');
+    if (uploadInput) uploadInput.value = '';
+    const btn = document.getElementById('item-arte-btn');
+    if (btn) {
+      btn.className = 'w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors';
+      btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>`;
+    }
+    const prevContainer = document.getElementById('item-arte-preview-container');
+    if (prevContainer) prevContainer.classList.add('hidden');
+  },
+
+  handleItemArteUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+      alert("A imagem deve ter no máximo 2MB.");
+      input.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      document.getElementById('item-arte-url').value = dataUrl;
+      const btn = document.getElementById('item-arte-btn');
+      if (btn) {
+        btn.className = 'w-full h-full bg-emerald-100 border border-emerald-400 rounded flex items-center justify-center text-emerald-600';
         btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
-      };
-      reader.readAsDataURL(file);
-    },
+      }
+      const prevContainer = document.getElementById('item-arte-preview-container');
+      const prevImg = document.getElementById('item-arte-img');
+      if (prevContainer && prevImg) {
+        prevImg.src = dataUrl;
+        prevContainer.classList.remove('hidden');
+      }
+    };
+    reader.readAsDataURL(file);
+  },
       calcPiecePrice() {
     const type = document.getElementById('item-type').value;
     let w = parseFloat(document.getElementById('item-width').value); if(isNaN(w)) w = 0;
@@ -984,14 +1374,33 @@ window.salesModule = {
     const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336';
     const companyLogo = tenant.logo_url || '';
 
-    const title = type === 'os' ? 'Ordem de Serviço' : 'Pedido de Venda / Orçamento';
+    const opVal = (document.querySelector('select[name="tipo_operacao"]')?.value || 'venda').toLowerCase();
+    let title = 'Pedido de Venda';
+    if (type === 'os') {
+      title = 'Ordem de Serviço';
+    } else {
+      if (opVal === 'orcamento') title = 'Orçamento Comercial';
+      else if (opVal === 'pre-venda') title = 'Proposta de Pré-Venda';
+      else if (opVal === 'permuta') title = 'Pedido de Venda (Permuta)';
+      else if (opVal === 'patrocinio') title = 'Pedido de Venda (Patrocínio)';
+    }
+
+    const diasValidade = document.getElementById('dias-validade')?.value || '10';
+    const dataValidadeInput = document.getElementById('data-validade')?.value || '';
+    const validadeFormatada = dataValidadeInput ? new Date(dataValidadeInput + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+    const percentualOp = document.getElementById('operacao-percentual')?.value || '100';
 
     const itemsHtml = this.activeItems.map((it, idx) => `
       <tr style="border-bottom: 1px solid #e2e8f0;">
         <td style="padding: 10px 8px; vertical-align: top;">${idx+1}</td>
         <td style="padding: 10px 8px;">
-          <div style="font-weight: bold; color: #0f172a; font-size: 13px;">${it.produto_nome}</div>
-          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${it.descricao}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${it.arte_url ? `<img src="${it.arte_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1; flex-shrink: 0;">` : ''}
+            <div>
+              <div style="font-weight: bold; color: #0f172a; font-size: 13px;">${it.produto_nome}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${it.descricao}</div>
+            </div>
+          </div>
         </td>
         <td style="padding: 10px 8px; vertical-align: top; font-family: monospace; font-size: 12px;">${it.largura_x}m x ${it.comprimento_y}m</td>
         <td style="padding: 10px 8px; text-align: center; vertical-align: top; font-weight: bold;">${it.quantidade}</td>
@@ -1113,12 +1522,12 @@ window.salesModule = {
           <!-- Tira com Prazos, Entrada e Saldo Restante -->
           <div class="order-info-strip">
             <div>
-              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Prazo de Entrega:</span>
-              <strong style="color: #0f172a; font-size: 13px;">${previsaoFormatada}</strong>
+              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">${(opVal === 'orcamento' || opVal === 'pre-venda') ? 'Validade da Proposta:' : 'Prazo de Entrega:'}</span>
+              <strong style="color: #0f172a; font-size: 13px;">${(opVal === 'orcamento' || opVal === 'pre-venda') ? (validadeFormatada ? validadeFormatada + ' (' + diasValidade + ' dias)' : diasValidade + ' dias') : previsaoFormatada}</strong>
             </div>
             <div>
-              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Forma de Pagto:</span>
-              <strong style="color: #0f172a;">${metodoPagto}</strong>
+              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">${(opVal === 'permuta' || opVal === 'patrocinio') ? 'Operação / %:' : 'Forma de Pagto:'}</span>
+              <strong style="color: #0f172a;">${(opVal === 'permuta' || opVal === 'patrocinio') ? opVal.toUpperCase() + ' (' + percentualOp + '%)' : metodoPagto}</strong>
             </div>
             <div>
               <span style="color: #15803d; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Entrada / Sinal Pago:</span>
@@ -1385,17 +1794,37 @@ window.salesModule = {
       }
       return this.activeItems.map((it, idx) => `
         <tr class="border-b hover:bg-slate-50 transition">
-          <td class="p-2">
-            ${it.arte_url ? `<a href="${it.arte_url}" target="_blank" class="block w-8 h-8 rounded bg-slate-200 float-left mr-2 bg-cover bg-center border border-slate-300" style="background-image: url('${it.arte_url}')" title="Ver Layout"></a>` : `<div class="block w-8 h-8 rounded bg-slate-100 float-left mr-2 border border-slate-200 flex items-center justify-center text-[8px] text-slate-400">N/A</div>`}
-            <div class="font-bold text-xs text-slate-800"><span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1 rounded mr-1 cursor-pointer hover:bg-blue-200" onclick="salesModule.viewItemDetails(${idx})" title="Ver Detalhes do Item e Arte">#${it.item_id || '----'}</span>${it.produto_nome || ''}</div>
-            <div class="text-[10px] text-slate-500">${it.descricao}</div>
+          <td class="p-3">
+            <div class="flex items-center gap-3">
+              ${it.arte_url 
+                ? `<div class="relative group cursor-pointer flex-shrink-0" onclick="salesModule.viewItemDetails(${idx})" title="Clique para ver arte ampliada">
+                     <img src="${it.arte_url}" class="w-12 h-12 object-cover rounded-lg border-2 border-blue-400 shadow-sm group-hover:scale-105 transition-transform">
+                     <span class="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-0.5 text-[8px]" title="Arte Anexada">🔍</span>
+                   </div>` 
+                : `<div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-[9px] text-slate-400 flex-shrink-0 font-bold">
+                     <span>SEM</span><span>ARTE</span>
+                   </div>`
+              }
+              <div>
+                <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                  <span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200" onclick="salesModule.viewItemDetails(${idx})" title="Ver Detalhes do Item e Arte">#${it.item_id || '----'}</span>
+                  ${it.produto_nome || ''}
+                </div>
+                <div class="text-[11px] text-slate-500 font-medium mt-0.5">${it.descricao}</div>
+              </div>
+            </div>
           </td>
-          <td class="p-2 font-mono text-[11px]">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
-          <td class="p-2 font-bold text-center">${it.quantidade}</td>
-          <td class="p-2 font-mono text-[11px] text-purple-700">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + (it.tipo_calculo === 'm2' ? ' m\u00B2' : ' m') : '-'}</td>
-          <td class="p-2 font-mono text-[11px]">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-          <td class="p-2 font-bold text-blue-700">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-          <td class="p-2 text-right flex justify-end gap-2"><button type="button" onclick="salesModule.editItem(${idx})" class="text-blue-500 font-bold hover:bg-blue-50 px-2 py-1 rounded" title="Editar">&#9998;</button><button type="button" onclick="salesModule.removeItem(${idx})" class="text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded" title="Remover">&times;</button></td>
+          <td class="p-3 font-mono text-xs text-slate-700">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
+          <td class="p-3 font-bold text-center text-xs">${it.quantidade}</td>
+          <td class="p-3 font-mono text-xs text-purple-700 font-bold">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + (it.tipo_calculo === 'm2' ? ' m²' : ' m') : '-'}</td>
+          <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td class="p-3 text-right">
+            <div class="flex justify-end gap-1">
+              <button type="button" onclick="salesModule.editItem(${idx})" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Editar Item">&#9998;</button>
+              <button type="button" onclick="salesModule.removeItem(${idx})" class="text-rose-600 hover:bg-rose-50 p-1.5 rounded" title="Remover Item">&times;</button>
+            </div>
+          </td>
         </tr>
       `).join('');
     },
@@ -1472,18 +1901,37 @@ window.salesModule = {
   },
   async saveOrder(e, id, geradoNumero) {
     e.preventDefault();
-    if (this.activeItems.length === 0) { alert('Adicione pelo menos um item'); return; }
     const form = e.target;
+    if (!form.cliente_id.value) {
+      alert('Selecione um cliente para prosseguir com o pedido.');
+      return;
+    }
+    if (this.activeItems.length === 0) { 
+      alert('Adicione pelo menos um item ao pedido'); 
+      return; 
+    }
+
     const { subtotal, discount, finalTotal } = this.recalcTotals();
+    const op = form.tipo_operacao ? form.tipo_operacao.value : 'venda';
     
+    // Perfis autorizados para Permuta e Patrocínio
+    if ((op === 'permuta' || op === 'patrocinio') && !this.canManagePermutaPatrocinio()) {
+      alert('Operação negada: Permuta e Patrocínio só podem ser autorizados pelos perfis Gerente ou Proprietário.');
+      return;
+    }
+
     let historico = [];
     const oldOrder = id ? window.store.getOrders().find(o => o.id === id) : null;
     if (oldOrder && oldOrder.historico) {
       historico = JSON.parse(JSON.stringify(oldOrder.historico));
     }
-    const newPhase = form.status_fase.value;
-    const oldPhase = oldOrder ? oldOrder.status_fase : null;
     
+    // Status/Fase da Produção respeitando o tipo de operação
+    let newPhase = form.status_fase ? form.status_fase.value : 'orcamento';
+    if (op === 'orcamento') newPhase = 'orcamento';
+    else if (op === 'pre-venda') newPhase = 'prevenda';
+
+    const oldPhase = oldOrder ? oldOrder.status_fase : null;
     if (newPhase !== oldPhase) {
       historico.push({
         fase: newPhase,
@@ -1500,14 +1948,18 @@ window.salesModule = {
       id: id || undefined,
       numero: geradoNumero,
       cliente_id: form.cliente_id.value,
-      tipo_operacao: form.tipo_operacao ? form.tipo_operacao.value : 'venda',
+      tipo_operacao: op,
+      tipo: op,
       vendedor: window.app?.currentUser?.nome || "Vendedor",
       status_fase: newPhase,
-      previsao_entrega: form.previsao_entrega.value,
+      previsao_entrega: (op === 'orcamento' || op === 'pre-venda') ? (form.previsao_entrega?.value || null) : form.previsao_entrega.value,
+      validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : null,
+      data_validade: form.data_validade ? form.data_validade.value : null,
+      percentual_operacao: form.percentual_operacao ? (parseFloat(form.percentual_operacao.value) || 100) : 100,
       data_aceite: form.data_aceite?.value || null,
       autorizo_producao: form.autorizo_producao?.value || '',
       conferencia_arte: form.conferencia_arte?.value || '',
-      foto_arte_url: form.foto_arte_url?.value || '',
+      foto_arte_url: document.getElementById('order-arte-url')?.value || form.foto_arte_url?.value || '',
       observacoes: form.observacoes.value,
       forma_pagamento: document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash',
       obs_pagto: document.getElementById('order-obs-pagto')?.value || '',
@@ -1522,32 +1974,39 @@ window.salesModule = {
     };
     const saved = await window.store.saveOrder(orderData);
 
-    // Se houve entrada paga, lança o recebimento no caixa/financeiro
-    if (valorEntrada > 0) {
-      await window.store.saveFinanceEntry({
-        tipo: 'recebimento',
-        descricao: 'Entrada Pedido #' + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
-        valor: valorEntrada,
-        data_pagamento: new Date().toISOString().slice(0, 10),
-        data_vencimento: new Date().toISOString().slice(0, 10),
-        status: 'pago',
-        forma_pagamento: orderData.forma_pagamento,
-        pedido_id: saved.id,
-        cliente_id: orderData.cliente_id
-      });
-    }
+    // REGRA DE OURO FINANCEIRA:
+    // Orçamento, Pré-Venda e Patrocínio NÃO abrem caixa e NÃO geram contas a pagar/receber no financeiro definitivo
+    const isBudgetOrPreSale = (op === 'orcamento' || op === 'pre-venda');
+    const isPatrocinio = (op === 'patrocinio');
 
-    // Se ainda restar saldo devedor, lança como conta a receber
-    if (saldoRestante > 0.01) {
-      await window.store.saveFinanceEntry({
-        tipo: 'receber',
-        descricao: 'Saldo Restante Pedido #' + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
-        valor: saldoRestante,
-        data_vencimento: orderData.previsao_entrega || new Date().toISOString().slice(0, 10),
-        status: valorEntrada > 0 ? 'parcial' : 'pendente',
-        pedido_id: saved.id,
-        cliente_id: orderData.cliente_id
-      });
+    if (!isBudgetOrPreSale && !isPatrocinio) {
+      // Se houve entrada paga, lança o recebimento no caixa/financeiro
+      if (valorEntrada > 0) {
+        await window.store.saveFinanceEntry({
+          tipo: 'recebimento',
+          descricao: (op === 'permuta' ? 'Entrada Permuta #' : 'Entrada Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
+          valor: valorEntrada,
+          data_pagamento: new Date().toISOString().slice(0, 10),
+          data_vencimento: new Date().toISOString().slice(0, 10),
+          status: 'pago',
+          forma_pagamento: orderData.forma_pagamento,
+          pedido_id: saved.id,
+          cliente_id: orderData.cliente_id
+        });
+      }
+
+      // Se ainda restar saldo devedor, lança como conta a receber
+      if (saldoRestante > 0.01) {
+        await window.store.saveFinanceEntry({
+          tipo: 'receber',
+          descricao: (op === 'permuta' ? 'Saldo Restante Permuta #' : 'Saldo Restante Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
+          valor: saldoRestante,
+          data_vencimento: orderData.previsao_entrega || new Date().toISOString().slice(0, 10),
+          status: valorEntrada > 0 ? 'parcial' : 'pendente',
+          pedido_id: saved.id,
+          cliente_id: orderData.cliente_id
+        });
+      }
     }
     this.render();
   },

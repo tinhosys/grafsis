@@ -140,7 +140,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v3.6.0)
+              Notas de Versão (v3.7.0)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -628,7 +628,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.6.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.7.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -636,24 +636,25 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.6.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Entradas, Pedido A4, Tintas CMYK & Sync Nuvem</span>
+            <h4 class="font-bold text-slate-800">Versão 3.7.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Cliente Obrigatório, Tipos de Operação, Validade, Permuta/Patrocínio & Preview Arte</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Abatimento Automático de Entrada (Imagem 1):</strong> Campo visual direto para Entrada / Sinal no orçamento com cálculo imediato do saldo devedor e lançamento automático no financeiro como recebimento quitado.</li>
-            <li><strong>Cabeçalho Oficial com Logo e Dados do Cliente (Imagem 2):</strong> Impressão de pedidos e orçamentos agora inclui o logo oficial do cliente, CPF/CNPJ, endereço completo, cidade, UF, telefone/WhatsApp e e-mail.</li>
-            <li><strong>Informações do Pedido & Validações (Imagem 3):</strong> Quadro inferior no A4 com prazo de entrega, entrada, saldo restante, data de aceite com assinatura do cliente, autorizo de produção e visto de conferência da arte.</li>
-            <li><strong>Controle de Tintas CMYK & Regra de Ouro (Imagem 4):</strong> Abas separadas para Solvente e Sublimação, controle individual por cor (Ciano, Magenta, Amarelo e Preto) com bolinhas visuais, histórico de compras em linha simples, soma automática no estoque e cálculo de custo por m² baseado no MAIOR PREÇO registrado.</li>
-            <li><strong>Sincronização Nuvem Supabase Blindada & Mobile (Imagem 5):</strong> Fallback inteligente para pedidos e financeiro evitando erros de coluna, desempacotamento automático de dados e atualização em tempo real do Dashboard em smartphones.</li>
+            <li><strong>Bloqueio Inteligente Sem Cliente:</strong> Formulário e itens de pedido permanecem desabilitados com alerta visual até a seleção do cliente.</li>
+            <li><strong>Novos Tipos de Operação & Regras Rígidas:</strong> Inclusão de <em>Permuta</em>. Pré-Venda e Orçamento não abrem caixa, não finalizam e não emitem O.S. (com botões contextuais correspondentes).</li>
+            <li><strong>Prazo de Validade da Proposta:</strong> Exibição dinâmica de validade em dias e data limite calculada em Orçamento e Pré-Venda.</li>
+            <li><strong>Permuta e Patrocínio com Controle de Perfil:</strong> Operações restritas aos perfis Gerente, Proprietário e Administrador, com definição de percentual (%) da operação.</li>
+            <li><strong>Entrega do Pedido na Linha Amarela:</strong> Reposicionamento com destaque visual e habilitação exclusiva para Venda, Permuta e Patrocínio.</li>
+            <li><strong>Preview Visual da Arte Anexada:</strong> Miniatura nítida com zoom no formulário, badge visual na tabela de itens e impressão no relatório A4.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.5.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Nova Identidade Visual & Clientes A-Z</span>
+            <h4 class="font-bold text-slate-800">Versão 3.6.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Entradas, Pedido A4, Tintas CMYK & Sync Nuvem</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Top Navbar widescreen, sidebar branca moderna e lista de clientes por régua alfabética A-Z com acordeão sanfona.</li>
+            <li>Abatimento automático de entrada com lançamento financeiro, cabeçalho A4 com dados e logo do cliente, conferência de arte e controle CMYK por cor.</li>
           </ul>
         </div>
       </div>
@@ -666,15 +667,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=3.6.0"></script>
-  <script src="js/auth.js?v=3.6.0"></script>
-  <script src="js/store.js?v=3.6.0"></script>
-  <script src="js/clients.js?v=3.6.0"></script>
-  <script src="js/suppliers.js?v=3.6.0"></script>
-  <script src="js/products.js?v=3.6.0"></script>
-  <script src="js/sales.js?v=3.6.0"></script>
-  <script src="js/production.js?v=3.6.0"></script>
-  <script src="js/finance.js?v=3.6.0"></script>
-  <script src="js/app.js?v=3.6.0"></script>
+  <script src="js/config.js?v=3.7.0"></script>
+  <script src="js/auth.js?v=3.7.0"></script>
+  <script src="js/store.js?v=3.7.0"></script>
+  <script src="js/clients.js?v=3.7.0"></script>
+  <script src="js/suppliers.js?v=3.7.0"></script>
+  <script src="js/products.js?v=3.7.0"></script>
+  <script src="js/sales.js?v=3.7.0"></script>
+  <script src="js/production.js?v=3.7.0"></script>
+  <script src="js/finance.js?v=3.7.0"></script>
+  <script src="js/app.js?v=3.7.0"></script>
 </body>
 </html>

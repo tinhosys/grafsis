@@ -202,3 +202,8 @@ ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS autorizo_producao VARCHAR(150);
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS conferencia_arte VARCHAR(150);
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS empresa_id VARCHAR(50) DEFAULT '001';
 
+-- Atualizações v3.7.0 (Tipos de Operação, Validade de Proposta, Permuta e Patrocínio)
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS tipo_operacao VARCHAR(50) DEFAULT 'venda';
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS validade_proposta_dias INT DEFAULT 10;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS data_validade DATE;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS percentual_operacao NUMERIC(5,2) DEFAULT 100.00;

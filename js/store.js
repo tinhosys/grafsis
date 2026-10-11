@@ -357,6 +357,9 @@ class GrafsisStore {
                 if (parsed.valor_entrada !== undefined) item.valor_entrada = parsed.valor_entrada;
                 if (parsed.valor_recebido !== undefined) item.valor_recebido = parsed.valor_recebido;
                 if (parsed.vendedor) item.vendedor = parsed.vendedor;
+                if (parsed.validade_proposta_dias !== undefined) item.validade_proposta_dias = parsed.validade_proposta_dias;
+                if (parsed.data_validade) item.data_validade = parsed.data_validade;
+                if (parsed.percentual_operacao !== undefined) item.percentual_operacao = parsed.percentual_operacao;
                 if (parsed.data_aceite) item.data_aceite = parsed.data_aceite;
                 if (parsed.autorizo_producao) item.autorizo_producao = parsed.autorizo_producao;
                 if (parsed.conferencia_arte) item.conferencia_arte = parsed.conferencia_arte;
@@ -414,6 +417,9 @@ class GrafsisStore {
             numero: clean.numero || null,
             vendedor: clean.vendedor || null,
             tipo_operacao: clean.tipo_operacao || null,
+            validade_proposta_dias: clean.validade_proposta_dias || null,
+            data_validade: clean.data_validade || null,
+            percentual_operacao: clean.percentual_operacao || null,
             valor_entrada: clean.valor_entrada || 0,
             valor_recebido: clean.valor_recebido || 0,
             data_aceite: clean.data_aceite || null,
