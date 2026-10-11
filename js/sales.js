@@ -1,4 +1,4 @@
-window.salesModule = {
+﻿window.salesModule = {
   activeItems: [],
   filters: { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' },
   
@@ -233,6 +233,7 @@ window.salesModule = {
       'entregue': '<span class="px-2 py-1 bg-slate-800 text-white rounded text-[10px] font-black uppercase">8. EXPEDICAO</span>'
     };
     return badges[phase] || badges['orcamento'];
+  },
   createOrderForClient(clientId) { this.openModal({ clientId }); },
 
   checkClientStatusAndAge(selectElement) {
@@ -1446,7 +1447,6 @@ window.salesModule = {
 
 
 };
-
 
 
 

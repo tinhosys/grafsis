@@ -192,10 +192,6 @@ class GrafsisStore {
     }
   }
 
-  // Sincronização Bidirecional Completa com o Supabase
-  async syncAllWithCloud() {
-    if (!this.supabaseClient || this.isSyncing) return;
-    this.isSyncing = true;
   // Sincronizacao Bidirecional Completa com o Supabase
   async syncAllWithCloud() {
     if (!this.supabaseClient || this.isSyncing) return;
