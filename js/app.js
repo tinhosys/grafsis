@@ -118,23 +118,45 @@ window.app = {
     }
 
     this.currentTab = tab;
+
+    // Atualização da Sidebar (tema limpo & profissional)
     document.querySelectorAll('.nav-link').forEach(link => {
-      if (link.getAttribute('data-tab') === tab) {
-        link.className = 'nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-blue-600/30 to-indigo-600/20 text-white shadow-lg border-l-4 border-blue-500 backdrop-blur-sm group';
+      const isTarget = link.getAttribute('data-tab') === tab;
+      if (isTarget) {
+        link.className = 'nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold rounded-xl bg-blue-50 text-blue-600 transition-all';
         const iconContainer = link.querySelector('span:first-child');
         if (iconContainer) {
-          iconContainer.className = 'w-9 h-9 rounded-xl flex items-center justify-center bg-blue-600 text-white shadow-md shadow-blue-500/30 transition-all';
+          iconContainer.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-blue-600 text-white shadow-sm transition-all';
         }
       } else {
-        link.className = 'nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group';
+        link.className = 'nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all';
         const iconContainer = link.querySelector('span:first-child');
         if (iconContainer) {
-          iconContainer.className = 'w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white transition-all shadow-sm';
+          iconContainer.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 text-slate-500 transition-all';
         }
       }
     });
 
+    // Atualização da Top Navbar (com indicador sublinhado azul ativo)
+    document.querySelectorAll('.top-nav-link').forEach(link => {
+      const isTarget = link.getAttribute('data-tab') === tab;
+      if (isTarget) {
+        link.className = 'top-nav-link text-blue-600 font-bold border-b-2 border-blue-600 py-1 flex items-center gap-1 transition';
+      } else {
+        link.className = 'top-nav-link text-slate-600 hover:text-blue-600 font-medium py-1 flex items-center gap-1 transition';
+      }
+    });
+
+    // Fechar dropdowns abertos ao navegar
+    const td = document.getElementById('tenant-dropdown');
+    if (td) td.classList.add('hidden');
+    const ud = document.getElementById('user-menu-dropdown');
+    if (ud) ud.classList.add('hidden');
+
     switch (tab) {
+      case 'dashboard':
+        this.renderDashboard();
+        break;
       case 'production':
         window.productionModule.render();
         break;
@@ -162,7 +184,150 @@ window.app = {
       case 'settings':
         this.renderSettings();
         break;
+      default:
+        this.renderDashboard();
+        break;
     }
+  },
+
+  toggleTenantDropdown() {
+    const el = document.getElementById('top-tenant-dropdown') || document.getElementById('tenant-dropdown');
+    const uel = document.getElementById('top-user-menu') || document.getElementById('user-menu-dropdown');
+    if (uel) uel.classList.add('hidden');
+    if (el) el.classList.toggle('hidden');
+  },
+
+  toggleUserMenu() {
+    const el = document.getElementById('top-user-menu') || document.getElementById('user-menu-dropdown');
+    const tel = document.getElementById('top-tenant-dropdown') || document.getElementById('tenant-dropdown');
+    if (tel) tel.classList.add('hidden');
+    if (el) el.classList.toggle('hidden');
+  },
+
+  selectTenant(tenantName) {
+    const nameEl = document.getElementById('top-tenant-name') || document.getElementById('current-tenant-label');
+    if (nameEl) nameEl.textContent = tenantName;
+    const headerTenant = document.getElementById('header-tenant-name');
+    if (headerTenant) headerTenant.textContent = tenantName;
+    const el = document.getElementById('top-tenant-dropdown') || document.getElementById('tenant-dropdown');
+    if (el) el.classList.add('hidden');
+  },
+
+  toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('-translate-x-full');
+    }
+  },
+
+  renderDashboard() {
+    const orders = (window.store && window.store.getOrders()) || [];
+    const clients = (window.store && window.store.getClients()) || [];
+    const totalOrders = orders.length;
+    const inProduction = orders.filter(o => o.status === 'PRODUCAO' || o.status === 'IMPRESSAO' || o.status === 'CORTE').length;
+    const completed = orders.filter(o => o.status === 'FINALIZADO' || o.status === 'ENTREGUE').length;
+    const totalRevenue = orders.reduce((acc, o) => acc + (parseFloat(o.total) || 0), 0);
+
+    const container = document.getElementById('view-container');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="space-y-6">
+        <!-- Topo com Boas-Vindas e Ações Rápidas -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div>
+            <h1 class="text-2xl font-black text-slate-800">Painel Geral de Operações</h1>
+            <p class="text-slate-500 text-sm mt-0.5">Visão executiva em tempo real da sua gráfica na nuvem</p>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button onclick="app.openNewOrderModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              Novo Orçamento / Pedido
+            </button>
+            <button onclick="window.clientsModule.openModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+              + Cliente
+            </button>
+          </div>
+        </div>
+
+        <!-- Cards de Métricas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black shadow-inner">
+              📋
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total de Pedidos</div>
+              <div class="text-2xl font-black text-slate-800">${totalOrders}</div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-black shadow-inner">
+              ⚙️
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Em Produção</div>
+              <div class="text-2xl font-black text-amber-600">${inProduction}</div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-black shadow-inner">
+              ✅
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Concluídos</div>
+              <div class="text-2xl font-black text-emerald-600">${completed}</div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-black shadow-inner">
+              👥
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Clientes Cadastrados</div>
+              <div class="text-2xl font-black text-indigo-600">${clients.length}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acesso Rápido aos Módulos Principais -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            🚀 Módulos do Sistema
+          </h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <button onclick="app.navigate('clients')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition">👥</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Clientes A-Z</span>
+            </button>
+            <button onclick="app.navigate('sales')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition">💼</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Orçamentos</span>
+            </button>
+            <button onclick="app.navigate('production')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg group-hover:scale-110 transition">🏭</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Produção & Kanban</span>
+            </button>
+            <button onclick="app.navigate('products')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg group-hover:scale-110 transition">🏷️</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Produtos & m²</span>
+            </button>
+            <button onclick="app.navigate('finance')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center text-lg group-hover:scale-110 transition">💰</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Financeiro</span>
+            </button>
+            <button onclick="app.navigate('owner')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg group-hover:scale-110 transition">🏢</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Configurações</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   switchTab(tab) {

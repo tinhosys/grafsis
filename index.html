@@ -15,229 +15,255 @@
 <body class="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
 
   <!-- Container do Painel da Aplicação (Exibido apenas quando autenticado) -->
-  <div id="app-layout" class="w-full h-full flex overflow-hidden" style="display: none;">
+  <div id="app-layout" class="w-full h-full flex flex-col overflow-hidden bg-[#f3f6f9]" style="display: none;">
 
-  <!-- Sidebar Lateral Moderna & Dinâmica -->
-  <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:flex shrink-0 no-print z-20 shadow-2xl transition-all duration-300">
-    <!-- Header da Marca / Tenant -->
-    <div class="p-4 border-b border-slate-800/80 shrink-0 bg-slate-950/40">
-      <div class="flex items-center gap-3 cursor-pointer group" onclick="app.switchTab('owner')" title="Configurações da Gráfica e Usuários">
-        <div class="relative">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
-            <div class="w-full h-full rounded-[14px] bg-slate-900 flex items-center justify-center overflow-hidden p-1" id="header-logo-container">
-              <img id="header-logo-img" src="assets/demo-top-digital.png" alt="Logo" class="w-full h-full object-contain">
-            </div>
-          </div>
-          <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Sistema Ativo"></span>
-        </div>
-        <div class="flex flex-col min-w-0">
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider text-[10px]">Unidade Ativa</span>
-          <span class="text-sm font-black text-white tracking-tight truncate group-hover:text-blue-400 transition-colors" id="header-tenant-name">Top Digital</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Navegação Vertical Estilizada -->
-    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1.5 custom-sidebar-scroll" id="nav-tabs-container">
+    <!-- 1. Header Superior Widescreen Completo (Identidade Visual da Imagem) -->
+    <header class="w-full bg-white border-b border-slate-200/90 h-16 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0 shadow-sm no-print">
       
-      <!-- Seção Principal -->
-      <div class="px-3 pb-1 pt-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Operação</span>
-      </div>
-
-      <!-- Produção -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="production" onclick="app.navigate('production')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Painel de Produção</span>
-      </button>
-
-      <!-- Vendas & Orçamentos -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="sales" onclick="app.navigate('sales')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Vendas & Orçamentos</span>
-      </button>
-
-      <!-- Clientes -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="clients" onclick="app.navigate('clients')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Gestão de Clientes</span>
-      </button>
-
-      <!-- Fornecedores -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="suppliers" onclick="app.navigate('suppliers')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Fornecedores</span>
-      </button>
-
-      <!-- Financeiro -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="finance" onclick="app.navigate('finance')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-violet-400 group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Fluxo Financeiro</span>
-      </button>
-
-      <!-- Produtos & m² -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="products" onclick="app.navigate('products')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-pink-400 group-hover:bg-pink-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Produtos & m²</span>
-      </button>
-      
-      <!-- Seção Gestão e Configurações -->
-      <div class="pt-4 px-3 pb-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Gestão & Sistema</span>
-      </div>
-
-      <!-- Proprietário -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group hidden" data-tab="owner" onclick="app.navigate('owner')" id="nav-owner-tab">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-rose-400 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Proprietário</span>
-      </button>
-
-      <!-- Gestão de Empresas (Multi-tenant Admin) -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group hidden" data-tab="tenants" onclick="app.navigate('tenants')" id="nav-tenants-tab">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Gestão de Empresas</span>
-      </button>
-
-      <!-- Banco de Dados (Nuvem) -->
-      <button class="nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-all duration-200 group" data-tab="settings" onclick="app.navigate('settings')">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 text-sky-400 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-        </span>
-        <span class="truncate font-semibold tracking-tight">Conexão Nuvem</span>
-      </button>
-    </nav>
-    
-    <!-- Rodapé da Barra Lateral -->
-    <div class="p-3 border-t border-slate-800/80 bg-slate-950/60 flex items-center justify-between shrink-0">
-      <button onclick="app.openVersionModal()" title="Histórico e Controle de Versão" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[11px] font-bold transition">
-        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
-        v3.0.0
-      </button>
-      <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">GRAF<span class="text-blue-500">SIS</span></span>
-    </div>
-  </aside>
-
-  <!-- Área Principal -->
-  <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-    
-    <!-- Header Superior -->
-    <header class="bg-white border-b border-slate-200 h-24 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0 no-print">
-      
-      <!-- Lado Esquerdo: Toggle Mobile + Atalhos Rápidos -->
-      <div class="flex items-center gap-4">
+      <!-- Lado Esquerdo: Marca / Logo Nuvem Grafsis e Navegação Superior -->
+      <div class="flex items-center gap-4 lg:gap-8">
         <!-- Toggle Menu Mobile -->
-        <button class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+        <button class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl" onclick="app.toggleMobileSidebar()">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
-        
-        <!-- Botões de Atalho Rápidos Modernos -->
-        <div class="hidden sm:flex items-center gap-3">
-          <button onclick="app.navigate('sales')" class="group relative px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2.5 border border-white/10">
-            <span class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </span>
-            <div class="text-left">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-blue-200 leading-none">Comercial</span>
-              <span class="text-xs font-black tracking-tight leading-tight">Vendas</span>
-            </div>
+
+        <!-- Logo Grafsis Oficial com Nuvem CMYK e Circuitos -->
+        <div class="flex items-center gap-2 cursor-pointer select-none group" onclick="app.navigate('production')" title="GRAFSIS - Sua Gráfica nas Nuvens">
+          <div class="relative w-9 h-9 flex items-center justify-center shrink-0">
+            <!-- Nuvem CMYK Grafsis Vector -->
+            <svg class="w-9 h-9 transform group-hover:scale-105 transition-transform" viewBox="0 0 100 85" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M38 34C38 22 49 14 59 19C66 11 79 14 81 24C89 26 93 36 88 44C94 52 86 62 76 62H26C16 62 9 52 16 42C12 34 19 26 29 27C31 19 38 26 38 34Z" fill="#0b2545"/>
+              <path d="M34 30C34 20 44 14 54 19C61 11 73 14 75 24C69 26 51 32 34 30Z" fill="#EC008C"/>
+              <path d="M51 20C58 12 70 15 73 25C81 27 85 37 79 45C71 42 63 33 51 20Z" fill="#FFF200"/>
+              <path d="M22 45C17 37 24 29 32 31C34 23 44 20 49 26C41 34 31 41 22 45Z" fill="#00AEEF"/>
+              <!-- Traços de Circuitos -->
+              <path d="M41 52V41M41 41L34 34M41 41L47 34" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="34" cy="34" r="2.5" fill="white"/>
+              <circle cx="47" cy="34" r="2.5" fill="white"/>
+              <path d="M54 52V37M54 37L61 29" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="61" cy="29" r="2.5" fill="white"/>
+              <path d="M67 52V42M67 42L74 35" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="74" cy="35" r="2.5" fill="white"/>
+              <!-- Gotas CMYK -->
+              <circle cx="44" cy="57" r="2" fill="#00AEEF"/>
+              <circle cx="51" cy="58" r="2" fill="#EC008C"/>
+              <circle cx="58" cy="57" r="2" fill="#FFF200"/>
+              <circle cx="65" cy="58" r="2" fill="#0b2545"/>
+            </svg>
+          </div>
+          <span class="text-2xl font-black text-[#071d38] tracking-tight font-sans">Grafsis</span>
+        </div>
+
+        <!-- Links Horizontais de Navegação Superior (Exatamente como na Imagem) -->
+        <nav class="hidden md:flex items-center gap-1 sm:gap-2 lg:gap-4 ml-2">
+          <button onclick="app.navigate('dashboard')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="dashboard">
+            Dashboard
+          </button>
+          <button onclick="app.navigate('clients')" class="top-nav-link px-3 py-5 text-sm text-blue-600 border-b-2 border-blue-600 font-bold transition flex items-center" data-tab="clients">
+            Clientes
+          </button>
+          <button onclick="app.navigate('sales')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="sales">
+            Orçamentos
+          </button>
+          <button onclick="app.navigate('production')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="production">
+            Produção
+          </button>
+          <button onclick="app.navigate('products')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="products">
+            Estamparias
           </button>
           
-          <button onclick="app.navigate('production')" class="group relative px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2.5 border border-white/10">
-            <span class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
-            </span>
-            <div class="text-left">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-200 leading-none">Oficina</span>
-              <span class="text-xs font-black tracking-tight leading-tight">Produção</span>
+          <!-- Seletor de Unidade / Empresa com Dropdown (Forte ⌄ / Top Digital ⌄) -->
+          <div class="relative ml-1">
+            <button onclick="app.toggleTenantDropdown()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100 font-semibold transition" id="btn-top-tenant">
+              <span id="top-tenant-name">Forte</span>
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="top-tenant-dropdown" class="hidden absolute top-full left-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
+              <div class="px-3 py-1 text-[10px] font-bold uppercase text-slate-400">Unidades Disponíveis</div>
+              <button onclick="app.selectTenant('Forte')" class="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between">
+                <span>Forte</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </button>
+              <button onclick="app.selectTenant('Top Digital')" class="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between">
+                <span>Top Digital</span>
+                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+              </button>
+              <div class="border-t border-slate-100 my-1"></div>
+              <button onclick="app.navigate('tenants')" class="w-full px-3 py-1.5 text-left text-xs font-bold text-blue-600 hover:bg-blue-50">
+                Gerenciar Empresas &rarr;
+              </button>
             </div>
-          </button>
-
-          <button onclick="app.navigate('clients')" class="group relative px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-md shadow-violet-500/20 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2.5 border border-white/10">
-            <span class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-            </span>
-            <div class="text-left">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-violet-200 leading-none">Cadastros</span>
-              <span class="text-xs font-black tracking-tight leading-tight">Clientes</span>
-            </div>
-          </button>
-        </div>
+          </div>
+        </nav>
       </div>
 
-      <!-- Lado Direito: Identificação do Ambiente, Nuvem e Perfil com Engrenagem -->
-      <div class="flex items-center gap-3">
-        <!-- Identificação do Ambiente Ativo -->
-        <div id="header-environment-badge" class="hidden xl:flex items-center text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-          🏢 Ambiente: <strong class="ml-1 text-slate-800">Top Digital</strong>
-        </div>
+      <!-- Lado Direito: Mensagens, Notificações com Badge e Foto de Perfil com Menu -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Status de Nuvem Supabase -->
+        <div id="cloud-sync-status" class="hidden xl:block"></div>
 
-        <!-- Status Nuvem Supabase -->
-        <div id="cloud-sync-status" class="hidden md:block"></div>
-
-        <!-- Botão Calculadora m2 -->
-        <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold border border-emerald-200 transition">
+        <!-- Botão Calculadora m² -->
+        <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold border border-emerald-200 transition shadow-sm" title="Calculadora de Área e Preço por Metro Quadrado">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
           Calculadora m²
         </button>
-        
-        <!-- Perfil / Operador (com foto, nome, cargo e engrenagem de configuração) -->
-        <div class="flex items-center gap-2.5 pl-3 border-l border-slate-200 p-1.5 hover:bg-slate-50 rounded-xl transition">
-          <div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm overflow-hidden cursor-pointer shrink-0" onclick="app.openUserProfileConfigModal()" title="Configurações do Meu Perfil">
-            <img id="user-header-photo" src="" class="w-full h-full object-cover hidden" alt="Foto">
-            <svg id="user-header-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-          </div>
-          <div class="text-left hidden sm:block cursor-pointer" onclick="app.openUserProfileConfigModal()" title="Configurações do Meu Perfil">
-            <div id="user-header-name" class="text-xs font-bold text-slate-800 leading-tight">Administrador</div>
-            <div id="user-header-badge" class="text-[9px] font-extrabold uppercase text-blue-600">ADMIN</div>
-          </div>
-          <!-- Botão Engrenagem - Configurações do Perfil do Usuário (Imagem 5 - Ampliado Marcado de Verde) -->
-          <button class="w-12 h-12 rounded-xl flex items-center justify-center text-red-600 hover:text-white hover:bg-red-600 bg-red-50 border-2 border-red-200 hover:border-red-600 transition-all shadow-md hover:scale-105 cursor-pointer ring-2 ring-red-100 group ml-1" title="Configurações do Meu Perfil & Trocar Senha" onclick="app.openUserProfileConfigModal()">
-            <svg class="w-6 h-6 text-red-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+
+        <!-- Ícone Mensagem / Inbox -->
+        <button onclick="app.openMessagesModal()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition relative" title="Mensagens & Avisos">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        </button>
+
+        <!-- Ícone Notificação com Badge Numérico Vermelho (Exatamente na Imagem) -->
+        <button onclick="app.openNotificationsModal()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition relative" title="Central de Notificações">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+          <span class="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">1</span>
+        </button>
+
+        <!-- Foto de Perfil do Operador com Status e Dropdown (Conforme Imagem) -->
+        <div class="relative pl-1 sm:pl-2 border-l border-slate-200">
+          <button onclick="app.toggleUserMenu()" class="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50 transition" title="Meu Perfil">
+            <div class="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shadow-sm shrink-0 flex items-center justify-center">
+              <img id="top-user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-full h-full object-cover">
+            </div>
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </button>
-          <!-- Botão Logout / Sair -->
-          <button onclick="authModule.logout()" class="px-3.5 h-12 rounded-xl flex items-center gap-1.5 text-rose-700 hover:text-white hover:bg-rose-600 bg-rose-50 border-2 border-rose-200 hover:border-rose-600 transition-all shadow-md hover:scale-105 cursor-pointer font-black text-xs" title="Sair do Sistema (Fazer Logout)">
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-            <span class="tracking-wider">SAIR</span>
-          </button>
+          
+          <!-- Menu do Usuário Suspenso -->
+          <div id="top-user-menu" class="hidden absolute top-full right-0 mt-1 w-52 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
+            <div class="px-4 py-2 border-b border-slate-100">
+              <div id="user-header-name" class="text-xs font-bold text-slate-800">Administrador</div>
+              <div id="user-header-badge" class="text-[9px] font-extrabold uppercase text-blue-600">ADMIN</div>
+            </div>
+            <button onclick="app.openUserProfileConfigModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              Meu Perfil & Senha
+            </button>
+            <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              Notas de Versão (v3.5.0)
+            </button>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
+              <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+              Sair do Sistema
+            </button>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Container Dinâmico Principal -->
-    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-slate-50 relative" id="main-content-scroll">
-      <div id="view-container" class="max-w-7xl mx-auto"></div>
-      
-      <!-- Rodapé com Versão -->
-      <footer class="mt-8 pt-4 border-t border-slate-200 text-center text-xs text-slate-500 no-print flex flex-col sm:flex-row items-center justify-between w-full max-w-7xl mx-auto pb-4">
-        <div>
-          GRAFSIS - Comunicação Visual, Gráfica Rápida, Brindes & Impressão Digital
-        </div>
-        <div class="mt-2 sm:mt-0 flex items-center gap-2">
-          <span class="text-slate-400">Banco de Dados Cloud Supabase</span>
-          <span>•</span>
-          <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
-            Versão 3.4.0 (Ver Notas)
+    <!-- 2. Container Abaixo do Header: Sidebar Branca à Esquerda + Conteúdo à Direita -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+      <!-- Sidebar Branca, Minimalista e Limpa (Conforme Imagem) -->
+      <aside id="main-sidebar" class="w-60 bg-white border-r border-slate-200/90 flex flex-col hidden md:flex shrink-0 no-print z-20 transition-all duration-300 justify-between">
+        
+        <!-- Itens de Menu Vertical com Ícones Outline e Texto Legível -->
+        <nav class="py-4 px-3 space-y-1 overflow-y-auto custom-sidebar-scroll flex-1" id="nav-tabs-container">
+          
+          <!-- Dashboard -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="dashboard" onclick="app.navigate('dashboard')">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="truncate">Dashboard</span>
           </button>
+
+          <!-- Clientes (Ativo por Padrão na Imagem com Destaque Azul Suave) -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold rounded-xl bg-blue-50 text-blue-600 transition-all group" data-tab="clients" onclick="app.navigate('clients')">
+            <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <span class="truncate">Clientes</span>
+          </button>
+
+          <!-- Orçamentos ⌄ -->
+          <button class="nav-link w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="sales" onclick="app.navigate('sales')">
+            <div class="flex items-center gap-3 min-w-0">
+              <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <span class="truncate">Orçamentos</span>
+            </div>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+
+          <!-- Produção ⌄ -->
+          <button class="nav-link w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="production" onclick="app.navigate('production')">
+            <div class="flex items-center gap-3 min-w-0">
+              <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+              <span class="truncate">Produção</span>
+            </div>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+
+          <!-- Estamparia ⌄ -->
+          <button class="nav-link w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="products" onclick="app.navigate('products')">
+            <div class="flex items-center gap-3 min-w-0">
+              <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+              <span class="truncate">Estamparia</span>
+            </div>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+
+          <!-- + Notificações -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" onclick="app.openNotificationsModal()">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="truncate">+ Notificações</span>
+          </button>
+
+          <!-- Grupos (Fornecedores / Categorias) -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="suppliers" onclick="app.navigate('suppliers')">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span class="truncate">Grupos</span>
+          </button>
+
+          <!-- Notificação -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" onclick="app.openNotificationsModal()">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <span class="truncate">Notificação</span>
+          </button>
+
+          <!-- → Cliente (Portal de Aprovação) -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" onclick="app.openClientPortalModal()">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <span class="truncate">&rarr; Cliente</span>
+          </button>
+
+          <!-- Financeiro (Acesso Direto) -->
+          <button class="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="finance" onclick="app.navigate('finance')">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="truncate">Financeiro</span>
+          </button>
+        </nav>
+
+        <!-- Rodapé da Barra Lateral: Suporte pelo WhatsApp (Conforme Imagem Oficial) -->
+        <div class="p-3 border-t border-slate-100 bg-white">
+          <a href="https://wa.me/5569999221336" target="_blank" class="p-2.5 bg-slate-50/80 hover:bg-emerald-50/80 rounded-2xl border border-slate-200/80 hover:border-emerald-200 flex items-center gap-2.5 transition group shadow-sm">
+            <div class="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            </div>
+            <div class="text-left min-w-0">
+              <div class="text-[10px] font-medium text-slate-500 leading-tight">Suporte pelo WhatsApp:</div>
+              <div class="text-xs font-bold text-slate-800 leading-tight tracking-tight">(69) 99922-1336</div>
+            </div>
+          </a>
         </div>
-      </footer>
-    </main>
-  </div>
+      </aside>
+
+      <!-- Área de Conteúdo Principal Dinâmica (#view-container) -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-[#f8fafc] relative" id="main-content-scroll">
+        <div id="view-container" class="max-w-7xl mx-auto"></div>
+        
+        <!-- Rodapé Discreto com Notas de Versão -->
+        <footer class="mt-12 pt-4 border-t border-slate-200/80 text-center text-xs text-slate-400 no-print flex flex-col sm:flex-row items-center justify-between w-full max-w-7xl mx-auto pb-6">
+          <div>
+            GRAFSIS &bull; Gestão Completa para Comunicação Visual, Gráfica, Brindes & Estamparia
+          </div>
+          <div class="mt-2 sm:mt-0 flex items-center gap-2">
+            <span>Supabase Cloud Sync</span>
+            <span>&bull;</span>
+            <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
+              Versão 3.5.0 (Ver Notas)
+            </button>
+          </div>
+        </footer>
+      </main>
+    </div>
   </div> <!-- Fim de #app-layout -->
 
   <!-- Tela Inicial de Autenticação / Login Profissional (v3.2.0 - Imagem Oficial) -->
