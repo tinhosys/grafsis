@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Módulo de Clientes
    Cadastro Completo: Nome, Apelido, WhatsApp, Plus Code, Foto, CEP, etc.
    ============================================================================== */
@@ -194,7 +194,7 @@ window.clientsModule = {
                   <div class="flex gap-1 w-full mt-1">
                     <label class="flex-1 text-center cursor-pointer bg-blue-50 text-blue-700 hover:bg-blue-100 px-1 py-1 rounded text-[10px] font-semibold border border-blue-100">
                       Câmera
-                      <input type="file" accept="image/*" capture="environment" onchange="clientsModule.handlePhotoUpload(this)" class="hidden">
+                      <input type="file" accept="image/*" capture onchange="clientsModule.handlePhotoUpload(this)" class="hidden">
                     </label>
                     <label class="flex-1 text-center cursor-pointer bg-slate-50 text-slate-700 hover:bg-slate-100 px-1 py-1 rounded text-[10px] font-semibold border border-slate-200">
                       Arquivo
@@ -245,6 +245,23 @@ window.clientsModule = {
                 </div>
               </div>
 
+              <div class="${client && client.tipo_pessoa === 'PJ' ? 'hidden' : ''}" id="container-data-nascimento">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Data de Nascimento</label>
+                <input type="date" name="data_nascimento" value="${client ? (client.data_nascimento || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              </div>
+
+              <div class="${client && client.tipo_pessoa === 'PJ' ? 'hidden' : ''}" id="container-genero">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Gênero</label>
+                <div class="flex gap-4 items-center h-9">
+                  <label class="flex items-center gap-1 text-sm text-slate-700 cursor-pointer">
+                    <input type="radio" name="genero" value="M" ${client && client.genero === 'M' ? 'checked' : ''}> Masculino
+                  </label>
+                  <label class="flex items-center gap-1 text-sm text-slate-700 cursor-pointer">
+                    <input type="radio" name="genero" value="F" ${client && client.genero === 'F' ? 'checked' : ''}> Feminino
+                  </label>
+                </div>
+              </div>
+
               <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="col-span-3 relative">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Logradouro</label>
@@ -275,7 +292,7 @@ window.clientsModule = {
               <div class="grid grid-cols-4 gap-2">
                 <div class="col-span-3">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade</label>
-                  <input type="text" name="cidade" id="client-cidade" value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <input type="text" name="cidade" id="client-cidade" value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onblur="clientsModule.syncUF(this.value)">
                 </div>
                 <div class="col-span-1">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">UF</label>
@@ -382,16 +399,22 @@ window.clientsModule = {
     const lblApelido = document.getElementById('lbl-apelido');
     const lblCpf = document.getElementById('lbl-cpf');
     const inpCpf = document.querySelector('input[name="cpf_cnpj"]');
+    const cNasc = document.getElementById('container-data-nascimento');
+    const cGen = document.getElementById('container-genero');
     if (tipo === 'PJ') {
       lblNome.innerText = 'Razão Social *';
       lblApelido.innerText = 'Nome Fantasia';
       lblCpf.innerText = 'CNPJ';
       inpCpf.placeholder = '00.000.000/0000-00';
+      if(cNasc) cNasc.classList.add('hidden');
+      if(cGen) cGen.classList.add('hidden');
     } else {
       lblNome.innerText = 'Nome *';
       lblApelido.innerText = 'Nome Popular';
       lblCpf.innerText = 'CPF';
       inpCpf.placeholder = '000.000.000-00';
+      if(cNasc) cNasc.classList.remove('hidden');
+      if(cGen) cGen.classList.remove('hidden');
     }
   },
 
@@ -456,6 +479,35 @@ window.clientsModule = {
       };
       reader.readAsDataURL(file);
     }
+  },
+
+  syncUF(cidade) {
+    if (!cidade) return;
+    const ufInput = document.getElementById('client-uf');
+    if (!ufInput) return;
+
+    // Se já tem valor, podemos optar por não sobrescrever, ou só checar.
+    if (ufInput.value && ufInput.value.length === 2) return;
+
+    // Tentar deduzir UF baseando na busca do Nominatim se houver timeout ou lookup rápido
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cidade)}&countrycodes=br&limit=1&addressdetails=1`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0 && data[0].address && data[0].address.state) {
+          const stateMap = {
+            'Acre': 'AC', 'Alagoas': 'AL', 'Amapá': 'AP', 'Amazonas': 'AM', 'Bahia': 'BA', 'Ceará': 'CE', 'Distrito Federal': 'DF',
+            'Espírito Santo': 'ES', 'Goiás': 'GO', 'Maranhão': 'MA', 'Mato Grosso': 'MT', 'Mato Grosso do Sul': 'MS',
+            'Minas Gerais': 'MG', 'Pará': 'PA', 'Paraíba': 'PB', 'Paraná': 'PR', 'Pernambuco': 'PE', 'Piauí': 'PI',
+            'Rio de Janeiro': 'RJ', 'Rio Grande do Norte': 'RN', 'Rio Grande do Sul': 'RS', 'Rondônia': 'RO',
+            'Roraima': 'RR', 'Santa Catarina': 'SC', 'São Paulo': 'SP', 'Sergipe': 'SE', 'Tocantins': 'TO'
+          };
+          const st = data[0].address.state;
+          if (stateMap[st]) {
+            ufInput.value = stateMap[st];
+          }
+        }
+      })
+      .catch(e => console.warn('Erro syncUF:', e));
   },
 
   async buscaCep(cep) {
@@ -632,6 +684,8 @@ window.clientsModule = {
       foto_url: form.foto_url.value.trim(),
       tipo_pessoa: form.tipo_pessoa ? form.tipo_pessoa.value : 'PF',
       instagram: form.instagram ? form.instagram.value.trim() : '',
+      data_nascimento: form.data_nascimento ? form.data_nascimento.value : '',
+      genero: form.genero ? form.genero.value : '',
       logradouro: form.logradouro ? form.logradouro.value.trim() : '',
       numero: form.numero ? form.numero.value.trim() : '',
       complemento: form.complemento ? form.complemento.value.trim() : '',
