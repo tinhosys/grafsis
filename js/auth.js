@@ -588,15 +588,9 @@ class GrafsisAuth {
 
   handleCpfInput(input) {
     if (!input) return;
-    const rawVal = input.value.trim();
-    const isOnlyDigits = /^\d+$/.test(rawVal.replace(/\D/g, '')) && !rawVal.includes('@') && !/[a-zA-Z]/.test(rawVal);
-    
-    // Se for numérico (CPF), aplica a máscara padrão
-    if (isOnlyDigits && rawVal.replace(/\D/g, '').length <= 11) {
-      input.value = this.maskCpf(input.value);
-    }
-    const digits = this.cleanDigits(input.value);
-    const termClean = rawVal.toLowerCase();
+    // Remove imediatamente qualquer caractere que não seja número (sem pontos, sem traços, sem letras)
+    input.value = input.value.replace(/\D/g, '');
+    const digits = input.value.trim();
 
     const hintBar = document.getElementById('auth-hint-bar');
     const hintText = document.getElementById('auth-hint-text');
@@ -606,11 +600,12 @@ class GrafsisAuth {
     if (digits.length >= 11) {
       found = users.find(u => this.cleanDigits(u.cpf) === digits);
     }
-    if (!found && termClean.length >= 3) {
-      found = users.find(u => (u.login && u.login.toLowerCase() === termClean) || (u.email && u.email.toLowerCase() === termClean));
+    if (!found && digits.length >= 3) {
+      // Também busca se algum usuário tiver login numérico ou ID correspondente
+      found = users.find(u => this.cleanDigits(u.cpf).startsWith(digits) || (u.login && u.login === digits));
     }
 
-    if (found) {
+    if (found && (digits.length >= 11 || (found.login && found.login === digits))) {
       let tenantName = 'Gráfica Padrão';
       if (window.store && typeof window.store.getTenants === 'function') {
         const tenants = window.store.getTenants();

@@ -232,7 +232,7 @@
           <span class="text-slate-400">Banco de Dados Cloud Supabase</span>
           <span>•</span>
           <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
-            Versão 3.2.0 (Ver Notas)
+            Versão 3.3.0 (Ver Notas)
           </button>
         </div>
       </footer>
@@ -267,24 +267,24 @@
           <div class="bg-white p-6 sm:p-7 rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100">
             <form onsubmit="authModule.submitLogin(event)" class="space-y-4">
               
-              <!-- Campo: Login ou E-mail -->
+              <!-- Campo: CPF / Login (Apenas Números - sem pontos ou traços) -->
               <div>
                 <div class="relative">
                   <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                   </div>
-                  <input type="text" id="auth-cpf" placeholder="Login ou E-mail" oninput="authModule.handleCpfInput(this)" class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition shadow-sm" required autofocus autocomplete="username">
+                  <input type="text" id="auth-cpf" inputmode="numeric" pattern="[0-9]*" maxlength="11" placeholder="CPF do Operador (somente números)" oninput="authModule.handleCpfInput(this)" class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition shadow-sm tracking-wider" required autofocus autocomplete="username">
                 </div>
               </div>
 
-              <!-- Campo: Senha com Ícone de Olho -->
+              <!-- Campo: Senha (Apenas Números - 4 dígitos) com Ícone de Olho -->
               <div>
                 <div class="relative">
                   <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                   </div>
-                  <input type="password" id="auth-pin" placeholder="Senha" class="w-full pl-11 pr-11 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition shadow-sm tracking-wider" required autocomplete="current-password">
-                  <button type="button" onclick="authModule.togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition" title="Exibir/Ocultar senha">
+                  <input type="password" id="auth-pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Senha (somente números)" oninput="this.value = this.value.replace(/\D/g, '')" class="w-full pl-11 pr-11 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition shadow-sm tracking-widest font-mono" required autocomplete="current-password">
+                  <button type="button" onclick="authModule.togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer" title="Exibir/Ocultar senha">
                     <svg id="auth-eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
                   </button>
                 </div>
@@ -602,7 +602,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.2.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.3.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -610,24 +610,23 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.2.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Nova Tela Inicial Grafsis Oficial</span>
+            <h4 class="font-bold text-slate-800">Versão 3.3.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Campos Numéricos Puros no Login</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Nova Identidade Visual na Tela Inicial:</strong> Layout fiel à imagem oficial com banner azul marinho e ilustrações gráficas 3D (lona/adesivo, camisetas de estamparia, caneca de brindes, layout digital).</li>
-            <li><strong>Logo Grafsis Colorido:</strong> Ícone moderno CMYK em nuvem com circuitos e conexões digitais.</li>
-            <li><strong>Card de Acesso Minimalista:</strong> Campos "Login ou E-mail", "Senha" com alternância de visibilidade, "Esqueci minha senha" e checkbox "Lembrar-me".</li>
-            <li><strong>Botão Suporte WhatsApp Integrado:</strong> Card inferior com ícone verde WhatsApp e contato oficial (69 99922 1336).</li>
-            <li><strong>Acesso Flexível por CPF, Login ou E-mail:</strong> Autenticação rápida com senha pessoal ou padrão.</li>
+            <li><strong>Entrada Numérica Estrita:</strong> Tanto o CPF quanto a senha aceitam exclusivamente números, sem pontuação, traços ou letras.</li>
+            <li><strong>Bloqueio Automático de Caracteres Inválidos:</strong> Limpeza imediata em tempo real de qualquer caractere não numérico digitado ou colado.</li>
+            <li><strong>Teclado Numérico Otimizado:</strong> Ativação de <code>inputmode="numeric"</code> para facilitar digitação rápida em dispositivos móveis e touch.</li>
+            <li><strong>Identidade Visual Oficial:</strong> Banner gráfico Grafsis em alta resolução com a marca e ilustrações 3D.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.1.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Gestão Corporativa de Empresas & Perfil</span>
+            <h4 class="font-bold text-slate-800">Versão 3.2.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Nova Tela Inicial Grafsis Oficial</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>ID aleatório de 3 dígitos, máscara dinâmica de telefone (fixo x móvel), validação oficial de CNPJ, planos com botão Renovar e corte quadrado 1:1 de foto de perfil.</li>
+            <li>Nova Identidade Visual da Tela Inicial com banner azul marinho, ilustrações 3D e card de acesso moderno.</li>
           </ul>
         </div>
       </div>
@@ -640,15 +639,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=3.2.0"></script>
-  <script src="js/auth.js?v=3.2.0"></script>
-  <script src="js/store.js?v=3.2.0"></script>
-  <script src="js/clients.js?v=3.2.0"></script>
-  <script src="js/suppliers.js?v=3.2.0"></script>
-  <script src="js/products.js?v=3.2.0"></script>
-  <script src="js/sales.js?v=3.2.0"></script>
-  <script src="js/production.js?v=3.2.0"></script>
-  <script src="js/finance.js?v=3.2.0"></script>
-  <script src="js/app.js?v=3.2.0"></script>
+  <script src="js/config.js?v=3.3.0"></script>
+  <script src="js/auth.js?v=3.3.0"></script>
+  <script src="js/store.js?v=3.3.0"></script>
+  <script src="js/clients.js?v=3.3.0"></script>
+  <script src="js/suppliers.js?v=3.3.0"></script>
+  <script src="js/products.js?v=3.3.0"></script>
+  <script src="js/sales.js?v=3.3.0"></script>
+  <script src="js/production.js?v=3.3.0"></script>
+  <script src="js/finance.js?v=3.3.0"></script>
+  <script src="js/app.js?v=3.3.0"></script>
 </body>
 </html>
