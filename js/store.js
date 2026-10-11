@@ -221,6 +221,20 @@ class GrafsisStore {
       await this.pushRecord('fornecedores', s);
     }
     this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
+
+    const orders = this.getOrders();
+    for (const o of orders) {
+      if (!isValidUUID(o.id)) o.id = grafsisUUID();
+      await this.pushRecord('pedidos', o);
+    }
+    this.saveLocal(STORAGE_KEYS.ORDERS, orders);
+
+    const finance = this.getFinance();
+    for (const f of finance) {
+      if (!isValidUUID(f.id)) f.id = grafsisUUID();
+      await this.pushRecord('financeiro_lancamentos', f);
+    }
+    this.saveLocal(STORAGE_KEYS.FINANCE, finance);
   }
 
   async pullTable(tableName, storageKey) {
@@ -247,14 +261,51 @@ class GrafsisStore {
   async pushRecord(tableName, record) {
     if (!this.supabaseClient) return;
     try {
-      const clean = { ...record };
+      let clean = { ...record };
       if (!clean.id || !isValidUUID(clean.id)) {
         clean.id = grafsisUUID();
         record.id = clean.id;
       }
+
+      // Converte strings vazias em null para colunas com restrições SQL
+      for (const k in clean) {
+        if (clean[k] === '') {
+          clean[k] = null;
+        }
+      }
+
       const { error } = await this.supabaseClient.from(tableName).upsert(clean);
       if (error) {
         console.warn(`[Supabase] Erro ao enviar para ${tableName}:`, error.message);
+
+        // Se o erro for de coluna desconhecida (tabela clientes não atualizada com SQL novo),
+        // envia somente as colunas seguras básicas para não perder a sincronização entre dispositivos!
+        if (tableName === 'clientes' && (error.message.includes('column') || error.message.includes('schema cache'))) {
+          console.warn('[Supabase Fallback] Tentando sincronizar cliente com colunas fundamentais...');
+          const baseClient = {
+            id: clean.id,
+            nome: clean.nome,
+            apelido: clean.apelido || null,
+            cpf_cnpj: clean.cpf_cnpj || null,
+            telefone_whatsapp: clean.telefone_whatsapp || '00000000',
+            email: clean.email || null,
+            cep: clean.cep || null,
+            cidade: clean.cidade || null,
+            uf: clean.uf || null,
+            endereco: clean.endereco || clean.logradouro || null,
+            referencia: clean.referencia || null,
+            plus_code: clean.plus_code || null,
+            foto_url: clean.foto_url || null,
+            observacoes: clean.observacoes || null,
+            updated_at: clean.updated_at || new Date().toISOString()
+          };
+          const fallbackRes = await this.supabaseClient.from('clientes').upsert(baseClient);
+          if (fallbackRes.error) {
+            console.error('[Supabase Fallback] Falha mesmo com colunas básicas:', fallbackRes.error.message);
+          } else {
+            console.log('[Supabase Fallback] Sucesso! Cliente sincronizado com a nuvem (colunas básicas).');
+          }
+        }
       } else {
         console.log(`[Supabase] Registro sincronizado em ${tableName}:`, clean.id);
       }
