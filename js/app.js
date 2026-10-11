@@ -416,8 +416,8 @@ window.app = {
                   <th class="p-3 font-bold">ID (Cód)</th>
                   <th class="p-3 font-bold">Razão Social / Nome Fantasia</th>
                   <th class="p-3 font-bold">CNPJ</th>
-                  <th class="p-3 font-bold">Contato (WhatsApp)</th>
-                  <th class="p-3 font-bold">Pacote Mensal</th>
+                  <th class="p-3 font-bold">Contato (WhatsApp / Fixo)</th>
+                  <th class="p-3 font-bold">Plano</th>
                   <th class="p-3 font-bold">Expiração</th>
                   <th class="p-3 font-bold">Status</th>
                   <th class="p-3 font-bold text-right">Ações</th>
@@ -425,10 +425,11 @@ window.app = {
               </thead>
               <tbody class="divide-y divide-slate-100">
                 ${tenants.map(t => {
-                  const isExpired = t.data_expiracao && new Date(t.data_expiracao) < new Date();
+                  const isExpired = t.data_expiracao && new Date(t.data_expiracao + 'T23:59:59') < new Date();
+                  const isBlocked = (t.ativo === false) || isExpired;
                   return `
                     <tr class="hover:bg-slate-50 transition">
-                      <td class="p-3 font-mono font-bold text-blue-700">${t.id}</td>
+                      <td class="p-3 font-mono font-bold text-amber-700 bg-amber-50/50 rounded">${t.id}</td>
                       <td class="p-3">
                         <div class="font-bold text-slate-800">${t.nome_fantasia || t.razao_social}</div>
                         <div class="text-[11px] text-slate-500">${t.razao_social}</div>
@@ -437,31 +438,31 @@ window.app = {
                       <td class="p-3 text-slate-600">${t.celular_whatsapp || t.telefone_fixo || '-'}</td>
                       <td class="p-3">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          ${t.pacote_mensal || 'Básico'}
+                          ${t.plano || t.pacote_mensal || 'MENSAL - 99,90'}
                         </span>
                       </td>
                       <td class="p-3">
                         ${t.data_expiracao ? `
                           <span class="${isExpired ? 'text-red-600 font-bold' : 'text-slate-600'}">
-                            ${new Date(t.data_expiracao).toLocaleDateString('pt-BR')} ${isExpired ? '(Expirado)' : ''}
+                            ${new Date(t.data_expiracao + 'T12:00:00').toLocaleDateString('pt-BR')} ${isExpired ? '(Expirado)' : ''}
                           </span>
-                        ` : '<span class="text-emerald-600 font-bold">Ilimitado</span>'}
+                        ` : '<span class="text-emerald-600 font-bold">Indeterminado</span>'}
                       </td>
                       <td class="p-3">
-                        ${t.ativo !== false ? `
-                          <span class="inline-flex items-center text-emerald-700 font-semibold text-[11px]">
+                        ${!isBlocked ? `
+                          <span class="inline-flex items-center text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Liberado
                           </span>
                         ` : `
-                          <span class="inline-flex items-center text-red-600 font-semibold text-[11px]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span> Bloqueado
+                          <span class="inline-flex items-center text-red-700 font-bold text-[11px] bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span> ${isExpired ? 'Bloqueado (Expirada)' : 'Bloqueado'}
                           </span>
                         `}
                       </td>
                       <td class="p-3 text-right space-x-2">
                         <button onclick="app.openTenantModal('${t.id}')" class="text-blue-600 hover:text-blue-800 font-bold">Editar</button>
-                        <button onclick="app.toggleTenantStatus('${t.id}')" class="${t.ativo !== false ? 'text-amber-600 hover:text-amber-800' : 'text-emerald-600 hover:text-emerald-800'} font-bold">
-                          ${t.ativo !== false ? 'Bloquear' : 'Liberar'}
+                        <button onclick="app.toggleTenantStatus('${t.id}')" class="${!isBlocked ? 'text-amber-600 hover:text-amber-800' : 'text-emerald-600 hover:text-emerald-800'} font-bold">
+                          ${!isBlocked ? 'Bloquear' : 'Liberar'}
                         </button>
                         ${t.id !== '001' ? `
                           <button onclick="app.deleteTenant('${t.id}')" class="text-red-600 hover:text-red-800 font-bold">Excluir</button>
@@ -478,96 +479,321 @@ window.app = {
     `;
   },
 
+  /* ==============================================================================
+     UTILITÁRIOS: MÁSCARAS, VALIDAÇÕES E GERAÇÃO DE ID (v3.1.0)
+     ============================================================================== */
+  generateUniqueTenantId() {
+    const tenants = window.store ? window.store.getTenants() : [];
+    const existingIds = new Set(tenants.map(t => String(t.id).padStart(3, '0')));
+    let attempts = 0;
+    while (attempts < 1000) {
+      const rand = Math.floor(Math.random() * 900) + 100; // 100 a 999
+      const strId = String(rand).padStart(3, '0');
+      if (!existingIds.has(strId)) {
+        return strId;
+      }
+      attempts++;
+    }
+    return String(Math.floor(Math.random() * 900) + 100);
+  },
+
+  maskCnpj(v) {
+    if (!v) return '';
+    v = v.replace(/\D/g, '').slice(0, 14);
+    v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+    v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+    v = v.replace(/(\d{4})(\d)/, '$1-$2');
+    return v;
+  },
+
+  validateCnpj(cnpj) {
+    if (!cnpj) return true; // campo opcional no envio em branco
+    const clean = cnpj.replace(/\D/g, '');
+    if (clean.length !== 14) return false;
+    if (/^(\d)\1+$/.test(clean)) return false; // todos os dígitos iguais
+
+    // 1º Dígito Verificador
+    let size = 12;
+    let numbers = clean.substring(0, size);
+    let digits = clean.substring(size);
+    let sum = 0;
+    let pos = size - 7;
+    for (let i = size; i >= 1; i--) {
+      sum += Number(numbers.charAt(size - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+    if (result !== Number(digits.charAt(0))) return false;
+
+    // 2º Dígito Verificador
+    size = 13;
+    numbers = clean.substring(0, size);
+    sum = 0;
+    pos = size - 7;
+    for (let i = size; i >= 1; i--) {
+      sum += Number(numbers.charAt(size - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+    if (result !== Number(digits.charAt(1))) return false;
+
+    return true;
+  },
+
+  maskDynamicPhone(v) {
+    if (!v) return '';
+    let d = v.replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 2) {
+      return d.length > 0 ? `(${d}` : '';
+    }
+    const ddd = d.slice(0, 2);
+    const rest = d.slice(2);
+    const firstDigit = rest.charAt(0);
+
+    // Se iniciado por 1, 2, 3, 4 ou 5 após o DDD -> Telefone Fixo (00) 0000-0000 (8 dígitos)
+    if (['1', '2', '3', '4', '5'].includes(firstDigit)) {
+      const fixedRest = rest.slice(0, 8);
+      if (fixedRest.length <= 4) {
+        return `(${ddd}) ${fixedRest}`;
+      }
+      return `(${ddd}) ${fixedRest.slice(0, 4)}-${fixedRest.slice(4)}`;
+    }
+
+    // Se celular / WhatsApp (iniciado por 9 ou >=6) -> Máscara (00) 0 0000-0000
+    if (rest.length <= 1) {
+      return `(${ddd}) ${rest}`;
+    } else if (rest.length <= 5) {
+      return `(${ddd}) ${rest.charAt(0)} ${rest.slice(1)}`;
+    } else {
+      const p1 = rest.charAt(0);
+      const p2 = rest.slice(1, 5);
+      const p3 = rest.slice(5, 9);
+      return `(${ddd}) ${p1} ${p2}${p3 ? '-' + p3 : ''}`;
+    }
+  },
+
+  maskCep(v) {
+    if (!v) return '';
+    const d = v.replace(/\D/g, '').slice(0, 8);
+    if (d.length > 5) {
+      return `${d.slice(0, 5)}-${d.slice(5)}`;
+    }
+    return d;
+  },
+
+  calculatePlanExpiration(plano) {
+    const now = new Date();
+    let days = 30; // default MENSAL
+    if (plano === 'TESTE') days = 8;
+    else if (plano === 'MENSAL - 99,90' || plano === 'MENSAL') days = 30;
+    else if (plano === 'SEMESTRAL - 499,99' || plano === 'SEMESTRAL') days = 180;
+    else if (plano === 'ANUAL - 999,99' || plano === 'ANUAL') days = 365;
+    else if (plano === 'INDETERMINADO') days = 3650;
+
+    const target = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    return target.toISOString().split('T')[0];
+  },
+
+  handlePlanSelectionChange(plano) {
+    const expEl = document.getElementById('tenant-form-expiracao');
+    if (expEl) {
+      expEl.value = this.calculatePlanExpiration(plano);
+      this.updateTenantExpirationStatusUI();
+    }
+  },
+
+  renewTenantPlan() {
+    const planEl = document.getElementById('tenant-form-plano');
+    const expEl = document.getElementById('tenant-form-expiracao');
+    const ativoEl = document.getElementById('tenant-form-ativo');
+
+    const plano = planEl ? planEl.value : 'MENSAL - 99,90';
+    const newDate = this.calculatePlanExpiration(plano);
+    if (expEl) expEl.value = newDate;
+    if (ativoEl) ativoEl.checked = true;
+    this.updateTenantExpirationStatusUI();
+    alert(`Plano [${plano}] renovado com sucesso até ${new Date(newDate + 'T12:00:00').toLocaleDateString('pt-BR')}!`);
+  },
+
+  updateTenantExpirationStatusUI() {
+    const expEl = document.getElementById('tenant-form-expiracao');
+    const ativoEl = document.getElementById('tenant-form-ativo');
+    const badgeEl = document.getElementById('tenant-form-status-badge');
+    if (!expEl || !ativoEl || !badgeEl) return;
+
+    const val = expEl.value;
+    if (!val) {
+      badgeEl.textContent = 'Data não definida';
+      badgeEl.className = 'text-[11px] font-bold text-slate-500';
+      return;
+    }
+
+    const expDate = new Date(val + 'T23:59:59');
+    const now = new Date();
+    const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      ativoEl.checked = false;
+      badgeEl.textContent = 'Empresa Inativa e Bloqueada (Expirada)';
+      badgeEl.className = 'text-[11px] font-extrabold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200';
+    } else {
+      ativoEl.checked = true;
+      badgeEl.textContent = `Ativa e Liberada (${diffDays} dias restantes)`;
+      badgeEl.className = 'text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200';
+    }
+  },
+
+  /* ==============================================================================
+     MODAL DE CADASTRO E EDIÇÃO DE EMPRESAS / GRÁFICAS (TENANTS - v3.1.0)
+     ============================================================================== */
   openTenantModal(tenantId = null) {
     const isEdit = !!tenantId;
     const tenant = isEdit ? window.store.getTenants().find(t => t.id === tenantId) : null;
-    
-    let modal = document.getElementById('tenant-modal');
-    if (!modal) {
-      const modalHtml = `
-        <div id="tenant-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
-          <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 id="tenant-modal-title" class="text-base font-bold text-slate-800">Empresa / Gráfica</h3>
-              <button onclick="document.getElementById('tenant-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
-            </div>
-            <form id="tenant-form" onsubmit="app.handleTenantFormSubmit(event)" class="p-6 space-y-4">
-              <input type="hidden" id="tenant-form-id">
+    const uniqueId = isEdit ? tenant.id : this.generateUniqueTenantId();
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    let modal = document.getElementById('tenant-modal');
+    if (modal) modal.remove();
+
+    const selectedPlano = tenant ? (tenant.plano || tenant.pacote_mensal || 'MENSAL - 99,90') : 'MENSAL - 99,90';
+    const initialExpDate = tenant ? (tenant.data_expiracao || this.calculatePlanExpiration(selectedPlano)) : this.calculatePlanExpiration(selectedPlano);
+
+    const modalHtml = `
+      <div id="tenant-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-100 max-h-[92vh] flex flex-col">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+            <div>
+              <h3 id="tenant-modal-title" class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                ${isEdit ? 'Editar Empresa / Gráfica' : 'Nova Empresa / Gráfica'}
+              </h3>
+              <p class="text-xs text-slate-500">Configuração corporativa de licença, endereço e acesso</p>
+            </div>
+            <button onclick="document.getElementById('tenant-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold leading-none">&times;</button>
+          </div>
+
+          <form id="tenant-form" onsubmit="app.handleTenantFormSubmit(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+            <input type="hidden" id="tenant-form-id" value="${tenant ? tenant.id : ''}">
+
+            <!-- Linha 1: ID Aleatório (Marcado de Laranja), Nome Fantasia e Razão Social -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-amber-800 mb-1 flex items-center gap-1">
+                  ID (3 Dígitos)
+                  <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">Aleatório</span>
+                </label>
+                <input type="text" id="tenant-form-code" value="${uniqueId}" readonly disabled class="w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-lg text-sm font-mono font-black text-amber-900 cursor-not-allowed text-center shadow-inner">
+              </div>
+              <div class="sm:col-span-3">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nome Fantasia *</label>
+                <input type="text" id="tenant-form-fantasia" value="${tenant ? (tenant.nome_fantasia || '') : ''}" required placeholder="Ex: Top Digital" class="w-full px-3 py-2 border rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Razão Social *</label>
+              <input type="text" id="tenant-form-razao" value="${tenant ? (tenant.razao_social || '') : ''}" required placeholder="Ex: Top Digital Comunicação Visual Ltda" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Linha 2 (Marcadas de Amarelo): CNPJ com máscara/validação e WhatsApp/Telefone dinâmico -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50/40 p-3 rounded-xl border border-amber-200">
+              <div>
+                <label class="block text-xs font-bold text-amber-900 mb-1">CNPJ (00.000.000/0000-00)</label>
+                <input type="text" id="tenant-form-cnpj" value="${tenant ? (tenant.cnpj || '') : ''}" placeholder="00.000.000/0000-00" oninput="this.value = app.maskCnpj(this.value)" class="w-full px-3 py-2 border rounded-lg text-sm font-mono bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <p class="text-[10px] text-amber-700 mt-0.5">Validação oficial por dígitos verificadores</p>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-amber-900 mb-1">Telefone WhatsApp / Fixo *</label>
+                <input type="text" id="tenant-form-tel" value="${tenant ? (tenant.celular_whatsapp || tenant.telefone_fixo || '') : ''}" required placeholder="(00) 0 0000-0000 ou (00) 0000-0000" oninput="this.value = app.maskDynamicPhone(this.value)" class="w-full px-3 py-2 border rounded-lg text-sm font-semibold bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <p class="text-[10px] text-amber-700 mt-0.5">Detecta fixo (início 1 a 5) ou celular automaticamente</p>
+              </div>
+            </div>
+
+            <!-- Linha 3 (Marcada em Verde): Endereço Completo -->
+            <div class="bg-emerald-50/50 p-3 rounded-xl border border-emerald-200 space-y-2.5">
+              <div class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Endereço Completo da Empresa
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <div class="sm:col-span-3">
+                  <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Rua / Logradouro</label>
+                  <input type="text" id="tenant-form-rua" value="${tenant ? (tenant.rua || '') : ''}" placeholder="Ex: Av. Sete de Setembro" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white">
+                </div>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">ID (3 Dígitos)</label>
-                  <input type="text" id="tenant-form-code" placeholder="000" maxlength="4" class="w-full px-3 py-2 border rounded-lg text-sm font-mono bg-slate-50">
+                  <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Número</label>
+                  <input type="text" id="tenant-form-num" value="${tenant ? (tenant.numero || '') : ''}" placeholder="1234" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <div>
+                  <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">CEP</label>
+                  <input type="text" id="tenant-form-cep" value="${tenant ? (tenant.cep || '') : ''}" placeholder="00000-000" oninput="this.value = app.maskCep(this.value)" class="w-full px-2.5 py-1.5 border rounded-lg text-xs font-mono bg-white">
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Nome Fantasia *</label>
-                  <input type="text" id="tenant-form-fantasia" required placeholder="Ex: Top Digital" class="w-full px-3 py-2 border rounded-lg text-sm">
+                  <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Cidade</label>
+                  <input type="text" id="tenant-form-cidade" value="${tenant ? (tenant.cidade || '') : ''}" placeholder="Porto Velho" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white">
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">UF</label>
+                  <input type="text" id="tenant-form-uf" value="${tenant ? (tenant.uf || '') : ''}" maxlength="2" placeholder="RO" class="w-full px-2.5 py-1.5 border rounded-lg text-xs uppercase bg-white text-center font-bold">
                 </div>
               </div>
+            </div>
 
+            <!-- Linha 4: Plano, Data de Expiração e Botão Renovar (Marcado em Verde) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Razão Social *</label>
-                <input type="text" id="tenant-form-razao" required placeholder="Ex: Top Digital Ltda" class="w-full px-3 py-2 border rounded-lg text-sm">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Plano</label>
+                <select id="tenant-form-plano" onchange="app.handlePlanSelectionChange(this.value)" class="w-full px-3 py-2 border rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <option value="TESTE" ${selectedPlano === 'TESTE' ? 'selected' : ''}>TESTE (8 dias)</option>
+                  <option value="MENSAL - 99,90" ${selectedPlano === 'MENSAL - 99,90' || selectedPlano === 'MENSAL' ? 'selected' : ''}>MENSAL - 99,90 (30 dias)</option>
+                  <option value="SEMESTRAL - 499,99" ${selectedPlano === 'SEMESTRAL - 499,99' || selectedPlano === 'SEMESTRAL' ? 'selected' : ''}>SEMESTRAL - 499,99 (180 dias)</option>
+                  <option value="ANUAL - 999,99" ${selectedPlano === 'ANUAL - 999,99' || selectedPlano === 'ANUAL' ? 'selected' : ''}>ANUAL - 999,99 (365 dias)</option>
+                  <option value="INDETERMINADO" ${selectedPlano === 'INDETERMINADO' ? 'selected' : ''}>INDETERMINADO (Vitalício)</option>
+                </select>
               </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">CNPJ</label>
-                  <input type="text" id="tenant-form-cnpj" placeholder="00.000.000/0000-00" class="w-full px-3 py-2 border rounded-lg text-sm">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp / Contato *</label>
-                  <input type="text" id="tenant-form-tel" required placeholder="(00) 00000-0000" class="w-full px-3 py-2 border rounded-lg text-sm">
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Pacote Mensal</label>
-                  <select id="tenant-form-pacote" class="w-full px-3 py-2 border rounded-lg text-sm">
-                    <option value="Plano Básico">Plano Básico</option>
-                    <option value="Plano Profissional" selected>Plano Profissional</option>
-                    <option value="Plano Ilimitado Premium">Plano Ilimitado Premium</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Data de Expiração</label>
-                  <input type="date" id="tenant-form-expiracao" class="w-full px-3 py-2 border rounded-lg text-sm">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Data de Expiração</label>
+                <div class="flex gap-2">
+                  <input type="date" id="tenant-form-expiracao" value="${initialExpDate}" onchange="app.updateTenantExpirationStatusUI()" class="flex-1 px-3 py-2 border rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <button type="button" onclick="app.renewTenantPlan()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0" title="Renovar conforme o plano selecionado">
+                    🔄 Renovar
+                  </button>
                 </div>
               </div>
+            </div>
 
-              <div class="pt-2">
-                <label class="inline-flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="tenant-form-ativo" checked class="w-4 h-4 rounded text-blue-600">
-                  <span class="text-xs font-bold text-slate-700">Empresa Ativa e Liberada</span>
-                </label>
-              </div>
+            <!-- Linha 5: Observações (Marcação Rosa - Imagem 1) -->
+            <div class="bg-pink-50/40 p-3 rounded-xl border border-pink-200">
+              <label class="block text-xs font-bold text-pink-900 mb-1">Observações Internas (Empresa / Contrato)</label>
+              <textarea id="tenant-form-obs" rows="2" placeholder="Observações de licenciamento, dados do contrato, particularidades..." class="w-full px-3 py-2 border border-pink-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-pink-500 focus:outline-none">${tenant ? (tenant.observacoes || '') : ''}</textarea>
+            </div>
 
-              <div class="flex gap-2 pt-3 border-t">
-                <button type="button" onclick="document.getElementById('tenant-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border rounded-lg text-xs font-bold">Cancelar</button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">Salvar Empresa</button>
-              </div>
-            </form>
-          </div>
+            <!-- Linha 6: Empresa Ativa e Liberada (Status Automático) -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="tenant-form-ativo" ${tenant ? (tenant.ativo !== false ? 'checked' : '') : 'checked'} onchange="app.updateTenantExpirationStatusUI()" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+                <span class="text-xs font-bold text-slate-800">Empresa Ativa e Liberada</span>
+              </label>
+              <span id="tenant-form-status-badge">...</span>
+            </div>
+
+            <div class="flex gap-2 pt-3 border-t border-slate-100">
+              <button type="button" onclick="document.getElementById('tenant-modal').remove()" class="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg text-slate-700 text-xs font-bold hover:bg-slate-50 transition">
+                Cancelar
+              </button>
+              <button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-md transition">
+                Salvar Empresa
+              </button>
+            </div>
+          </form>
         </div>
-      `;
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-      modal = document.getElementById('tenant-modal');
-    }
+      </div>
+    `;
 
-    document.getElementById('tenant-modal-title').textContent = isEdit ? 'Editar Empresa / Gráfica' : 'Nova Empresa / Gráfica';
-    document.getElementById('tenant-form-id').value = tenant ? tenant.id : '';
-    document.getElementById('tenant-form-code').value = tenant ? tenant.id : '';
-    document.getElementById('tenant-form-fantasia').value = tenant ? (tenant.nome_fantasia || '') : '';
-    document.getElementById('tenant-form-razao').value = tenant ? (tenant.razao_social || '') : '';
-    document.getElementById('tenant-form-cnpj').value = tenant ? (tenant.cnpj || '') : '';
-    document.getElementById('tenant-form-tel').value = tenant ? (tenant.celular_whatsapp || tenant.telefone_fixo || '') : '';
-    document.getElementById('tenant-form-pacote').value = tenant ? (tenant.pacote_mensal || 'Plano Profissional') : 'Plano Profissional';
-    document.getElementById('tenant-form-expiracao').value = tenant ? (tenant.data_expiracao || '') : '';
-    document.getElementById('tenant-form-ativo').checked = tenant ? (tenant.ativo !== false) : true;
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.updateTenantExpirationStatusUI();
   },
 
   async handleTenantFormSubmit(e) {
@@ -578,9 +804,33 @@ window.app = {
     const razao_social = document.getElementById('tenant-form-razao').value.trim();
     const cnpj = document.getElementById('tenant-form-cnpj').value.trim();
     const tel = document.getElementById('tenant-form-tel').value.trim();
-    const pacote_mensal = document.getElementById('tenant-form-pacote').value;
+    const rua = document.getElementById('tenant-form-rua').value.trim();
+    const numero = document.getElementById('tenant-form-num').value.trim();
+    const cep = document.getElementById('tenant-form-cep').value.trim();
+    const cidade = document.getElementById('tenant-form-cidade').value.trim();
+    const uf = document.getElementById('tenant-form-uf').value.trim().toUpperCase();
+    const plano = document.getElementById('tenant-form-plano').value;
     const data_expiracao = document.getElementById('tenant-form-expiracao').value;
-    const ativo = document.getElementById('tenant-form-ativo').checked;
+    const observacoes = document.getElementById('tenant-form-obs').value.trim();
+    let ativo = document.getElementById('tenant-form-ativo').checked;
+
+    // 1. Validação Oficial de CNPJ
+    if (cnpj && !this.validateCnpj(cnpj)) {
+      alert('CNPJ inválido! O número digitado não atende ao cálculo dos dígitos verificadores da Receita Federal.');
+      document.getElementById('tenant-form-cnpj').focus();
+      return;
+    }
+
+    // 2. Bloqueio automático se expirado
+    if (data_expiracao && new Date(data_expiracao + 'T23:59:59') < new Date()) {
+      ativo = false;
+    }
+
+    // Composição de endereço formatado
+    let endereco = '';
+    if (rua || cidade) {
+      endereco = `${rua}${numero ? ', ' + numero : ''}${cidade ? ' - ' + cidade : ''}${uf ? '/' + uf : ''}${cep ? ' - CEP: ' + cep : ''}`;
+    }
 
     const tenantData = {
       id: code || id || undefined,
@@ -588,13 +838,23 @@ window.app = {
       razao_social,
       cnpj,
       celular_whatsapp: tel,
-      pacote_mensal,
+      telefone_fixo: tel,
+      rua,
+      numero,
+      cep,
+      cidade,
+      uf,
+      endereco,
+      plano,
+      pacote_mensal: plano,
       data_expiracao: data_expiracao || null,
+      observacoes,
       ativo
     };
 
     await window.store.saveTenant(tenantData);
-    document.getElementById('tenant-modal').classList.add('hidden');
+    const modal = document.getElementById('tenant-modal');
+    if (modal) modal.remove();
     this.renderTenants();
     this.updateUserHeader();
     alert('Empresa salva com sucesso!');
@@ -617,8 +877,8 @@ window.app = {
   },
 
   /* ==============================================================================
-     NOVO FORM: CONFIGURAÇÕES DO PERFIL DO USUÁRIO (Imagem 5 - Engrenagem)
-     Dados do usuário desabilitados (não edita*), permitindo apenas a troca de senha.
+     NOVO FORM: CONFIGURAÇÕES DO PERFIL DO USUÁRIO (Imagem 5 & 3 - Engrenagem)
+     Identificação da empresa no topo, foto com corte quadrado 1:1 e labels limpos.
      ============================================================================== */
   openUserProfileConfigModal() {
     const user = window.authModule.getCurrentUser();
@@ -628,6 +888,15 @@ window.app = {
     }
     const modal = document.getElementById('user-profile-modal');
     if (!modal) return;
+
+    // Identificação da Empresa no Topo do Modal (Marcação Laranja - Imagem 5)
+    const activeTenant = window.store ? window.store.getActiveTenant() : null;
+    const fantEl = document.getElementById('prof-tenant-fantasia');
+    const razEl = document.getElementById('prof-tenant-razao');
+    if (activeTenant) {
+      if (fantEl) fantEl.textContent = `${activeTenant.id} - ${activeTenant.nome_fantasia || 'Gráfica'}`;
+      if (razEl) razEl.textContent = activeTenant.razao_social || '';
+    }
 
     const op = user.operador || (user.nome ? user.nome.split(' ')[0] : (user.login || ''));
     document.getElementById('prof-operador').value = op;
@@ -657,6 +926,69 @@ window.app = {
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+  },
+
+  handleProfilePhotoUpload(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert('A imagem é muito grande. Escolha uma foto de até 8MB.');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = async () => {
+        // Crop centralizado 1:1 quadrado via Canvas de alta qualidade
+        const canvas = document.createElement('canvas');
+        const size = Math.min(img.width, img.height);
+        const targetSize = 256;
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+        const ctx = canvas.getContext('2d');
+
+        const startX = (img.width - size) / 2;
+        const startY = (img.height - size) / 2;
+        ctx.drawImage(img, startX, startY, size, size, 0, 0, targetSize, targetSize);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+
+        // Atualiza preview no modal
+        const photoImg = document.getElementById('prof-photo-img');
+        const photoIcon = document.getElementById('prof-photo-icon');
+        if (photoImg) {
+          photoImg.src = dataUrl;
+          photoImg.classList.remove('hidden');
+        }
+        if (photoIcon) photoIcon.classList.add('hidden');
+
+        // Persiste no usuário autenticado
+        const currentUser = window.authModule.getCurrentUser();
+        if (currentUser) {
+          currentUser.foto_url = dataUrl;
+          window.authModule.saveUserWithoutValidation(currentUser);
+          window.authModule.setCurrentUser(currentUser);
+          app.updateUserHeader();
+
+          // Sincroniza foto na nuvem Supabase se conectado
+          if (window.store && window.store.supabaseClient) {
+            try {
+              await window.store.supabaseClient
+                .from('usuarios')
+                .update({ foto_url: dataUrl })
+                .eq('id', currentUser.id);
+            } catch (err) {
+              console.warn('[Supabase] Falha ao sincronizar foto de perfil na nuvem:', err);
+            }
+          }
+        }
+        alert('Foto de perfil atualizada com sucesso!');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   },
 
   closeUserProfileConfigModal() {

@@ -196,23 +196,23 @@
           Calculadora m²
         </button>
         
-        <!-- Perfil / Operador (com foto e engrenagem de configuração) -->
-        <div class="flex items-center gap-2 pl-3 border-l border-slate-200 p-1.5 hover:bg-slate-50 rounded-xl transition">
-          <div class="text-right hidden sm:block cursor-pointer" onclick="authModule.openLoginModal()" title="Clique para trocar operador / sair">
-            <div id="user-header-badge" class="text-[9px] font-extrabold uppercase text-slate-500 mb-0.5">ADMIN</div>
-            <div id="user-header-name" class="text-xs font-bold text-blue-700 leading-none">Administrador</div>
-          </div>
-          <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm overflow-hidden cursor-pointer" onclick="authModule.openLoginModal()" title="Trocar Operador / Nível de Acesso">
+        <!-- Perfil / Operador (com foto, nome, cargo e engrenagem de configuração) -->
+        <div class="flex items-center gap-2.5 pl-3 border-l border-slate-200 p-1.5 hover:bg-slate-50 rounded-xl transition">
+          <div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm overflow-hidden cursor-pointer shrink-0" onclick="app.openUserProfileConfigModal()" title="Configurações do Meu Perfil">
             <img id="user-header-photo" src="" class="w-full h-full object-cover hidden" alt="Foto">
             <svg id="user-header-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
           </div>
+          <div class="text-left hidden sm:block cursor-pointer" onclick="app.openUserProfileConfigModal()" title="Configurações do Meu Perfil">
+            <div id="user-header-name" class="text-xs font-bold text-slate-800 leading-tight">Administrador</div>
+            <div id="user-header-badge" class="text-[9px] font-extrabold uppercase text-blue-600">ADMIN</div>
+          </div>
           <!-- Botão Engrenagem - Configurações do Perfil do Usuário (Imagem 5 - Ampliado Marcado de Verde) -->
-          <button class="w-14 h-14 rounded-2xl flex items-center justify-center text-red-600 hover:text-white hover:bg-red-600 bg-red-50 border-2 border-red-200 hover:border-red-600 transition-all shadow-md hover:scale-105 cursor-pointer ring-2 ring-red-100 group" title="Configurações do Meu Perfil & Trocar Senha" onclick="app.openUserProfileConfigModal()">
-            <svg class="w-7 h-7 text-red-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <button class="w-12 h-12 rounded-xl flex items-center justify-center text-red-600 hover:text-white hover:bg-red-600 bg-red-50 border-2 border-red-200 hover:border-red-600 transition-all shadow-md hover:scale-105 cursor-pointer ring-2 ring-red-100 group ml-1" title="Configurações do Meu Perfil & Trocar Senha" onclick="app.openUserProfileConfigModal()">
+            <svg class="w-6 h-6 text-red-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           </button>
           <!-- Botão Logout / Sair -->
-          <button onclick="authModule.logout()" class="px-4 h-14 rounded-2xl flex items-center gap-2 text-rose-700 hover:text-white hover:bg-rose-600 bg-rose-50 border-2 border-rose-200 hover:border-rose-600 transition-all shadow-md hover:scale-105 cursor-pointer font-black text-xs" title="Sair do Sistema (Fazer Logout)">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          <button onclick="authModule.logout()" class="px-3.5 h-12 rounded-xl flex items-center gap-1.5 text-rose-700 hover:text-white hover:bg-rose-600 bg-rose-50 border-2 border-rose-200 hover:border-rose-600 transition-all shadow-md hover:scale-105 cursor-pointer font-black text-xs" title="Sair do Sistema (Fazer Logout)">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             <span class="tracking-wider">SAIR</span>
           </button>
         </div>
@@ -506,48 +506,64 @@
       </div>
 
       <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-        <!-- Foto e Dados Pessoais (Bloqueados para edição simples) -->
+        <!-- Identificação da Empresa no Topo do Modal (Marcação Laranja - Imagem 5) -->
+        <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 rounded-xl shadow-sm border border-slate-800">
+          <div class="text-[10px] uppercase tracking-wider text-indigo-300 font-bold mb-0.5">Empresa / Gráfica Vinculada</div>
+          <div id="prof-tenant-fantasia" class="text-base font-extrabold text-white leading-tight">001 - Top Digital</div>
+          <div id="prof-tenant-razao" class="text-xs text-slate-300 mt-0.5">Top Digital Comunicação Visual Ltda</div>
+        </div>
+
+        <!-- Foto e Dados do Operador (Imagem 3 - Câmera e Arquivo para Foto) -->
         <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-          <div class="w-16 h-16 rounded-full bg-slate-200 border-2 border-white shadow overflow-hidden flex items-center justify-center shrink-0">
-            <img id="prof-photo-img" src="" class="w-full h-full object-cover hidden">
+          <div class="w-16 h-16 rounded-xl bg-white border-2 border-indigo-200 shadow-sm overflow-hidden flex items-center justify-center shrink-0">
+            <img id="prof-photo-img" src="" class="w-full h-full object-cover hidden" alt="Foto Operador">
             <svg id="prof-photo-icon" class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
           </div>
-          <div>
-            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Operador Cadastrado</div>
-            <div class="text-sm font-bold text-slate-800" id="prof-header-name">Seus dados</div>
-            <div class="text-[11px] text-slate-400">Dados protegidos (não edita diretamente)</div>
+          <div class="flex-1">
+            <div class="text-xs font-bold text-slate-800 uppercase tracking-wide">Foto do Operador</div>
+            <div class="flex gap-2 mt-1.5">
+              <label class="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-200 transition shadow-sm flex items-center gap-1.5">
+                📷 Câmera
+                <input type="file" accept="image/*" capture onchange="app.handleProfilePhotoUpload(this)" class="hidden">
+              </label>
+              <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 transition shadow-sm flex items-center gap-1.5">
+                📁 Arquivo
+                <input type="file" accept="image/*" onchange="app.handleProfilePhotoUpload(this)" class="hidden">
+              </label>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">Corte quadrado 1:1 e otimização automática</p>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Nome / Operador (não edita*)</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nome / Operador</label>
             <input type="text" id="prof-operador" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 cursor-not-allowed">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Nome Completo (não edita*)</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nome Completo</label>
             <input type="text" id="prof-nome" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 cursor-not-allowed">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">CPF (não edita*)</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">CPF</label>
             <input type="text" id="prof-cpf" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono text-slate-600 cursor-not-allowed">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Cargo / Perfil (não edita*)</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Cargo / Perfil</label>
             <input type="text" id="prof-cargo" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-indigo-700 cursor-not-allowed uppercase">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Telefone (não edita*)</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
             <input type="text" id="prof-telefone" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-600 cursor-not-allowed">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">E-mail (não edita*)</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
             <input type="text" id="prof-email" disabled class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-600 cursor-not-allowed">
           </div>
         </div>
 
         <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800">
-          <strong>Atenção:</strong> Os dados cadastrais acima não podem ser alterados por aqui. Para modificar dados, ativação ou bloqueio, contate um perfil com permissão (<strong>Gerente, Proprietário ou Administrador do Sistema</strong>).
+          <strong>Atenção:</strong> Os dados cadastrais acima são protegidos. Para modificar dados cadastrais, cargo ou ativação, contate o <strong>Gerente, Proprietário ou Administrador do Sistema</strong>.
         </div>
 
         <!-- Seção de Troca de Senha (Único campo editável pelo próprio operador) -->
@@ -698,7 +714,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.0.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.1.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -706,25 +722,26 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.0.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Tela Inicial Oficial & Confiabilidade Plena</span>
+            <h4 class="font-bold text-slate-800">Versão 3.1.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Gestão Corporativa de Empresas & Perfil</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Nova Tela Inicial & Login Operacional (Imagem 2):</strong> Layout institucional completo, isolamento de visualização (só entra na aplicação autenticado) e grade de recursos operacionais.</li>
-            <li><strong>Dica Dinâmica de Senha e Empresa:</strong> Ao digitar o CPF do operador, exibe instantaneamente a senha e o nome da gráfica no lugar da barra verde.</li>
-            <li><strong>Suporte WhatsApp com QR Code:</strong> Card destacado e modal com QR Code escaneável e link direto para WhatsApp de suporte oficial ((69) 99922-1336).</li>
-            <li><strong>Botão de Configurações Ampliado:</strong> Botão de engrenagem aumentado no topo com foco e proteção contra erros.</li>
-            <li><strong>Botão Sair com Logout Total:</strong> Limpeza segura de sessão e redirecionamento imediato para a Tela Inicial (Imagem 2).</li>
-            <li><strong>Correção Completa de Botões e Formulários:</strong> Todos os botões do Kanban, Vendas, Clientes, Fornecedores, Produtos e Financeiro operando com alta performance e sem travamentos.</li>
+            <li><strong>ID Aleatório de 3 Dígitos:</strong> Geração randômica protegida (não editável) para identificação única da empresa.</li>
+            <li><strong>Validação e Máscara Oficial de CNPJ:</strong> Cálculo dos dígitos verificadores e formatação automática (00.000.000/0000-00).</li>
+            <li><strong>Máscara Inteligente de Telefone:</strong> Detecção dinâmica de telefone fixo ((00) 0000-0000) e celular/WhatsApp ((00) 0 0000-0000).</li>
+            <li><strong>Endereço Completo da Empresa:</strong> Campos padronizados de Rua, Número, CEP com máscara, Cidade e UF.</li>
+            <li><strong>Planos e Expiração com Renovação em 1 Clique:</strong> Planos TESTE (8d), MENSAL (30d), SEMESTRAL (180d), ANUAL (365d) e INDETERMINADO (3650d) com botão Renovar.</li>
+            <li><strong>Bloqueio Automático por Vencimento:</strong> Inativação automática de empresas com planos expirados.</li>
+            <li><strong>Foto de Perfil do Operador:</strong> Upload direto por Câmera ou Arquivo com corte quadrado 1:1 e identificação da empresa no topo do modal.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 2.9.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Estrutura Inicial</span>
+            <h4 class="font-bold text-slate-800">Versão 3.0.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Tela Inicial Oficial & Confiabilidade Plena</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Implantação dos elementos de login por CPF e recursos operacionais.</li>
+            <li>Tela Inicial Institucional com login por CPF, dica provisória e suporte WhatsApp integrado com QR Code.</li>
           </ul>
         </div>
       </div>
@@ -737,15 +754,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=3.0.0"></script>
-  <script src="js/auth.js?v=3.0.0"></script>
-  <script src="js/store.js?v=3.0.0"></script>
-  <script src="js/clients.js?v=3.0.0"></script>
-  <script src="js/suppliers.js?v=3.0.0"></script>
-  <script src="js/products.js?v=3.0.0"></script>
-  <script src="js/sales.js?v=3.0.0"></script>
-  <script src="js/production.js?v=3.0.0"></script>
-  <script src="js/finance.js?v=3.0.0"></script>
-  <script src="js/app.js?v=3.0.0"></script>
+  <script src="js/config.js?v=3.1.0"></script>
+  <script src="js/auth.js?v=3.1.0"></script>
+  <script src="js/store.js?v=3.1.0"></script>
+  <script src="js/clients.js?v=3.1.0"></script>
+  <script src="js/suppliers.js?v=3.1.0"></script>
+  <script src="js/products.js?v=3.1.0"></script>
+  <script src="js/sales.js?v=3.1.0"></script>
+  <script src="js/production.js?v=3.1.0"></script>
+  <script src="js/finance.js?v=3.1.0"></script>
+  <script src="js/app.js?v=3.1.0"></script>
 </body>
 </html>

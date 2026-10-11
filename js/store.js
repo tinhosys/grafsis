@@ -616,14 +616,23 @@ class GrafsisStore {
 
   async saveTenant(tenant) {
     const tenants = this.getTenants();
+    // Bloqueio automático de empresa com plano expirado
+    if (tenant.data_expiracao && new Date(tenant.data_expiracao + 'T23:59:59') < new Date()) {
+      tenant.ativo = false;
+    }
+
     if (!tenant.id) {
-      // Gera ID de 3 dígitos formatado '001', '002', etc.
-      let maxNum = 0;
-      tenants.forEach(t => {
-        const n = parseInt(t.id, 10);
-        if (!isNaN(n) && n > maxNum) maxNum = n;
-      });
-      tenant.id = String(maxNum + 1).padStart(3, '0');
+      // Gera ID aleatório de 3 dígitos (100 a 999) não colidente
+      const existingIds = new Set(tenants.map(t => String(t.id).padStart(3, '0')));
+      let randId = String(Math.floor(Math.random() * 900) + 100);
+      for (let i = 0; i < 1000; i++) {
+        const candidate = String(Math.floor(Math.random() * 900) + 100);
+        if (!existingIds.has(candidate)) {
+          randId = candidate;
+          break;
+        }
+      }
+      tenant.id = randId;
       tenant.created_at = new Date().toISOString();
       tenant.updated_at = tenant.created_at;
       tenants.push(tenant);
