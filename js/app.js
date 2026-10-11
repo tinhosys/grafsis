@@ -9,6 +9,13 @@ window.app = {
 
   init() {
     this.updateUserHeader();
+
+    // Primeiro de tudo: tela de login. Só entra se tiver acesso autenticado.
+    if (!window.authModule.isAuthenticated()) {
+      window.authModule.openLoginModal();
+      return;
+    }
+
     const perms = window.authModule.getRolePermissions();
     const initialTab = window.authModule.canAccess(this.currentTab) ? this.currentTab : perms.tabs[0];
     this.navigate(initialTab);
@@ -22,6 +29,17 @@ window.app = {
     const badgeEl = document.getElementById('user-header-badge');
     const userPhotoEl = document.getElementById('user-header-photo');
     const userIconEl = document.getElementById('user-header-icon');
+
+    if (!user) {
+      if (nameEl) nameEl.textContent = 'Não Conectado';
+      if (badgeEl) {
+        badgeEl.textContent = 'LOGIN NECESSÁRIO';
+        badgeEl.className = 'text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-300';
+      }
+      if (userPhotoEl) userPhotoEl.classList.add('hidden');
+      if (userIconEl) userIconEl.classList.remove('hidden');
+      return;
+    }
 
     if (nameEl) nameEl.textContent = user.operador || user.nome || user.login;
     if (badgeEl) {

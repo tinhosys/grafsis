@@ -249,12 +249,7 @@ class GrafsisAuth {
       } catch (e) {
         localStorage.setItem(this.STORAGE_USERS_KEY, JSON.stringify(DEFAULT_USERS));
       }
-    }
-
-    if (!sessionStorage.getItem(this.STORAGE_SESSION_KEY)) {
-      const users = this.getUsers();
-      this.setCurrentUser(users[0] || DEFAULT_USERS[0]);
-    }
+    // Exigência estrita: se não houver login autenticado na sessão, não autentica automaticamente
   }
 
   getUsers() {
@@ -270,21 +265,35 @@ class GrafsisAuth {
     localStorage.setItem(this.STORAGE_USERS_KEY, JSON.stringify(users));
   }
 
+  isAuthenticated() {
+    try {
+      const user = JSON.parse(sessionStorage.getItem(this.STORAGE_SESSION_KEY));
+      return !!(user && user.id);
+    } catch {
+      return false;
+    }
+  }
+
   getCurrentUser() {
     try {
       const user = JSON.parse(sessionStorage.getItem(this.STORAGE_SESSION_KEY));
-      return user || DEFAULT_USERS[0];
+      return user || null;
     } catch {
-      return DEFAULT_USERS[0];
+      return null;
     }
   }
 
   setCurrentUser(user) {
-    sessionStorage.setItem(this.STORAGE_SESSION_KEY, JSON.stringify(user));
+    if (user) {
+      sessionStorage.setItem(this.STORAGE_SESSION_KEY, JSON.stringify(user));
+    } else {
+      sessionStorage.removeItem(this.STORAGE_SESSION_KEY);
+    }
   }
 
   getRolePermissions() {
     const user = this.getCurrentUser();
+    if (!user) return ROLE_PERMISSIONS.PRODUCAO;
     return ROLE_PERMISSIONS[user.role] || ROLE_PERMISSIONS.PRODUCAO;
   }
 
@@ -579,6 +588,43 @@ class GrafsisAuth {
     }
   }
 
+  handleCpfInput(input) {
+    if (!input) return;
+    input.value = this.maskCpf(input.value);
+    const digits = this.cleanDigits(input.value);
+
+    const hintBar = document.getElementById('auth-hint-bar');
+    const hintText = document.getElementById('auth-hint-text');
+
+    if (digits.length >= 11) {
+      const users = this.getUsers();
+      const found = users.find(u => this.cleanDigits(u.cpf) === digits);
+      if (found) {
+        let tenantName = 'Gráfica Padrão';
+        if (window.store && typeof window.store.getTenants === 'function') {
+          const tenants = window.store.getTenants();
+          const t = tenants.find(item => item.id === (found.empresa_id || '001'));
+          if (t) tenantName = t.nome_fantasia || t.razao_social;
+        }
+
+        const pass = found.senha || found.pin || '0000';
+        if (hintBar) hintBar.classList.add('hidden');
+        if (hintText) {
+          hintText.innerHTML = `🔑 Senha: <span class="font-mono underline">${pass}</span> | 🏢 ${tenantName}`;
+          hintText.classList.remove('hidden');
+        }
+        return;
+      }
+    }
+
+    // Se CPF incompleto ou não localizado
+    if (hintText) {
+      hintText.classList.add('hidden');
+      hintText.innerHTML = '';
+    }
+    if (hintBar) hintBar.classList.remove('hidden');
+  }
+
   openLoginModal() {
     const modal = document.getElementById('auth-modal');
     if (modal) {
@@ -587,16 +633,41 @@ class GrafsisAuth {
       const errEl = document.getElementById('auth-error');
       if (errEl) errEl.classList.add('hidden');
       const loginInp = document.getElementById('auth-cpf');
-      if (loginInp) loginInp.focus();
+      if (loginInp) {
+        loginInp.value = '';
+        loginInp.focus();
+      }
+      const passInp = document.getElementById('auth-pin');
+      if (passInp) passInp.value = '';
+
+      const hintBar = document.getElementById('auth-hint-bar');
+      const hintText = document.getElementById('auth-hint-text');
+      if (hintBar) hintBar.classList.remove('hidden');
+      if (hintText) {
+        hintText.classList.add('hidden');
+        hintText.innerHTML = '';
+      }
     }
   }
 
   closeLoginModal() {
+    // Só permite fechar o modal se o usuário estiver autenticado
+    if (!this.isAuthenticated()) {
+      return;
+    }
     const modal = document.getElementById('auth-modal');
     if (modal) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
+  }
+
+  logout() {
+    this.setCurrentUser(null);
+    if (window.app) {
+      window.app.updateUserHeader();
+    }
+    this.openLoginModal();
   }
 
   submitLogin(e) {
