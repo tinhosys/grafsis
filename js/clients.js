@@ -138,11 +138,35 @@ window.clientsModule = {
     const modalHtml = `
       <div id="client-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-          <div class="flex justify-between items-center pb-4 border-b border-slate-100">
-            <h2 class="text-lg font-bold text-slate-800">${isEdit ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-            <button onclick="document.getElementById('client-modal').remove()" class="text-slate-400 hover:text-slate-600">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+          <div class="flex flex-col gap-3 pb-4 border-b border-slate-100">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-4">
+                <h2 class="text-lg font-bold text-slate-800">${isEdit ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+                <!-- Chave Ativo/Bloqueado (Rosa) -->
+                <label class="flex items-center cursor-pointer">
+                  <div class="relative">
+                    <input type="checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full');">
+                    <div class="block w-10 h-6 rounded-full transition-colors ${!client || client.status !== 'bloqueado' ? 'bg-blue-600' : 'bg-slate-300'}">
+                      <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${!client || client.status !== 'bloqueado' ? 'translate-x-full' : ''}"></div>
+                    </div>
+                  </div>
+                  <span class="ml-2 text-xs font-semibold text-slate-600">Ativo</span>
+                </label>
+              </div>
+              <button type="button" onclick="document.getElementById('client-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            ${!isEdit ? `
+            <!-- Busca Localize (Verde) -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </div>
+              <input type="text" oninput="clientsModule.searchInModal(this.value)" placeholder="Localize ao digitar (Nome, Telefone, Fantasia)..." class="block w-full pl-10 pr-3 py-2 border border-green-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm bg-green-50 placeholder-green-600/50">
+              <div id="modal-search-results" class="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-slate-200 hidden max-h-48 overflow-y-auto"></div>
+            </div>
+            ` : ''}
           </div>
 
           <form id="client-form" onsubmit="clientsModule.save(event, '${client ? client.id : ''}')" class="mt-4 space-y-4">
@@ -163,7 +187,7 @@ window.clientsModule = {
                     <img id="client-foto-preview" src="${client && client.foto_url ? client.foto_url : ''}" class="w-full h-full object-cover ${client && client.foto_url ? '' : 'hidden'}">
                     <svg id="client-foto-icon" class="w-8 h-8 text-slate-300 ${client && client.foto_url ? 'hidden' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   </div>
-                  <input type="text" name="foto_url" id="client-foto-url" value="${client ? (client.foto_url || '') : ''}" placeholder="URL da foto" class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none mb-1" oninput="document.getElementById('client-foto-preview').src=this.value; document.getElementById('client-foto-preview').classList.remove('hidden'); document.getElementById('client-foto-icon').classList.add('hidden');">
+                  <input type="text" name="foto_url" id="client-foto-url" value="${client ? (client.foto_url || '') : ''}" placeholder="URL da foto" class="hidden w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none mb-1" oninput="document.getElementById('client-foto-preview').src=this.value; document.getElementById('client-foto-preview').classList.remove('hidden'); document.getElementById('client-foto-icon').classList.add('hidden');">
                   <input type="file" accept="image/*" onchange="clientsModule.handlePhotoUpload(this)" class="w-full text-[10px] text-slate-500 file:mr-1 file:py-1 file:px-1 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 </div>
 
@@ -188,7 +212,7 @@ window.clientsModule = {
 
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Telefone WhatsApp *</label>
-                <input type="text" name="telefone_whatsapp" required value="${client ? client.telefone_whatsapp : ''}" placeholder="(11) 99999-8888" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" name="telefone_whatsapp" required value="${client ? client.telefone_whatsapp : ''}" placeholder="(00) 0 0000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="this.value = clientsModule.maskPhone(this.value)">
               </div>
 
               <div>
@@ -197,8 +221,16 @@ window.clientsModule = {
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Instagram (Link/@)</label>
-                <input type="text" name="instagram" value="${client ? (client.instagram || '') : ''}" placeholder="@cliente ou https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Instagram</label>
+                <div class="relative flex items-center">
+                  <span class="absolute left-3 text-slate-400">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm3.98-10.834a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                  </span>
+                  <input type="text" name="instagram" value="${client ? (client.instagram || '') : ''}" placeholder="instagram.com/" class="w-full pl-9 pr-10 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="this.value = this.value.replace(/^@/, '')">
+                  <a href="#" onclick="const v=this.previousElementSibling.value; if(v) window.open('https://instagram.com/'+v.replace('instagram.com/', ''), '_blank')" class="absolute right-3 text-blue-500 hover:text-blue-700">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                  </a>
+                </div>
               </div>
 
               <div>
@@ -218,9 +250,10 @@ window.clientsModule = {
               </div>
 
               <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="col-span-2">
+                <div class="col-span-2 relative">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Logradouro</label>
-                  <input type="text" name="logradouro" id="client-logradouro" value="${client ? (client.logradouro || client.endereco || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <input type="text" name="logradouro" id="client-logradouro" autocomplete="off" value="${client ? (client.logradouro || client.endereco || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="clientsModule.searchAddress(this.value)">
+                  <div id="address-suggestions" class="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-slate-200 hidden max-h-48 overflow-y-auto"></div>
                   <input type="hidden" name="endereco" value="">
                 </div>
                 <div>
@@ -262,6 +295,49 @@ window.clientsModule = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    setTimeout(() => this.initGoogleAutocomplete(), 100);
+  },
+
+  initGoogleAutocomplete() {
+    if (window.google && window.google.maps && window.google.maps.places) {
+      const input = document.getElementById('client-logradouro');
+      if (input) {
+        const autocomplete = new google.maps.places.Autocomplete(input, {
+          componentRestrictions: { country: "br" },
+          fields: ["address_components", "geometry", "name"],
+          types: ["address"],
+        });
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          let numero = '';
+          let logradouro = '';
+          let bairro = '';
+          let cidade = '';
+          let uf = '';
+          let cep = '';
+          
+          if(place.address_components) {
+            for (const component of place.address_components) {
+              const componentType = component.types[0];
+              switch (componentType) {
+                case "street_number": numero = component.long_name; break;
+                case "route": logradouro = component.long_name; break;
+                case "sublocality_level_1": bairro = component.long_name; break;
+                case "administrative_area_level_2": cidade = component.long_name; break;
+                case "administrative_area_level_1": uf = component.short_name; break;
+                case "postal_code": cep = component.long_name; break;
+              }
+            }
+          }
+          if(logradouro) input.value = logradouro;
+          if(numero && document.getElementById('client-numero')) document.getElementById('client-numero').value = numero;
+          if(bairro && document.getElementById('client-bairro')) document.getElementById('client-bairro').value = bairro;
+          if(cidade && document.getElementById('client-cidade')) document.getElementById('client-cidade').value = cidade;
+          if(uf && document.getElementById('client-uf')) document.getElementById('client-uf').value = uf;
+          if(cep && document.getElementById('client-cep')) document.getElementById('client-cep').value = cep;
+        });
+      }
+    }
   },
 
   editModal(id) {
@@ -341,11 +417,107 @@ window.clientsModule = {
     }
   },
 
+  maskPhone(v) {
+    v = v.replace(/\D/g, '');
+    if (v.length > 11) v = v.slice(0, 11);
+    if (v.length > 10) return v.replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, '($1) $2 $3-$4');
+    if (v.length > 6) return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+    if (v.length > 2) return v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    return v;
+  },
+
+  searchInModal(term) {
+    const resDiv = document.getElementById('modal-search-results');
+    if (!term || term.trim().length < 2) {
+      resDiv.classList.add('hidden');
+      return;
+    }
+    const lowerTerm = term.toLowerCase().trim();
+    const clients = window.store.getClients();
+    const matches = clients.filter(c => 
+      c.nome.toLowerCase().includes(lowerTerm) || 
+      (c.telefone_whatsapp && c.telefone_whatsapp.replace(/\D/g,'').includes(lowerTerm.replace(/\D/g,''))) || 
+      (c.apelido && c.apelido.toLowerCase().includes(lowerTerm))
+    ).slice(0, 5);
+
+    if (matches.length > 0) {
+      resDiv.innerHTML = matches.map(c => `
+        <div class="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0" onclick="document.getElementById('client-modal').remove(); clientsModule.editModal('${c.id}')">
+          <div class="font-bold text-sm text-slate-800">${c.nome}</div>
+          <div class="text-xs text-slate-500">${c.telefone_whatsapp} ${c.apelido ? ' - ' + c.apelido : ''}</div>
+        </div>
+      `).join('');
+      resDiv.classList.remove('hidden');
+    } else {
+      resDiv.innerHTML = '<div class="px-4 py-2 text-sm text-slate-500 italic">Nenhum cliente encontrado.</div>';
+      resDiv.classList.remove('hidden');
+    }
+  },
+
+  searchAddressTimer: null,
+  async searchAddress(term) {
+    const resDiv = document.getElementById('address-suggestions');
+    if (!term || term.trim().length < 4) {
+      resDiv.classList.add('hidden');
+      return;
+    }
+    
+    // Check if Google Maps Places Autocomplete is available
+    if (window.google && window.google.maps && window.google.maps.places) {
+      // If we initialized autocomplete on the input, it handles the dropdown natively.
+      return;
+    }
+
+    // Fallback: Use Nominatim (OpenStreetMap) if no Google Maps API
+    clearTimeout(this.searchAddressTimer);
+    this.searchAddressTimer = setTimeout(async () => {
+      try {
+        const city = document.getElementById('client-cidade')?.value || '';
+        const state = document.getElementById('client-uf')?.value || '';
+        let query = term;
+        if(city) query += ', ' + city;
+        if(state) query += ', ' + state;
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&countrycodes=br&limit=5`);
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          resDiv.innerHTML = data.map(place => {
+            const addr = place.address;
+            const logr = addr.road || addr.pedestrian || addr.path || '';
+            const brro = addr.suburb || addr.neighbourhood || addr.residential || '';
+            const cid = addr.city || addr.town || addr.municipality || '';
+            const post = addr.postcode || '';
+            const num = addr.house_number || '';
+            return `
+            <div class="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 flex items-start gap-2" onclick="
+              document.getElementById('client-logradouro').value = '${logr || place.name}';
+              if('${brro}') document.getElementById('client-bairro').value = '${brro}';
+              if('${cid}') document.getElementById('client-cidade').value = '${cid}';
+              if('${post}') document.getElementById('client-cep').value = '${post}';
+              if('${num}') document.getElementById('client-numero').value = '${num}';
+              document.getElementById('address-suggestions').classList.add('hidden');
+            ">
+              <svg class="w-4 h-4 mt-0.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <div class="text-sm text-slate-700">${place.display_name}</div>
+            </div>
+          `}).join('');
+          resDiv.classList.remove('hidden');
+        } else {
+          resDiv.classList.add('hidden');
+        }
+      } catch (e) {
+        console.warn('Erro ao buscar endereco:', e);
+      }
+    }, 500);
+  },
+
   save(e, id) {
     e.preventDefault();
     const form = e.target;
     const clientData = {
       id: id || undefined,
+      status: form.status && form.status.checked ? 'ativo' : 'bloqueado',
       nome: form.nome.value.trim(),
       apelido: form.apelido.value.trim(),
       cpf_cnpj: form.cpf_cnpj.value.trim(),
