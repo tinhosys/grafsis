@@ -1,4 +1,4 @@
-/* ==============================================================================
+﻿/* ==============================================================================
    GRAFSIS - Módulo de Clientes
    Cadastro Completo: Nome, Apelido, WhatsApp, Plus Code, Foto, CEP, etc.
    ============================================================================== */
@@ -191,7 +191,16 @@ window.clientsModule = {
                     <svg id="client-foto-icon" class="w-8 h-8 text-slate-300 ${client && client.foto_url ? 'hidden' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   </div>
                   <input type="text" name="foto_url" id="client-foto-url" value="${client ? (client.foto_url || '') : ''}" placeholder="URL da foto" class="hidden w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none mb-1" oninput="document.getElementById('client-foto-preview').src=this.value; document.getElementById('client-foto-preview').classList.remove('hidden'); document.getElementById('client-foto-icon').classList.add('hidden');">
-                  <input type="file" accept="image/*" capture="environment" onchange="clientsModule.handlePhotoUpload(this)" class="w-full text-[10px] text-slate-500 file:mr-1 file:py-1 file:px-1 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                  <div class="flex gap-1 w-full mt-1">
+                    <label class="flex-1 text-center cursor-pointer bg-blue-50 text-blue-700 hover:bg-blue-100 px-1 py-1 rounded text-[10px] font-semibold border border-blue-100">
+                      Câmera
+                      <input type="file" accept="image/*" capture="environment" onchange="clientsModule.handlePhotoUpload(this)" class="hidden">
+                    </label>
+                    <label class="flex-1 text-center cursor-pointer bg-slate-50 text-slate-700 hover:bg-slate-100 px-1 py-1 rounded text-[10px] font-semibold border border-slate-200">
+                      Arquivo
+                      <input type="file" accept="image/*" onchange="clientsModule.handlePhotoUpload(this)" class="hidden">
+                    </label>
+                  </div>
                 </div>
 
                 <div class="col-span-3 space-y-4">
@@ -604,9 +613,11 @@ window.clientsModule = {
   save(e, id) {
     e.preventDefault();
     const form = e.target;
+    const statusCheckbox = document.querySelector('input[name="status"]');
+    
     const clientData = {
       id: id || undefined,
-      status: form.status && form.status.checked ? 'ativo' : 'bloqueado',
+      status: statusCheckbox && statusCheckbox.checked ? 'ativo' : 'bloqueado',
       nome: form.nome.value.trim(),
       apelido: form.apelido.value.trim(),
       cpf_cnpj: form.cpf_cnpj.value.trim(),
@@ -628,6 +639,25 @@ window.clientsModule = {
       observacoes: form.observacoes ? form.observacoes.value.trim() : '',
       updated_at: new Date().toISOString()
     };
+
+    const allClients = window.store.getClients();
+    const isDuplicateCpf = allClients.some(c => c.cpf_cnpj && c.cpf_cnpj === clientData.cpf_cnpj && c.id !== clientData.id);
+    if (isDuplicateCpf) {
+      alert("Operação negada: Já existe um cliente cadastrado com este CPF/CNPJ.");
+      return;
+    }
+
+    const hasSimilar = allClients.some(c => c.id !== clientData.id && (
+      (c.telefone_whatsapp && c.telefone_whatsapp === clientData.telefone_whatsapp) ||
+      (c.email && c.email === clientData.email) ||
+      (c.nome && c.nome.toLowerCase() === clientData.nome.toLowerCase())
+    ));
+
+    if (hasSimilar) {
+      if (!confirm("Aviso: Já existe um cliente com o mesmo Nome, Telefone ou E-mail. Deseja salvar mesmo assim?")) {
+        return;
+      }
+    }
 
     window.store.saveClient(clientData);
     document.getElementById('client-modal').remove();

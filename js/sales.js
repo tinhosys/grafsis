@@ -235,11 +235,19 @@ window.salesModule = {
     return badges[phase] || badges['orcamento'];
   createOrderForClient(clientId) { this.openModal({ clientId }); },
 
-  checkClientAge(clientId) {
+  checkClientStatusAndAge(selectElement) {
+    const clientId = selectElement.value;
     if (!clientId) return;
     const client = window.store.getClients().find(c => c.id === clientId);
     if (!client) return;
     
+    // Bloqueio de venda para cliente inativo/bloqueado
+    if (client.status === 'bloqueado') {
+      alert(`Operação negada: O cliente ${client.nome} encontra-se BLOQUEADO. Atualize o cadastro do cliente para liberar vendas.`);
+      selectElement.value = '';
+      return;
+    }
+
     // Check if updated_at or created_at is older than 1 year (365 days)
     const refDate = client.updated_at || client.created_at;
     if (refDate) {
@@ -356,7 +364,7 @@ window.salesModule = {
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div class="md:col-span-2">
                 <label class="block text-xs font-semibold mb-1">Cliente *</label>
-                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800" onchange="salesModule.checkClientAge(this.value)">
+                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800" onchange="salesModule.checkClientStatusAndAge(this)">
                   <option value="">Selecione o Cliente...</option>
                   ${clients.map(c => `<option value="${c.id}" ${(order && order.cliente_id === c.id) || params.clientId === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
                 </select>
