@@ -1,0 +1,127 @@
+﻿/* ==============================================================================
+   GRAFSIS - Folha de Estilos Customizados
+   Interface Moderna e Responsiva para Comunicação Visual e Gráfica
+   ============================================================================== */
+
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --dark: #0f172a;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg);
+  color: #1e293b;
+}
+
+/* Scrollbar estilizada */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Kanban Board Fases de Produção */
+.kanban-board {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1.5rem;
+  min-height: calc(100vh - 240px);
+}
+
+.kanban-col {
+  flex: 0 0 310px;
+  background-color: #f1f5f9;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.kanban-header {
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.kanban-cards {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kanban-card {
+  background: white;
+  border-radius: 0.6rem;
+  padding: 0.85rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.kanban-card.dragging {
+  opacity: 0.5;
+  border: 2px dashed #3b82f6;
+}
+
+/* Badges de Fases */
+.badge-orcamento { background-color: #e0e7ff; color: #3730a3; }
+.badge-layout { background-color: #fef3c7; color: #92400e; }
+.badge-producao { background-color: #dbeafe; color: #1e40af; }
+.badge-acabamento { background-color: #fae8ff; color: #86198f; }
+.badge-qualidade { background-color: #ffedd5; color: #9a3412; }
+.badge-pronto { background-color: #dcfce7; color: #166534; }
+.badge-entregue { background-color: #f3f4f6; color: #374151; }
+
+/* Protocolo de Entrega Impresso */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #modal-protocolo, #modal-protocolo * {
+    visibility: visible;
+  }
+  #modal-protocolo {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

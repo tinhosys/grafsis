@@ -233,7 +233,29 @@ window.salesModule = {
       'entregue': '<span class="px-2 py-1 bg-slate-800 text-white rounded text-[10px] font-black uppercase">8. EXPEDICAO</span>'
     };
     return badges[phase] || badges['orcamento'];
-  },  createOrderForClient(clientId) { this.openModal({ clientId }); },
+  createOrderForClient(clientId) { this.openModal({ clientId }); },
+
+  checkClientAge(clientId) {
+    if (!clientId) return;
+    const client = window.store.getClients().find(c => c.id === clientId);
+    if (!client) return;
+    
+    // Check if updated_at or created_at is older than 1 year (365 days)
+    const refDate = client.updated_at || client.created_at;
+    if (refDate) {
+      const msDiff = new Date() - new Date(refDate);
+      const daysDiff = msDiff / (1000 * 60 * 60 * 24);
+      if (daysDiff > 365) {
+        if (confirm(`Atenção: Os dados do cliente ${client.nome} não são atualizados há mais de 1 ano. Deseja atualizar os dados agora?`)) {
+          if (window.clientsModule && typeof window.clientsModule.editModal === 'function') {
+            window.clientsModule.editModal(clientId);
+          } else {
+            alert('Acesse a aba Clientes para atualizar os dados.');
+          }
+        }
+      }
+    }
+  },
     getNextOrderId() {
     const orders = window.store.getOrders();
     const yy = new Date().getFullYear().toString().slice(-2);
@@ -334,7 +356,7 @@ window.salesModule = {
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div class="md:col-span-2">
                 <label class="block text-xs font-semibold mb-1">Cliente *</label>
-                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800">
+                <select name="cliente_id" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800" onchange="salesModule.checkClientAge(this.value)">
                   <option value="">Selecione o Cliente...</option>
                   ${clients.map(c => `<option value="${c.id}" ${(order && order.cliente_id === c.id) || params.clientId === c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}
                 </select>

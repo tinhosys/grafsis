@@ -147,19 +147,43 @@ window.clientsModule = {
 
           <form id="client-form" onsubmit="clientsModule.save(event, '${client ? client.id : ''}')" class="mt-4 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Nome Completo / Razão Social *</label>
-                <input type="text" name="nome" required value="${client ? client.nome : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <div class="md:col-span-2 flex justify-end gap-4 mb-2">
+                <label class="flex items-center gap-1 text-sm font-semibold text-slate-700 cursor-pointer">
+                  <input type="radio" name="tipo_pessoa" value="PF" ${!client || client.tipo_pessoa !== 'PJ' ? 'checked' : ''} onchange="clientsModule.toggleTipoPessoa(this.value)"> Pessoa Física
+                </label>
+                <label class="flex items-center gap-1 text-sm font-semibold text-slate-700 cursor-pointer">
+                  <input type="radio" name="tipo_pessoa" value="PJ" ${client && client.tipo_pessoa === 'PJ' ? 'checked' : ''} onchange="clientsModule.toggleTipoPessoa(this.value)"> Pessoa Jurídica
+                </label>
               </div>
 
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Nome Fantasia / Apelido</label>
-                <input type="text" name="apelido" value="${client ? (client.apelido || '') : ''}" placeholder="Ex: Marcos do Açougue" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-              </div>
+              <!-- Foto superior esquerda e Dados à direita -->
+              <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <div class="col-span-1 flex flex-col items-center border border-slate-200 rounded-lg p-2 bg-slate-50">
+                  <div class="w-24 h-24 bg-white border border-slate-300 rounded-lg overflow-hidden flex items-center justify-center mb-2 shadow-sm">
+                    <img id="client-foto-preview" src="${client && client.foto_url ? client.foto_url : ''}" class="w-full h-full object-cover ${client && client.foto_url ? '' : 'hidden'}">
+                    <svg id="client-foto-icon" class="w-8 h-8 text-slate-300 ${client && client.foto_url ? 'hidden' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  </div>
+                  <input type="text" name="foto_url" id="client-foto-url" value="${client ? (client.foto_url || '') : ''}" placeholder="URL da foto" class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none mb-1" oninput="document.getElementById('client-foto-preview').src=this.value; document.getElementById('client-foto-preview').classList.remove('hidden'); document.getElementById('client-foto-icon').classList.add('hidden');">
+                  <input type="file" accept="image/*" onchange="clientsModule.handlePhotoUpload(this)" class="w-full text-[10px] text-slate-500 file:mr-1 file:py-1 file:px-1 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
 
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">CPF ou CNPJ</label>
-                <input type="text" name="cpf_cnpj" value="${client ? (client.cpf_cnpj || '') : ''}" placeholder="000.000.000-00" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <div class="col-span-3 space-y-4">
+                  <div>
+                    <label id="lbl-nome" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'Nome *' : 'Razão Social *'}</label>
+                    <input type="text" name="nome" required value="${client ? client.nome : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label id="lbl-apelido" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'Nome Popular' : 'Nome Fantasia'}</label>
+                      <input type="text" name="apelido" value="${client ? (client.apelido || '') : ''}" placeholder="Ex: Marcos" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                      <label id="lbl-cpf" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'CPF' : 'CNPJ'}</label>
+                      <input type="text" name="cpf_cnpj" value="${client ? (client.cpf_cnpj || '') : ''}" onblur="clientsModule.validaCpfCnpj(this)" placeholder="000.000.000-00" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                      <p id="cpf-error" class="text-red-500 text-[10px] font-bold mt-1 hidden">Documento Inválido</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -170,6 +194,11 @@ window.clientsModule = {
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
                 <input type="email" name="email" value="${client ? (client.email || '') : ''}" placeholder="cliente@email.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Instagram (Link/@)</label>
+                <input type="text" name="instagram" value="${client ? (client.instagram || '') : ''}" placeholder="@cliente ou https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               </div>
 
               <div>
@@ -188,9 +217,24 @@ window.clientsModule = {
                 </div>
               </div>
 
-              <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço Completo</label>
-                <input type="text" name="endereco" id="client-endereco" value="${client ? (client.endereco || '') : ''}" placeholder="Rua, Número, Bairro" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="col-span-2">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Logradouro</label>
+                  <input type="text" name="logradouro" id="client-logradouro" value="${client ? (client.logradouro || client.endereco || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <input type="hidden" name="endereco" value="">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Número</label>
+                  <input type="text" name="numero" id="client-numero" value="${client ? (client.numero || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Bairro</label>
+                  <input type="text" name="bairro" id="client-bairro" value="${client ? (client.bairro || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="col-span-4">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Complemento</label>
+                  <input type="text" name="complemento" id="client-complemento" value="${client ? (client.complemento || '') : ''}" placeholder="Apto, Sala, Bloco..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
               </div>
 
               <div>
@@ -204,9 +248,8 @@ window.clientsModule = {
               </div>
 
               <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Foto / Logo do Cliente (URL ou Imagem)</label>
-                <input type="text" name="foto_url" id="client-foto-url" value="${client ? (client.foto_url || '') : ''}" placeholder="Cole o link da foto ou use o arquivo abaixo" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none mb-1">
-                <input type="file" accept="image/*" onchange="clientsModule.handlePhotoUpload(this)" class="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Observações / Anotações do Cliente</label>
+                <textarea name="observacoes" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">${client ? (client.observacoes || '') : ''}</textarea>
               </div>
             </div>
 
@@ -226,12 +269,55 @@ window.clientsModule = {
     if (client) this.openModal(client);
   },
 
+  toggleTipoPessoa(tipo) {
+    const lblNome = document.getElementById('lbl-nome');
+    const lblApelido = document.getElementById('lbl-apelido');
+    const lblCpf = document.getElementById('lbl-cpf');
+    const inpCpf = document.querySelector('input[name="cpf_cnpj"]');
+    if (tipo === 'PJ') {
+      lblNome.innerText = 'Razão Social *';
+      lblApelido.innerText = 'Nome Fantasia';
+      lblCpf.innerText = 'CNPJ';
+      inpCpf.placeholder = '00.000.000/0000-00';
+    } else {
+      lblNome.innerText = 'Nome *';
+      lblApelido.innerText = 'Nome Popular';
+      lblCpf.innerText = 'CPF';
+      inpCpf.placeholder = '000.000.000-00';
+    }
+  },
+
+  validaCpfCnpj(input) {
+    const val = input.value.replace(/\D/g, '');
+    const err = document.getElementById('cpf-error');
+    if (!val) { err.classList.add('hidden'); input.classList.remove('border-red-500'); return; }
+    let valid = false;
+    if (val.length === 11) {
+      valid = !/^(\d)\1{10}$/.test(val);
+    } else if (val.length === 14) {
+      valid = !/^(\d)\1{13}$/.test(val);
+    }
+    
+    if (!valid) {
+      err.classList.remove('hidden');
+      input.classList.add('border-red-500');
+    } else {
+      err.classList.add('hidden');
+      input.classList.remove('border-red-500');
+    }
+  },
+
   handlePhotoUpload(input) {
     const file = input.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         document.getElementById('client-foto-url').value = e.target.result;
+        if(document.getElementById('client-foto-preview')) {
+          document.getElementById('client-foto-preview').src = e.target.result;
+          document.getElementById('client-foto-preview').classList.remove('hidden');
+          document.getElementById('client-foto-icon').classList.add('hidden');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -246,7 +332,8 @@ window.clientsModule = {
         if (!data.erro) {
           document.getElementById('client-cidade').value = data.localidade || '';
           document.getElementById('client-uf').value = data.uf || '';
-          document.getElementById('client-endereco').value = `${data.logradouro || ''} - ${data.bairro || ''}`;
+          if(document.getElementById('client-logradouro')) document.getElementById('client-logradouro').value = data.logradouro || '';
+          if(document.getElementById('client-bairro')) document.getElementById('client-bairro').value = data.bairro || '';
         }
       } catch (e) {
         console.warn('Erro ao consultar CEP:', e);
@@ -270,7 +357,15 @@ window.clientsModule = {
       endereco: form.endereco.value.trim(),
       referencia: form.referencia.value.trim(),
       plus_code: form.plus_code.value.trim(),
-      foto_url: form.foto_url.value.trim()
+      foto_url: form.foto_url.value.trim(),
+      tipo_pessoa: form.tipo_pessoa ? form.tipo_pessoa.value : 'PF',
+      instagram: form.instagram ? form.instagram.value.trim() : '',
+      logradouro: form.logradouro ? form.logradouro.value.trim() : '',
+      numero: form.numero ? form.numero.value.trim() : '',
+      complemento: form.complemento ? form.complemento.value.trim() : '',
+      bairro: form.bairro ? form.bairro.value.trim() : '',
+      observacoes: form.observacoes ? form.observacoes.value.trim() : '',
+      updated_at: new Date().toISOString()
     };
 
     window.store.saveClient(clientData);

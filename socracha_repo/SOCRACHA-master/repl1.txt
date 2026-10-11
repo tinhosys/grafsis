@@ -1,0 +1,115 @@
+﻿  isRegistering: false,
+
+  render() {
+    const container = document.getElementById('view-container');
+    if (!this.currentClient) {
+      if (this.isRegistering) {
+        this.renderRegister(container);
+      } else {
+        this.renderLogin(container);
+      }
+    } else {
+      this.renderDashboard();
+    }
+  },
+
+  renderLogin(container) {
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center min-h-[70vh]">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-slate-100 text-center">
+          <h1 class="text-2xl font-black text-slate-800 mb-2">Login</h1>
+          <p class="text-slate-500 mb-6">Acesse com seu CPF e Senha para comprar.</p>
+          <form onsubmit="selfserviceModule.login(event)" class="space-y-4">
+            <input type="text" id="ss-login-doc" required placeholder="Digite seu CPF" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-center text-lg focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="ss-login-pwd" required placeholder="Digite sua Senha" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-center text-lg focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-md">ENTRAR</button>
+            <p class="text-sm text-slate-500 mt-4">Ainda n&atilde;o tem conta? <a href="#" onclick="selfserviceModule.isRegistering=true; selfserviceModule.render(); return false;" class="text-blue-600 font-bold hover:underline">Cadastre-se</a></p>
+          </form>
+        </div>
+      </div>
+    `;
+  },
+
+  renderRegister(container) {
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center min-h-[80vh] py-8">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full border border-slate-100">
+          <h1 class="text-2xl font-black text-slate-800 mb-2 text-center">Criar Conta</h1>
+          <p class="text-slate-500 mb-6 text-center">Preencha seus dados para acessar o e-commerce.</p>
+          <form onsubmit="selfserviceModule.register(event)" class="space-y-4">
+            <div><label class="block text-xs font-bold text-slate-500 mb-1">Nome Completo</label><input type="text" id="reg-nome" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-xs font-bold text-slate-500 mb-1">CPF</label><input type="text" id="reg-cpf" required class="w-full px-3 py-2 border rounded-lg"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1">Celular</label><input type="text" id="reg-celular" required class="w-full px-3 py-2 border rounded-lg"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-xs font-bold text-slate-500 mb-1">Cidade</label><input type="text" id="reg-cidade" required class="w-full px-3 py-2 border rounded-lg"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1">UF</label><input type="text" id="reg-uf" required class="w-full px-3 py-2 border rounded-lg"></div>
+            </div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1">E-mail</label><input type="email" id="reg-email" required class="w-full px-3 py-2 border rounded-lg"></div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1">Senha</label><input type="password" id="reg-senha" required class="w-full px-3 py-2 border rounded-lg"></div>
+            
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl mt-4 transition shadow-md">CADASTRAR</button>
+            <p class="text-sm text-slate-500 mt-4 text-center">J&aacute; tem conta? <a href="#" onclick="selfserviceModule.isRegistering=false; selfserviceModule.render(); return false;" class="text-blue-600 font-bold hover:underline">Fazer Login</a></p>
+          </form>
+        </div>
+      </div>
+    `;
+  },
+
+  register(e) {
+    e.preventDefault();
+    const nome = document.getElementById('reg-nome').value.trim();
+    const cpf = document.getElementById('reg-cpf').value.trim().replace(/\D/g, '');
+    const celular = document.getElementById('reg-celular').value.trim();
+    const cidade = document.getElementById('reg-cidade').value.trim();
+    const uf = document.getElementById('reg-uf').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const senha = document.getElementById('reg-senha').value.trim();
+
+    if (!cpf || cpf.length < 11) return alert('CPF inv&aacute;lido.');
+
+    const clients = JSON.parse(localStorage.getItem('grafsis_clients') || '[]');
+    if (clients.find(c => (c.cpf_cnpj || '').replace(/\D/g, '') === cpf)) {
+      return alert('CPF j&aacute; cadastrado. Fa&ccedil;a login.');
+    }
+
+    const newClient = {
+      id: grafsisUUID(),
+      tipo: 'PF',
+      nome, cpf_cnpj: cpf, celular, cidade, estado: uf, email, senha,
+      data_cadastro: new Date().toISOString()
+    };
+    
+    clients.push(newClient);
+    localStorage.setItem('grafsis_clients', JSON.stringify(clients));
+    
+    alert('Conta criada com sucesso!');
+    this.currentClient = newClient;
+    this.isRegistering = false;
+    this.cart = [];
+    this.currentTab = 'vitrine';
+    this.renderDashboard();
+  },
+
+  login(e) {
+    e.preventDefault();
+    const doc = document.getElementById('ss-login-doc').value.trim().replace(/\D/g, '');
+    const pwd = document.getElementById('ss-login-pwd').value.trim();
+    const clients = JSON.parse(localStorage.getItem('grafsis_clients') || '[]');
+    
+    const client = clients.find(c => {
+      const cDoc = (c.cpf_cnpj || '').replace(/\D/g, '');
+      return cDoc === doc && c.senha === pwd;
+    });
+
+    if (client) {
+      this.currentClient = client;
+      this.currentTab = 'vitrine';
+      this.cart = [];
+      this.photoDataUrl = null;
+      this.renderDashboard();
+    } else {
+      alert('CPF ou Senha incorretos.');
+    }
+  },

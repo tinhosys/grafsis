@@ -1,0 +1,69 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOCRACHA - Autoatendimento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
+  
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+    <header class="bg-white border-b border-slate-200 h-20 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0 no-print">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-slate-100">
+          <img src="assets/demo-top-digital.png" alt="Logo" class="w-full h-full object-contain">
+        </div>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight">SOCRACHA</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="app.openVersionModal()" title="Clique para ver o histórico e controle de versão" class="text-[10px] font-bold px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 transition">
+          v2.5.2
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-slate-50 relative" id="main-content-scroll">
+      <div id="view-container" class="max-w-7xl mx-auto"></div>
+    </main>
+  </div>
+
+  <!-- Modal de Controle de Versão & Changelog -->
+  <div id="version-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v2.5.2</span>
+          <h3 class="text-base font-bold text-slate-800">Controle de Versão do SOCRACHA</h3>
+        </div>
+        <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 1.0.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Lançamento</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Autoatendimento:</strong> Sistema de pedidos de crachás online.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+        <button onclick="app.closeVersionModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/store.js?v=1.0.0"></script>
+  <script src="js/cracha.js?v=1.0.0"></script>
+  <script src="js/seeder.js?v=1.0.0"></script>
+  <script src="js/app.js?v=1.0.0"></script>
+</body>
+</html>
