@@ -1,4 +1,4 @@
-/* ==============================================================================
+﻿/* ==============================================================================
    GRAFSIS - Módulo de Clientes
    Cadastro Completo: Nome, Apelido, WhatsApp, Plus Code, Foto, CEP, etc.
    ============================================================================== */
@@ -203,7 +203,7 @@ window.clientsModule = {
                     </div>
                     <div>
                       <label id="lbl-cpf" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'CPF' : 'CNPJ'}</label>
-                      <input type="text" name="cpf_cnpj" value="${client ? (client.cpf_cnpj || '') : ''}" onblur="clientsModule.validaCpfCnpj(this)" placeholder="000.000.000-00" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                      <input type="text" name="cpf_cnpj" value="${client ? (client.cpf_cnpj || '') : ''}" oninput="this.value = clientsModule.maskCpfCnpj(this.value)" onblur="clientsModule.validaCpfCnpj(this)" placeholder="000.000.000-00" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                       <p id="cpf-error" class="text-red-500 text-[10px] font-bold mt-1 hidden">Documento Inválido</p>
                     </div>
                   </div>
@@ -238,17 +238,6 @@ window.clientsModule = {
                 <input type="text" name="cep" id="client-cep" onblur="clientsModule.buscaCep(this.value)" value="${client ? (client.cep || '') : ''}" placeholder="00000-000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               </div>
 
-              <div class="grid grid-cols-3 gap-2">
-                <div class="col-span-2">
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade</label>
-                  <input type="text" name="cidade" id="client-cidade" value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">UF</label>
-                  <input type="text" name="uf" id="client-uf" maxlength="2" value="${client ? (client.uf || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-              </div>
-
               <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="col-span-2 relative">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Logradouro</label>
@@ -270,14 +259,30 @@ window.clientsModule = {
                 </div>
               </div>
 
+              <div class="grid grid-cols-3 gap-2">
+                <div class="col-span-2">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade</label>
+                  <input type="text" name="cidade" id="client-cidade" value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">UF</label>
+                  <input type="text" name="uf" id="client-uf" maxlength="2" value="${client ? (client.uf || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+              </div>
+
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Ponto de Referência</label>
                 <input type="text" name="referencia" value="${client ? (client.referencia || '') : ''}" placeholder="Ex: Próximo à padaria central" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Plus Code (Google Maps)</label>
-                <input type="text" name="plus_code" value="${client ? (client.plus_code || '') : ''}" placeholder="Ex: 87G8C822+4X" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Localização (Plus Code/Endereço)</label>
+                <div class="relative flex items-center">
+                  <input type="text" name="plus_code" id="client-plus-code" value="${client ? (client.plus_code || '') : ''}" placeholder="Ex: 87G8C822+4X ou Endereço" class="w-full pr-10 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <button type="button" onclick="clientsModule.getLocation()" class="absolute right-2 text-blue-500 hover:text-blue-700" title="Ver no Mapa ou Pegar Localização Atual">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                  </button>
+                </div>
               </div>
 
               <div class="md:col-span-2">
@@ -417,6 +422,46 @@ window.clientsModule = {
     }
   },
 
+  maskCpfCnpj(v) {
+    v = v.replace(/\D/g, ''); // Apenas números
+    if (v.length <= 11) {
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+      if (v.length > 14) v = v.slice(0, 14);
+      v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1/$2');
+      v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+    }
+    return v;
+  },
+
+  getLocation() {
+    const input = document.getElementById('client-plus-code');
+    const val = input ? input.value.trim() : '';
+    if (val) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val)}`, '_blank');
+      return;
+    }
+    const btn = document.querySelector('#client-plus-code').nextElementSibling;
+    if (navigator.geolocation) {
+      if(btn) btn.classList.add('animate-pulse');
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        if(input) input.value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        if(btn) btn.classList.remove('animate-pulse');
+      }, (error) => {
+        alert('Erro ao obter localização. Verifique as permissões do navegador.');
+        if(btn) btn.classList.remove('animate-pulse');
+      });
+    } else {
+      alert('Geolocalização não suportada no seu navegador.');
+    }
+  },
+
   maskPhone(v) {
     v = v.replace(/\D/g, '');
     if (v.length > 11) v = v.slice(0, 11);
@@ -472,11 +517,10 @@ window.clientsModule = {
     clearTimeout(this.searchAddressTimer);
     this.searchAddressTimer = setTimeout(async () => {
       try {
-        const city = document.getElementById('client-cidade')?.value || '';
-        const state = document.getElementById('client-uf')?.value || '';
+        const city = document.getElementById('client-cidade')?.value || 'Porto Velho';
+        const state = document.getElementById('client-uf')?.value || 'RO';
         let query = term;
-        if(city) query += ', ' + city;
-        if(state) query += ', ' + state;
+        query += ', ' + city + ', ' + state;
         
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&countrycodes=br&limit=5`);
         const data = await response.json();
