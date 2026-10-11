@@ -147,3 +147,7 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS observacoes TEXT;
 
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ativo';
 
+
+-- Atualizacoes v2.7.1
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS genero VARCHAR(2);
