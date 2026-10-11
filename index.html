@@ -232,7 +232,7 @@
           <span class="text-slate-400">Banco de Dados Cloud Supabase</span>
           <span>•</span>
           <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
-            Versão 3.0.0 (Ver Notas)
+            Versão 3.2.0 (Ver Notas)
           </button>
         </div>
       </footer>
@@ -240,224 +240,221 @@
   </div>
   </div> <!-- Fim de #app-layout -->
 
-  <!-- Tela Inicial de Autenticação / Login Profissional (Inspirada na Imagem 2) -->
-  <div id="auth-modal" class="fixed inset-0 z-50 bg-gradient-to-br from-slate-100 via-sky-50 to-indigo-100 items-center justify-center p-3 sm:p-6 lg:p-10 overflow-y-auto" style="display: flex;">
-    <div class="w-full max-w-6xl bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 overflow-hidden flex flex-col lg:flex-row my-auto">
+  <!-- Tela Inicial de Autenticação / Login Profissional (v3.2.0 - Imagem Oficial) -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-[#eef3f9] items-center justify-center p-3 sm:p-6 lg:p-10 overflow-y-auto" style="display: flex;">
+    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto border border-slate-200/60 min-h-[580px]">
       
-      <!-- Lado Esquerdo: Apresentação da Marca & Recursos (Imagem 2) -->
-      <div class="lg:w-7/12 p-6 sm:p-10 lg:p-12 flex flex-col justify-between bg-gradient-to-br from-white via-sky-50/40 to-blue-50/30 relative">
-        <div class="relative z-10 space-y-6">
-          <!-- Logo Oficial & Slogan -->
-          <div class="flex items-center gap-3.5">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-pink-500 p-0.5 shadow-lg shadow-blue-500/20">
-              <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center font-black text-2xl text-blue-700">
-                G
-              </div>
-            </div>
-            <div>
-              <div class="text-3xl font-black tracking-tight text-slate-900 leading-none">
-                Graf<span class="text-blue-600">sis</span>
-              </div>
-              <div class="text-[11px] font-bold text-slate-500 tracking-wider uppercase mt-1">
-                sua gráfica nas nuvens
-              </div>
-            </div>
-          </div>
-
-          <!-- Chamada Principal -->
-          <div class="space-y-2">
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-              Gestão completa<br>para o crescimento<br>da <span class="text-blue-600 underline decoration-blue-300 decoration-wavy decoration-2">sua gráfica</span>
-            </h1>
-            <!-- Tracinho Colorido (CMYK/RGB) -->
-            <div class="flex gap-1.5 pt-1">
-              <span class="w-7 h-1.5 rounded-full bg-cyan-400"></span>
-              <span class="w-7 h-1.5 rounded-full bg-pink-500"></span>
-              <span class="w-7 h-1.5 rounded-full bg-amber-400"></span>
-              <span class="w-7 h-1.5 rounded-full bg-slate-900"></span>
-            </div>
-            <p class="text-xs sm:text-sm text-slate-600 pt-1 leading-relaxed max-w-lg">
-              Plataforma moderna e integrada para gráficas rápidas, comunicação visual, estamparias têxteis e brindes promocionais. Tudo o que você precisa, em um só lugar, 100% em nuvem.
-            </p>
-          </div>
-
-          <!-- Grid de Recursos (Cards da Imagem 2) -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-            <!-- Orçamentos inteligentes -->
-            <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
-              <div class="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 border border-pink-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              </div>
-              <div>
-                <div class="text-xs font-bold text-slate-800">Orçamentos inteligentes</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">Agilidade e mais vendas para sua gráfica.</div>
-              </div>
-            </div>
-
-            <!-- OS e Kanban de produção -->
-            <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
-              <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-              </div>
-              <div>
-                <div class="text-xs font-bold text-slate-800">OS e Kanban de produção</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">Acompanhe cada etapa visual e eficiente.</div>
-              </div>
-            </div>
-
-            <!-- Portal de aprovação -->
-            <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
-              <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-              </div>
-              <div>
-                <div class="text-xs font-bold text-slate-800">Portal de aprovação</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">Clientes aprovam arquivos e layout online.</div>
-              </div>
-            </div>
-
-            <!-- Controle de estoque -->
-            <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
-              <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              </div>
-              <div>
-                <div class="text-xs font-bold text-slate-800">Controle de estoque</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">Matérias-primas, insumos e m² em tempo real.</div>
-              </div>
-            </div>
-
-            <!-- Gestão financeira -->
-            <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
-              <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 border border-cyan-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              </div>
-              <div>
-                <div class="text-xs font-bold text-slate-800">Gestão financeira</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">Receitas, despesas, caixa e lucratividade.</div>
-              </div>
-            </div>
-
-            <!-- 100% em nuvem -->
-            <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
-              <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-              </div>
-              <div>
-                <div class="text-xs font-bold text-slate-800">100% em nuvem</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">Acesse de onde estiver, com total segurança.</div>
-              </div>
-            </div>
-          </div>
+      <!-- Lado Esquerdo: Banner Grafsis Azul Marinho com Ilustrações Gráficas 3D -->
+      <div class="md:w-1/2 bg-gradient-to-br from-[#0c2340] via-[#091b33] to-[#040e1c] p-8 sm:p-12 flex flex-col items-center justify-center relative overflow-hidden text-white select-none">
+        
+        <!-- Elementos Gráficos Decorativos Flutuantes (Comunicação Visual, Brindes, Estamparia) -->
+        <!-- Rolo de Adesivo / Lona (topo esquerdo) -->
+        <div class="absolute top-6 left-6 w-20 h-20 opacity-30 hover:opacity-50 transition pointer-events-none">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="65" cy="25" rx="18" ry="12" fill="#60a5fa" />
+            <path d="M15 45 C15 35, 45 20, 65 25 L65 37 C45 32, 15 47, 15 57 Z" fill="#93c5fd" />
+            <ellipse cx="65" cy="37" rx="18" ry="12" fill="#3b82f6" />
+            <path d="M15 57 C25 70, 70 70, 85 55 L85 62 C70 77, 25 77, 15 64 Z" fill="#bfdbfe" />
+          </svg>
         </div>
 
-        <div class="pt-6 mt-4 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-semibold text-slate-400">
-          <span>GRAFSIS Enterprise v2.8.5</span>
-          <span>Sincronização Cloud Supabase Ativa</span>
+        <!-- Camiseta / Estamparia (topo direito) -->
+        <div class="absolute top-6 right-8 w-20 h-20 opacity-35 hover:opacity-55 transition pointer-events-none">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M35 15 L20 28 L30 40 L38 32 L38 80 L62 80 L62 32 L70 40 L80 28 L65 15 C60 22, 40 22, 35 15 Z" fill="#60a5fa" />
+            <rect x="42" y="38" width="16" height="18" rx="2" fill="#93c5fd" opacity="0.8" />
+          </svg>
+        </div>
+
+        <!-- Prancheta / Layout Digital (centro esquerdo) -->
+        <div class="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-16 opacity-25 hover:opacity-40 transition pointer-events-none">
+          <svg viewBox="0 0 60 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="6" width="52" height="58" rx="8" fill="#3b82f6" />
+            <circle cx="20" cy="22" r="5" fill="#93c5fd" />
+            <path d="M12 48 L26 32 L48 50 Z" fill="#93c5fd" />
+          </svg>
+        </div>
+
+        <!-- Janela de Sistema / Produção (centro direito) -->
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-16 h-14 opacity-25 hover:opacity-40 transition pointer-events-none">
+          <svg viewBox="0 0 70 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="5" width="60" height="50" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="2" />
+            <circle cx="15" cy="14" r="2.5" fill="#f87171" />
+            <circle cx="23" cy="14" r="2.5" fill="#fbbf24" />
+            <circle cx="31" cy="14" r="2.5" fill="#34d399" />
+            <rect x="12" y="24" width="46" height="24" rx="4" fill="#3b82f6" opacity="0.5" />
+          </svg>
+        </div>
+
+        <!-- Camiseta inferior esquerda -->
+        <div class="absolute bottom-6 left-6 w-20 h-20 opacity-35 hover:opacity-55 transition pointer-events-none">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M35 15 L20 28 L30 40 L38 32 L38 80 L62 80 L62 32 L70 40 L80 28 L65 15 C60 22, 40 22, 35 15 Z" fill="#60a5fa" />
+            <rect x="42" y="38" width="16" height="18" rx="2" fill="#93c5fd" opacity="0.8" />
+          </svg>
+        </div>
+
+        <!-- Caneca de Brindes (inferior centro) -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-18 opacity-35 hover:opacity-55 transition pointer-events-none">
+          <svg viewBox="0 0 70 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="18" width="38" height="46" rx="6" fill="#bfdbfe" />
+            <path d="M50 26 C62 26, 62 52, 50 52" stroke="#bfdbfe" stroke-width="6" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+
+        <!-- Painel inferior direito -->
+        <div class="absolute bottom-6 right-6 w-18 h-16 opacity-25 hover:opacity-40 transition pointer-events-none">
+          <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="8" width="64" height="44" rx="6" fill="#1e40af" />
+            <rect x="14" y="16" width="52" height="6" rx="3" fill="#60a5fa" />
+            <rect x="14" y="26" width="30" height="6" rx="3" fill="#93c5fd" />
+            <rect x="14" y="36" width="40" height="6" rx="3" fill="#93c5fd" />
+          </svg>
+        </div>
+
+        <!-- Centro: Logo Oficial Grafsis Colorido -->
+        <div class="relative z-10 flex flex-col items-center text-center my-auto py-10">
+          
+          <!-- Ícone CMYK em Nuvem / Circuitos Digitais -->
+          <div class="w-32 h-28 relative mb-3">
+            <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-[0_10px_25px_rgba(0,140,255,0.4)]">
+              <!-- Pétala Ciano (Esquerda) -->
+              <ellipse cx="56" cy="65" rx="26" ry="32" fill="#00b4d8" />
+              <!-- Pétala Magenta (Topo) -->
+              <ellipse cx="80" cy="42" rx="25" ry="30" fill="#f72585" />
+              <!-- Pétala Amarelo/Laranja (Direita superior) -->
+              <ellipse cx="106" cy="58" rx="25" ry="30" fill="#fca311" />
+              <!-- Pétala Preta/Escura (Direita inferior) -->
+              <ellipse cx="104" cy="88" rx="24" ry="24" fill="#1f2421" />
+
+              <!-- Circuitos / Conexões Digitais Brancas -->
+              <path d="M50 78 L65 78 L78 64 L78 40" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="50" cy="78" r="5" fill="#ffffff" />
+              <circle cx="78" cy="40" r="5" fill="#ffffff" />
+
+              <path d="M110 78 L95 78 L84 66 L84 55" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="110" cy="78" r="5" fill="#ffffff" />
+
+              <path d="M82 66 L82 100" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" />
+              <circle cx="82" cy="100" r="4.5" fill="#ffffff" />
+
+              <!-- Pontos Coloridos CMYK na Base -->
+              <circle cx="68" cy="102" r="3.5" fill="#00b4d8" />
+              <circle cx="76" cy="108" r="3" fill="#f72585" />
+              <circle cx="88" cy="108" r="3" fill="#fca311" />
+              <circle cx="96" cy="102" r="3.5" fill="#00b4d8" />
+            </svg>
+          </div>
+
+          <!-- Tipografia Oficial "Grafsis" -->
+          <div class="text-4xl sm:text-5xl font-black tracking-tight text-white flex items-center justify-center font-sans">
+            <span>Graf</span><span class="text-[#38bdf8]">sis</span>
+          </div>
+
+          <!-- Slogan em minúsculas -->
+          <div class="text-xs sm:text-sm font-medium text-slate-300 tracking-wider mt-1 font-sans">
+            sua gráfica nas nuvens
+          </div>
         </div>
       </div>
 
-      <!-- Lado Direito: Card de Login & Acesso ao Sistema (Imagem 2) -->
-      <div class="lg:w-5/12 p-6 sm:p-10 lg:p-12 bg-white flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-100">
-        <div>
-          <div class="mb-6">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bem-vindo(a)</span>
-            <h2 class="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Acesso ao Sistema</h2>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-              Faça seu login para gerenciar sua gráfica com mais agilidade, organização e resultados.
+      <!-- Lado Direito: Formulário de Login Minimalista e Limpo -->
+      <div class="md:w-1/2 bg-[#f8fafc] p-8 sm:p-12 lg:p-14 flex flex-col justify-between">
+        
+        <div class="w-full max-w-sm mx-auto">
+          <!-- Título e Subtítulo -->
+          <div class="text-center mb-8">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+              Bem-vindo ao Grafsis
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-2 font-medium leading-relaxed max-w-xs mx-auto">
+              Gestão completa para comunicação visual, gráfica, brindes e estamparia
             </p>
           </div>
 
-          <form onsubmit="authModule.submitLogin(event)" class="space-y-4">
-            <!-- Campo CPF / Login -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1.5">CPF do Operador ou Login *</label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          <!-- Card do Formulário Branco Flutuante com Sombra Suave -->
+          <div class="bg-white p-6 sm:p-7 rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100">
+            <form onsubmit="authModule.submitLogin(event)" class="space-y-4">
+              
+              <!-- Campo: Login ou E-mail -->
+              <div>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                  </div>
+                  <input type="text" id="auth-cpf" placeholder="Login ou E-mail" oninput="authModule.handleCpfInput(this)" class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition shadow-sm" required autofocus autocomplete="username">
                 </div>
-                <input type="text" id="auth-cpf" placeholder="000.000.000-00 ou login" oninput="authModule.handleCpfInput(this)" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition" required autofocus autocomplete="username">
               </div>
-            </div>
 
-            <!-- Campo Senha com Dica Provisória (Linha Verde) -->
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-xs font-bold text-slate-700">Senha (4 Dígitos Numéricos) *</label>
-                <!-- Linha Verde / Dica Provisória da Senha e Cliente -->
-                <div id="auth-hint-container" class="flex items-center justify-end">
-                  <div id="auth-hint-bar" class="w-24 h-1.5 bg-lime-500 rounded-full shadow-sm shadow-lime-500/30 transition-all duration-300"></div>
-                  <div id="auth-hint-text" class="hidden text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md animate-pulse"></div>
+              <!-- Campo: Senha com Ícone de Olho -->
+              <div>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                  </div>
+                  <input type="password" id="auth-pin" placeholder="Senha" class="w-full pl-11 pr-11 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition shadow-sm tracking-wider" required autocomplete="current-password">
+                  <button type="button" onclick="authModule.togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition" title="Exibir/Ocultar senha">
+                    <svg id="auth-eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
+                  </button>
                 </div>
               </div>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                </div>
-                <input type="password" id="auth-pin" maxlength="6" placeholder="Digite sua senha" class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm tracking-wider font-mono focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition" required autocomplete="current-password">
-                <button type="button" onclick="authModule.togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition" title="Exibir/Ocultar senha">
-                  <svg id="auth-eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+
+              <!-- Dica Provisória Discreta de Senha / Operador -->
+              <div id="auth-hint-container" class="min-h-[16px] flex items-center justify-between text-[11px]">
+                <div id="auth-hint-bar" class="w-16 h-1 bg-slate-200 rounded-full"></div>
+                <div id="auth-hint-text" class="hidden font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[10px]"></div>
+              </div>
+
+              <!-- Link: Esqueci minha senha -->
+              <div class="text-right -mt-1">
+                <button type="button" onclick="authModule.openSupportModal()" class="text-xs font-semibold text-blue-700 hover:text-blue-900 transition">
+                  Esqueci minha senha
                 </button>
               </div>
-            </div>
 
-            <!-- Manter Conectado e Esqueci Minha Senha -->
-            <div class="flex items-center justify-between pt-1">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" id="auth-remember" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-                <span class="text-xs font-semibold text-slate-600">Manter conectado</span>
-              </label>
-              <button type="button" onclick="authModule.openSupportModal()" class="text-xs font-bold text-blue-600 hover:underline">
-                Esqueci minha senha
-              </button>
-            </div>
+              <!-- Checkbox: Lembrar-me -->
+              <div class="flex items-center gap-2 pt-0.5">
+                <input type="checkbox" id="auth-remember" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer">
+                <label for="auth-remember" class="text-xs font-medium text-slate-600 cursor-pointer select-none">
+                  Lembrar-me
+                </label>
+              </div>
 
-            <!-- Mensagem de Erro de Acesso -->
-            <div id="auth-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-3 rounded-xl border border-red-200 flex items-center gap-2">
-              <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span id="auth-error-msg">CPF / Login ou Senha incorretos.</span>
-            </div>
+              <!-- Mensagem de Erro de Acesso -->
+              <div id="auth-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-xl border border-red-200">
+                <span id="auth-error-msg">CPF / Login ou Senha incorretos.</span>
+              </div>
 
-            <!-- Botão de Login Azul Proeminente -->
-            <div class="pt-2">
-              <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 hover:-translate-y-0.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-                Acessar Sistema
-              </button>
-            </div>
-          </form>
+              <!-- Botão Principal: Acessar Sistema (Azul Vibrante) -->
+              <div class="pt-1">
+                <button type="submit" class="w-full py-3.5 bg-[#0066ff] hover:bg-[#0052cc] text-white rounded-xl text-sm font-bold shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 transition-all duration-200 cursor-pointer active:scale-[0.99]">
+                  Acessar Sistema
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
 
-          <!-- Pontos Decorativos CMYK (Imagem 2) -->
-          <div class="mt-6 pt-5 border-t border-slate-100 text-center">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Ambiente Gráfico Oficial</span>
-            <div class="flex items-center justify-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-slate-800"></span>
+        <!-- Card Suporte WhatsApp Inferior (Conforme Imagem) -->
+        <div class="w-full max-w-sm mx-auto pt-6">
+          <div onclick="authModule.openSupportModal()" class="bg-white/90 hover:bg-emerald-50/60 p-3 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow transition cursor-pointer flex items-center justify-between group">
+            <div class="flex items-center gap-3">
+              <!-- Ícone WhatsApp Verde Oficial -->
+              <div class="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+              </div>
+              <div>
+                <div class="text-[11px] font-semibold text-slate-500 leading-tight">Suporte pelo WhatsApp</div>
+                <div class="text-sm font-bold text-slate-900 leading-tight">69 99922 1336</div>
+                <div class="text-[10px] text-slate-400 leading-none mt-0.5">Precisa de ajuda? Fale conosco</div>
+              </div>
+            </div>
+            <div class="text-slate-400 group-hover:text-emerald-600 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </div>
           </div>
         </div>
 
-        <!-- Botão Flutuante de Suporte WhatsApp com Link e QR Code (Imagem 2) -->
-        <div class="pt-6">
-          <button onclick="authModule.openSupportModal()" class="w-full p-2.5 rounded-2xl bg-white hover:bg-emerald-50/50 border border-emerald-200 shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-between group cursor-pointer text-left">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-              </div>
-              <div>
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block leading-none">Suporte Oficial</span>
-                <span class="text-xs font-black text-slate-800 leading-tight">WhatsApp Comercial</span>
-                <span class="text-[11px] font-mono font-bold text-emerald-700 block leading-none mt-0.5">(69) 99922-1336</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-xs group-hover:translate-x-1 transition-transform">
-              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-mono">QR Code</span>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </div>
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -714,7 +711,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.1.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.2.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -722,26 +719,24 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.1.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Gestão Corporativa de Empresas & Perfil</span>
+            <h4 class="font-bold text-slate-800">Versão 3.2.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Nova Tela Inicial Grafsis Oficial</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>ID Aleatório de 3 Dígitos:</strong> Geração randômica protegida (não editável) para identificação única da empresa.</li>
-            <li><strong>Validação e Máscara Oficial de CNPJ:</strong> Cálculo dos dígitos verificadores e formatação automática (00.000.000/0000-00).</li>
-            <li><strong>Máscara Inteligente de Telefone:</strong> Detecção dinâmica de telefone fixo ((00) 0000-0000) e celular/WhatsApp ((00) 0 0000-0000).</li>
-            <li><strong>Endereço Completo da Empresa:</strong> Campos padronizados de Rua, Número, CEP com máscara, Cidade e UF.</li>
-            <li><strong>Planos e Expiração com Renovação em 1 Clique:</strong> Planos TESTE (8d), MENSAL (30d), SEMESTRAL (180d), ANUAL (365d) e INDETERMINADO (3650d) com botão Renovar.</li>
-            <li><strong>Bloqueio Automático por Vencimento:</strong> Inativação automática de empresas com planos expirados.</li>
-            <li><strong>Foto de Perfil do Operador:</strong> Upload direto por Câmera ou Arquivo com corte quadrado 1:1 e identificação da empresa no topo do modal.</li>
+            <li><strong>Nova Identidade Visual na Tela Inicial:</strong> Layout fiel à imagem oficial com banner azul marinho e ilustrações gráficas 3D (lona/adesivo, camisetas de estamparia, caneca de brindes, layout digital).</li>
+            <li><strong>Logo Grafsis Colorido:</strong> Ícone moderno CMYK em nuvem com circuitos e conexões digitais.</li>
+            <li><strong>Card de Acesso Minimalista:</strong> Campos "Login ou E-mail", "Senha" com alternância de visibilidade, "Esqueci minha senha" e checkbox "Lembrar-me".</li>
+            <li><strong>Botão Suporte WhatsApp Integrado:</strong> Card inferior com ícone verde WhatsApp e contato oficial (69 99922 1336).</li>
+            <li><strong>Acesso Flexível por CPF, Login ou E-mail:</strong> Autenticação rápida com senha pessoal ou padrão.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.0.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Tela Inicial Oficial & Confiabilidade Plena</span>
+            <h4 class="font-bold text-slate-800">Versão 3.1.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Gestão Corporativa de Empresas & Perfil</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Tela Inicial Institucional com login por CPF, dica provisória e suporte WhatsApp integrado com QR Code.</li>
+            <li>ID aleatório de 3 dígitos, máscara dinâmica de telefone (fixo x móvel), validação oficial de CNPJ, planos com botão Renovar e corte quadrado 1:1 de foto de perfil.</li>
           </ul>
         </div>
       </div>
@@ -754,15 +749,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=3.1.0"></script>
-  <script src="js/auth.js?v=3.1.0"></script>
-  <script src="js/store.js?v=3.1.0"></script>
-  <script src="js/clients.js?v=3.1.0"></script>
-  <script src="js/suppliers.js?v=3.1.0"></script>
-  <script src="js/products.js?v=3.1.0"></script>
-  <script src="js/sales.js?v=3.1.0"></script>
-  <script src="js/production.js?v=3.1.0"></script>
-  <script src="js/finance.js?v=3.1.0"></script>
-  <script src="js/app.js?v=3.1.0"></script>
+  <script src="js/config.js?v=3.2.0"></script>
+  <script src="js/auth.js?v=3.2.0"></script>
+  <script src="js/store.js?v=3.2.0"></script>
+  <script src="js/clients.js?v=3.2.0"></script>
+  <script src="js/suppliers.js?v=3.2.0"></script>
+  <script src="js/products.js?v=3.2.0"></script>
+  <script src="js/sales.js?v=3.2.0"></script>
+  <script src="js/production.js?v=3.2.0"></script>
+  <script src="js/finance.js?v=3.2.0"></script>
+  <script src="js/app.js?v=3.2.0"></script>
 </body>
 </html>

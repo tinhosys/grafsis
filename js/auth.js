@@ -331,11 +331,12 @@ class GrafsisAuth {
     const digitsOnly = this.cleanDigits(termClean);
     const pass = (senha || '').trim();
 
-    // Busca por CPF ou por login
+    // Busca por CPF, Login ou E-mail
     const found = users.find(u => {
       const uCpfDigits = this.cleanDigits(u.cpf);
       const uLogin = (u.login || '').toLowerCase();
-      const matchIdentity = (digitsOnly && uCpfDigits === digitsOnly) || (uLogin === termClean);
+      const uEmail = (u.email || '').toLowerCase();
+      const matchIdentity = (digitsOnly && uCpfDigits === digitsOnly) || (uLogin === termClean) || (uEmail && uEmail === termClean);
       const matchPass = ((u.senha && u.senha === pass) || (u.pin && u.pin === pass));
       return matchIdentity && matchPass;
     });
@@ -587,34 +588,46 @@ class GrafsisAuth {
 
   handleCpfInput(input) {
     if (!input) return;
-    input.value = this.maskCpf(input.value);
+    const rawVal = input.value.trim();
+    const isOnlyDigits = /^\d+$/.test(rawVal.replace(/\D/g, '')) && !rawVal.includes('@') && !/[a-zA-Z]/.test(rawVal);
+    
+    // Se for numérico (CPF), aplica a máscara padrão
+    if (isOnlyDigits && rawVal.replace(/\D/g, '').length <= 11) {
+      input.value = this.maskCpf(input.value);
+    }
     const digits = this.cleanDigits(input.value);
+    const termClean = rawVal.toLowerCase();
 
     const hintBar = document.getElementById('auth-hint-bar');
     const hintText = document.getElementById('auth-hint-text');
 
+    const users = this.getUsers();
+    let found = null;
     if (digits.length >= 11) {
-      const users = this.getUsers();
-      const found = users.find(u => this.cleanDigits(u.cpf) === digits);
-      if (found) {
-        let tenantName = 'Gráfica Padrão';
-        if (window.store && typeof window.store.getTenants === 'function') {
-          const tenants = window.store.getTenants();
-          const t = tenants.find(item => item.id === (found.empresa_id || '001'));
-          if (t) tenantName = t.nome_fantasia || t.razao_social;
-        }
-
-        const pass = found.senha || found.pin || '0000';
-        if (hintBar) hintBar.classList.add('hidden');
-        if (hintText) {
-          hintText.innerHTML = `🔑 Senha: <span class="font-mono underline">${pass}</span> | 🏢 ${tenantName}`;
-          hintText.classList.remove('hidden');
-        }
-        return;
-      }
+      found = users.find(u => this.cleanDigits(u.cpf) === digits);
+    }
+    if (!found && termClean.length >= 3) {
+      found = users.find(u => (u.login && u.login.toLowerCase() === termClean) || (u.email && u.email.toLowerCase() === termClean));
     }
 
-    // Se CPF incompleto ou não localizado
+    if (found) {
+      let tenantName = 'Gráfica Padrão';
+      if (window.store && typeof window.store.getTenants === 'function') {
+        const tenants = window.store.getTenants();
+        const t = tenants.find(item => item.id === (found.empresa_id || '001'));
+        if (t) tenantName = t.nome_fantasia || t.razao_social;
+      }
+
+      const pass = found.senha || found.pin || '0000';
+      if (hintBar) hintBar.classList.add('hidden');
+      if (hintText) {
+        hintText.innerHTML = `🔑 Senha: <span class="font-mono underline">${pass}</span> | 🏢 ${tenantName}`;
+        hintText.classList.remove('hidden');
+      }
+      return;
+    }
+
+    // Se incompleto ou não localizado
     if (hintText) {
       hintText.classList.add('hidden');
       hintText.innerHTML = '';
