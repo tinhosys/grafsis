@@ -252,8 +252,8 @@ class GrafsisStore {
         window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
       ]);
 
-      // Atualiza a tela imediatamente com os dados recem-baixados da nuvem
-      if (window.app && window.app.currentTab) {
+      // Atualiza a tela imediatamente com os dados recem-baixados da nuvem (se autenticado)
+      if (window.app && window.app.currentTab && window.authModule && window.authModule.isAuthenticated()) {
         window.app.navigate(window.app.currentTab);
       }
 

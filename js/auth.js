@@ -249,6 +249,7 @@ class GrafsisAuth {
       } catch (e) {
         localStorage.setItem(this.STORAGE_USERS_KEY, JSON.stringify(DEFAULT_USERS));
       }
+    }
     // Exigência estrita: se não houver login autenticado na sessão, não autentica automaticamente
   }
 
@@ -391,10 +392,6 @@ class GrafsisAuth {
       warningDefaultPass,
       remainingAttempts
     };
-  }
-
-  logout() {
-    this.openLoginModal();
   }
 
   saveUserWithoutValidation(user) {
@@ -627,26 +624,31 @@ class GrafsisAuth {
 
   openLoginModal() {
     const modal = document.getElementById('auth-modal');
+    const appLayout = document.getElementById('app-layout');
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      const errEl = document.getElementById('auth-error');
-      if (errEl) errEl.classList.add('hidden');
-      const loginInp = document.getElementById('auth-cpf');
-      if (loginInp) {
-        loginInp.value = '';
-        loginInp.focus();
-      }
-      const passInp = document.getElementById('auth-pin');
-      if (passInp) passInp.value = '';
+      modal.style.display = 'flex';
+    }
+    if (appLayout) {
+      appLayout.style.display = 'none';
+    }
+    const errEl = document.getElementById('auth-error');
+    if (errEl) errEl.classList.add('hidden');
+    const loginInp = document.getElementById('auth-cpf');
+    if (loginInp) {
+      loginInp.value = '';
+      setTimeout(() => loginInp.focus(), 150);
+    }
+    const passInp = document.getElementById('auth-pin');
+    if (passInp) passInp.value = '';
 
-      const hintBar = document.getElementById('auth-hint-bar');
-      const hintText = document.getElementById('auth-hint-text');
-      if (hintBar) hintBar.classList.remove('hidden');
-      if (hintText) {
-        hintText.classList.add('hidden');
-        hintText.innerHTML = '';
-      }
+    const hintBar = document.getElementById('auth-hint-bar');
+    const hintText = document.getElementById('auth-hint-text');
+    if (hintBar) hintBar.classList.remove('hidden');
+    if (hintText) {
+      hintText.classList.add('hidden');
+      hintText.innerHTML = '';
     }
   }
 
@@ -656,9 +658,14 @@ class GrafsisAuth {
       return;
     }
     const modal = document.getElementById('auth-modal');
+    const appLayout = document.getElementById('app-layout');
     if (modal) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      modal.style.display = 'none';
+    }
+    if (appLayout) {
+      appLayout.style.display = 'flex';
     }
   }
 
@@ -684,6 +691,7 @@ class GrafsisAuth {
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+      modal.style.display = 'flex';
     }
   }
 
@@ -692,6 +700,7 @@ class GrafsisAuth {
     if (modal) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      modal.style.display = 'none';
     }
   }
 
@@ -701,6 +710,10 @@ class GrafsisAuth {
     localStorage.removeItem('grafsis_remember_cpf');
     if (window.app) {
       window.app.updateUserHeader();
+    }
+    const container = document.getElementById('view-container');
+    if (container) {
+      container.innerHTML = '';
     }
     this.openLoginModal();
   }

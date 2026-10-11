@@ -16,6 +16,8 @@ window.app = {
       return;
     }
 
+    // Se já autenticado, fecha modal e exibe o dashboard
+    window.authModule.closeLoginModal();
     const perms = window.authModule.getRolePermissions();
     const initialTab = window.authModule.canAccess(this.currentTab) ? this.currentTab : perms.tabs[0];
     this.navigate(initialTab);
@@ -102,8 +104,15 @@ window.app = {
   },
 
   navigate(tab) {
+    if (!window.authModule.isAuthenticated()) {
+      window.authModule.openLoginModal();
+      return;
+    }
+
     if (!window.authModule.canAccess(tab)) {
-      alert(`Acesso restrito: seu perfil (${window.authModule.getCurrentUser().role}) não possui permissão para esta aba.`);
+      const user = window.authModule.getCurrentUser();
+      const roleName = user ? user.role : 'OPERADOR';
+      alert(`Acesso restrito: seu perfil (${roleName}) não possui permissão para esta aba.`);
       const perms = window.authModule.getRolePermissions();
       tab = perms.tabs[0];
     }
@@ -613,10 +622,15 @@ window.app = {
      ============================================================================== */
   openUserProfileConfigModal() {
     const user = window.authModule.getCurrentUser();
+    if (!user) {
+      window.authModule.openLoginModal();
+      return;
+    }
     const modal = document.getElementById('user-profile-modal');
     if (!modal) return;
 
-    document.getElementById('prof-operador').value = user.operador || user.nome.split(' ')[0] || '';
+    const op = user.operador || (user.nome ? user.nome.split(' ')[0] : (user.login || ''));
+    document.getElementById('prof-operador').value = op;
     document.getElementById('prof-nome').value = user.nome || '';
     document.getElementById('prof-cpf').value = window.authModule.maskCpf(user.cpf || '');
     document.getElementById('prof-telefone').value = user.telefone || '(Não cadastrado)';
@@ -1042,9 +1056,47 @@ window.app = {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
+  },
+
+  openNewOrderModal(params) {
+    if (window.salesModule && typeof window.salesModule.openModal === 'function') {
+      window.salesModule.openModal(params);
+    }
   }
 };
 
-window.addEventListener('DOMContentLoaded', () => {
-  window.app.init();
-});
+// Aliases globais para tolerância a falhas e integração uniforme entre módulos
+if (window.clientsModule) {
+  window.clientsModule.openClientModal = (c) => window.clientsModule.openModal(c);
+  window.clientsModule.closeModal = () => { const m = document.getElementById('client-modal'); if (m) m.remove(); };
+}
+if (window.suppliersModule) {
+  window.suppliersModule.openSupplierModal = (s) => window.suppliersModule.openModal(s);
+  window.suppliersModule.closeModal = () => { const m = document.getElementById('supplier-modal'); if (m) m.remove(); };
+}
+if (window.productsModule) {
+  window.productsModule.openProductModal = (p) => window.productsModule.openModal(p);
+  window.productsModule.closeModal = () => { const m = document.getElementById('product-modal'); if (m) m.remove(); };
+  window.productsModule.closeCalculatorModal = () => { const m = document.getElementById('calc-modal'); if (m) m.remove(); };
+}
+if (window.salesModule) {
+  window.salesModule.openNewOrderModal = (p) => window.salesModule.openModal(p);
+  window.salesModule.closeModal = () => { const m = document.getElementById('order-modal'); if (m) m.remove(); };
+}
+if (window.financeModule) {
+  window.financeModule.closeModal = () => { const m = document.getElementById('finance-modal'); if (m) m.remove(); };
+}
+
+// Inicialização segura e resiliente (dispara imediatamente se o DOM já estiver pronto)
+function bootstrapGrafsis() {
+  if (window.app && typeof window.app.init === 'function') {
+    window.app.init();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapGrafsis);
+} else {
+  bootstrapGrafsis();
+}
+
