@@ -1,40 +1,25 @@
 /* ==============================================================================
    GRAFSIS - Módulo de Autenticação, Usuários & Controle de Acesso (RBAC)
-   Perfis: ADMIN, GERENTE, VENDAS, PRODUCAO
+   Versão 2.8.0 - Hierarquia: ADMIN (Sistema), PROPRIETARIO, GERENTE, VENDAS, PRODUCAO
+   Login por CPF + Senha (4 dígitos) | Controle de Senha Padrão '0000' (10 acessos)
    ============================================================================== */
 
-// TEMPORÁRIO: libera todas as abas e ações para todos os perfis.
-// Mude para false para reativar o controle de acesso por perfil.
-const LIBERAR_TUDO = true;
+const LIBERAR_TUDO = false; // Controle de acesso ativo por perfil e hierarquia
 
 const ROLES = {
-  PROPRIETARIO: 'PROPRIETARIO',
-  ADMIN: 'ADMIN',
-  GERENTE: 'GERENTE',
-  VENDAS: 'VENDAS',
-  PRODUCAO: 'PRODUCAO'
+  ADMIN: 'ADMIN',               // Administrador do Sistema / Desenvolvedor (Soberania Total)
+  PROPRIETARIO: 'PROPRIETARIO', // Proprietário da Gráfica (Soberania na sua empresa)
+  GERENTE: 'GERENTE',           // Gerência Operacional
+  VENDAS: 'VENDAS',             // Comercial & Vendas
+  PRODUCAO: 'PRODUCAO'          // Operador de Oficina & Produção
 };
 
 const ROLE_PERMISSIONS = {
   ADMIN: {
-    name: 'Administrador',
+    name: 'Admin do Sistema',
     level: 6,
     badgeColor: 'bg-red-100 text-red-700 border-red-200',
-    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings', 'owner', 'selfservice'],
-    canCreateOrders: true,
-    canViewCosts: true,
-    canEditPrices: true,
-    canViewFinance: true,
-    canManageSuppliers: true,
-    canManageSettings: true,
-    canManageUsers: true,
-    canDeleteRecords: true
-  },
-  PROPRIETARIO: {
-    name: 'Proprietário (Master)',
-    level: 5,
-    badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'settings', 'owner', 'selfservice'],
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'owner', 'tenants', 'settings'],
     canCreateOrders: true,
     canViewCosts: true,
     canEditPrices: true,
@@ -43,13 +28,30 @@ const ROLE_PERMISSIONS = {
     canManageSettings: true,
     canManageUsers: true,
     canDeleteRecords: true,
-    canGivePatrocinio: true
+    canManageTenants: true,
+    canBlockCompanies: true
+  },
+  PROPRIETARIO: {
+    name: 'Proprietário',
+    level: 5,
+    badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'owner'],
+    canCreateOrders: true,
+    canViewCosts: true,
+    canEditPrices: true,
+    canViewFinance: true,
+    canManageSuppliers: true,
+    canManageSettings: true,
+    canManageUsers: true,
+    canDeleteRecords: true,
+    canManageTenants: false,
+    canBlockCompanies: false
   },
   GERENTE: {
     name: 'Gerente Geral',
     level: 4,
     badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
-    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance', 'selfservice'],
+    tabs: ['production', 'sales', 'products', 'clients', 'suppliers', 'finance'],
     canCreateOrders: true,
     canViewCosts: true,
     canEditPrices: true,
@@ -57,7 +59,9 @@ const ROLE_PERMISSIONS = {
     canManageSuppliers: true,
     canManageSettings: false,
     canManageUsers: false,
-    canDeleteRecords: true
+    canDeleteRecords: true,
+    canManageTenants: false,
+    canBlockCompanies: false
   },
   VENDAS: {
     name: 'Comercial & Vendas',
@@ -71,7 +75,9 @@ const ROLE_PERMISSIONS = {
     canManageSuppliers: false,
     canManageSettings: false,
     canManageUsers: false,
-    canDeleteRecords: false
+    canDeleteRecords: false,
+    canManageTenants: false,
+    canBlockCompanies: false
   },
   PRODUCAO: {
     name: 'Operador de Produção',
@@ -85,66 +91,100 @@ const ROLE_PERMISSIONS = {
     canManageSuppliers: false,
     canManageSettings: false,
     canManageUsers: false,
-    canDeleteRecords: false
-  },
-  EXTERNO: {
-    name: 'Acesso Externo',
-    level: 1,
-    badgeColor: 'bg-teal-100 text-teal-700 border-teal-200',
-    tabs: ['production'],
-    canCreateOrders: false,
-    canViewCosts: false,
-    canEditPrices: false,
-    canViewFinance: false,
-    canManageSuppliers: false,
-    canManageSettings: false,
-    canManageUsers: false,
-    canDeleteRecords: false
+    canDeleteRecords: false,
+    canManageTenants: false,
+    canBlockCompanies: false
   }
 };
 
 const DEFAULT_USERS = [
   {
     id: 'a0000000-0000-4000-8000-000000000001',
-    login: 'admin',
+    operador: 'Admin',
     nome: 'Administrador do Sistema',
-    senha: '1234',
-    pin: '1234',
+    cpf: '59156813287',
+    login: 'admin',
+    senha: '4791',
+    pin: '4791',
     role: ROLES.ADMIN,
     ativo: true,
+    foto_url: '',
+    telefone: '(11) 99999-0000',
+    email: 'admin@grafsis.com',
+    tentativas_senha_padrao: 999,
+    empresa_id: '001',
     data_cadastro: '2026-01-01T00:00:00Z',
     data_ultimo_acesso: new Date().toISOString()
   },
   {
     id: 'a0000000-0000-4000-8000-000000000002',
-    login: 'gerente',
-    nome: 'Gerência Operacional',
-    senha: '1234',
-    pin: '1234',
-    role: ROLES.GERENTE,
+    operador: 'Carlos',
+    nome: 'Carlos Proprietário',
+    cpf: '11144477735',
+    login: 'proprietario',
+    senha: '0000',
+    pin: '0000',
+    role: ROLES.PROPRIETARIO,
     ativo: true,
+    foto_url: '',
+    telefone: '(69) 99922-1336',
+    email: 'proprietario@topdigital.com.br',
+    tentativas_senha_padrao: 10,
+    empresa_id: '001',
     data_cadastro: '2026-01-01T00:00:00Z',
     data_ultimo_acesso: null
   },
   {
     id: 'a0000000-0000-4000-8000-000000000003',
-    login: 'vendas',
-    nome: 'Equipe Comercial',
-    senha: '1234',
-    pin: '1234',
-    role: ROLES.VENDAS,
+    operador: 'Marcos',
+    nome: 'Gerência Operacional',
+    cpf: '22255588846',
+    login: 'gerente',
+    senha: '0000',
+    pin: '0000',
+    role: ROLES.GERENTE,
     ativo: true,
+    foto_url: '',
+    telefone: '(69) 98888-2222',
+    email: 'gerencia@topdigital.com.br',
+    tentativas_senha_padrao: 10,
+    empresa_id: '001',
     data_cadastro: '2026-01-01T00:00:00Z',
     data_ultimo_acesso: null
   },
   {
     id: 'a0000000-0000-4000-8000-000000000004',
-    login: 'producao',
+    operador: 'Ana',
+    nome: 'Equipe Comercial',
+    cpf: '33366699957',
+    login: 'vendas',
+    senha: '0000',
+    pin: '0000',
+    role: ROLES.VENDAS,
+    ativo: true,
+    foto_url: '',
+    telefone: '(69) 97777-3333',
+    email: 'vendas@topdigital.com.br',
+    tentativas_senha_padrao: 10,
+    empresa_id: '001',
+    data_cadastro: '2026-01-01T00:00:00Z',
+    data_ultimo_acesso: null
+  },
+  {
+    id: 'a0000000-0000-4000-8000-000000000005',
+    operador: 'João',
     nome: 'Oficina & Produção',
-    senha: '1234',
-    pin: '1234',
+    cpf: '44477700068',
+    login: 'producao',
+    senha: '0000',
+    pin: '0000',
     role: ROLES.PRODUCAO,
     ativo: true,
+    foto_url: '',
+    telefone: '(69) 96666-4444',
+    email: 'producao@topdigital.com.br',
+    tentativas_senha_padrao: 10,
+    empresa_id: '001',
     data_cadastro: '2026-01-01T00:00:00Z',
     data_ultimo_acesso: null
   }
@@ -157,10 +197,60 @@ class GrafsisAuth {
     this.init();
   }
 
+  maskCpf(v) {
+    if (!v) return '';
+    v = v.replace(/\D/g, '');
+    if (v.length > 11) v = v.slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    return v;
+  }
+
+  cleanDigits(v) {
+    return (v || '').replace(/\D/g, '');
+  }
+
   init() {
-    if (!localStorage.getItem(this.STORAGE_USERS_KEY)) {
+    const raw = localStorage.getItem(this.STORAGE_USERS_KEY);
+    if (!raw) {
       localStorage.setItem(this.STORAGE_USERS_KEY, JSON.stringify(DEFAULT_USERS));
+    } else {
+      // Garante migração para novos campos se usuário já existia no storage
+      try {
+        const list = JSON.parse(raw);
+        let updated = false;
+        list.forEach(u => {
+          if (!u.cpf) {
+            const def = DEFAULT_USERS.find(d => d.login === u.login || d.id === u.id);
+            u.cpf = def ? def.cpf : ('000' + Math.floor(Math.random()*90000000 + 10000000));
+            updated = true;
+          }
+          if (!u.operador) {
+            u.operador = u.nome ? u.nome.split(' ')[0] : (u.login || 'Operador');
+            updated = true;
+          }
+          if (u.tentativas_senha_padrao === undefined) {
+            u.tentativas_senha_padrao = (u.senha === '0000' || u.pin === '0000') ? 10 : 999;
+            updated = true;
+          }
+          if (!u.empresa_id) {
+            u.empresa_id = '001';
+            updated = true;
+          }
+        });
+        // Garante que o gestor oficial 59156813287 / 4791 sempre exista
+        const hasGestor = list.some(u => this.cleanDigits(u.cpf) === '59156813287');
+        if (!hasGestor) {
+          list.unshift(DEFAULT_USERS[0]);
+          updated = true;
+        }
+        if (updated) this.saveUsersLocal(list);
+      } catch (e) {
+        localStorage.setItem(this.STORAGE_USERS_KEY, JSON.stringify(DEFAULT_USERS));
+      }
     }
+
     if (!sessionStorage.getItem(this.STORAGE_SESSION_KEY)) {
       const users = this.getUsers();
       this.setCurrentUser(users[0] || DEFAULT_USERS[0]);
@@ -210,34 +300,154 @@ class GrafsisAuth {
     return !!permissions[action];
   }
 
-  login(login, senhaOuPin) {
-    const users = this.getUsers();
-    const l = login.trim().toLowerCase();
-    const s = senhaOuPin.trim();
-
-    const found = users.find(u => 
-      u.login.toLowerCase() === l && ((u.senha && u.senha === s) || (u.pin && u.pin === s))
-    );
-
-    if (found) {
-      if (!found.ativo) {
-        return { success: false, message: 'Usuário desativado. Contate o Administrador.' };
+  // Verifica se o usuário atual pode editar ou bloquear o usuário alvo
+  canManageTargetUser(targetUser) {
+    const current = this.getCurrentUser();
+    if (!current) return false;
+    if (current.role === ROLES.ADMIN) return true; // Admin do Sistema gerencia qualquer usuário
+    if (current.role === ROLES.PROPRIETARIO) {
+      // Proprietário não pode gerenciar Admin do Sistema nem outros proprietários
+      if (targetUser.role === ROLES.ADMIN || targetUser.role === ROLES.PROPRIETARIO) {
+        return targetUser.id === current.id; // pode editar seu próprio perfil básico
       }
-      // Atualiza data do último acesso
-      found.data_ultimo_acesso = new Date().toISOString();
-      this.saveUser(found);
-      this.setCurrentUser(found);
-      return { success: true, user: found };
+      return true; // pode gerenciar GERENTE, VENDAS, PRODUCAO
     }
-    return { success: false, message: 'Login ou Senha incorretos.' };
+    return false;
+  }
+
+  login(cpfOuLogin, senha) {
+    const users = this.getUsers();
+    const termClean = (cpfOuLogin || '').trim().toLowerCase();
+    const digitsOnly = this.cleanDigits(termClean);
+    const pass = (senha || '').trim();
+
+    // Busca por CPF ou por login
+    const found = users.find(u => {
+      const uCpfDigits = this.cleanDigits(u.cpf);
+      const uLogin = (u.login || '').toLowerCase();
+      const matchIdentity = (digitsOnly && uCpfDigits === digitsOnly) || (uLogin === termClean);
+      const matchPass = ((u.senha && u.senha === pass) || (u.pin && u.pin === pass));
+      return matchIdentity && matchPass;
+    });
+
+    if (!found) {
+      return { success: false, message: 'CPF / Login ou Senha incorretos.' };
+    }
+
+    if (found.ativo === false) {
+      return { success: false, message: 'Acesso negado: Este usuário está desativado no sistema.' };
+    }
+
+    // Validação da Empresa / Tenant (se empresa bloqueada pelo Admin)
+    if (window.store && typeof window.store.getTenants === 'function' && found.role !== ROLES.ADMIN) {
+      const tenants = window.store.getTenants();
+      const emp = tenants.find(t => t.id === found.empresa_id);
+      if (emp) {
+        if (emp.ativo === false) {
+          return { success: false, message: `Acesso negado: A empresa (${emp.nome_fantasia || emp.razao_social}) está bloqueada pelo Administrador do Sistema.` };
+        }
+        if (emp.data_expiracao && new Date(emp.data_expiracao) < new Date()) {
+          return { success: false, message: `Acesso expirado: O pacote desta empresa expirou em ${new Date(emp.data_expiracao).toLocaleDateString('pt-BR')}. Contate o Administrador.` };
+        }
+      }
+    }
+
+    // Regra da senha padrão '0000': máximo de 10 entradas com alerta regressivo
+    let warningDefaultPass = false;
+    let remainingAttempts = null;
+
+    if (pass === '0000') {
+      if (found.tentativas_senha_padrao === undefined) found.tentativas_senha_padrao = 10;
+      
+      if (found.tentativas_senha_padrao <= 0) {
+        return {
+          success: false,
+          message: 'Acesso bloqueado: Limite de 10 entradas com a senha temporária "0000" foi atingido! Solicite ao Administrador a redefinição de sua senha.'
+        };
+      }
+
+      found.tentativas_senha_padrao -= 1;
+      remainingAttempts = found.tentativas_senha_padrao;
+      warningDefaultPass = true;
+    }
+
+    // Atualiza data do último acesso
+    found.data_ultimo_acesso = new Date().toISOString();
+    this.saveUserWithoutValidation(found);
+    this.setCurrentUser(found);
+
+    return { 
+      success: true, 
+      user: found,
+      warningDefaultPass,
+      remainingAttempts
+    };
   }
 
   logout() {
     this.openLoginModal();
   }
 
+  saveUserWithoutValidation(user) {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.id === user.id);
+    if (index >= 0) users[index] = user;
+    else users.unshift(user);
+    this.saveUsersLocal(users);
+  }
+
   async saveUser(user) {
     const users = this.getUsers();
+    const current = this.getCurrentUser();
+
+    // 1. Validação de Permissão Hierárquica
+    if (user.id && current) {
+      const existing = users.find(u => u.id === user.id);
+      if (existing && !this.canManageTargetUser(existing)) {
+        throw new Error('Permissão negada: você não possui nível de acesso suficiente para alterar este usuário.');
+      }
+    }
+
+    // 2. Validação de Operador (Nome Simples): Obrigatório e Único na mesma empresa
+    const op = (user.operador || '').trim();
+    if (!op) {
+      throw new Error('O campo "Operador (Nome simples)" é obrigatório.');
+    }
+    const empId = user.empresa_id || '001';
+    const opDuplicate = users.some(u => 
+      u.id !== user.id && 
+      (u.empresa_id || '001') === empId && 
+      (u.operador || '').toLowerCase().trim() === op.toLowerCase()
+    );
+    if (opDuplicate) {
+      throw new Error(`Já existe um operador com o nome "${op}" cadastrado nesta empresa/gráfica.`);
+    }
+
+    // 3. Validação do CPF do Usuário: Chave Única obrigatória (não pode repetir entre usuários ativos)
+    const cpfClean = this.cleanDigits(user.cpf);
+    if (!cpfClean || cpfClean.length !== 11) {
+      throw new Error('CPF do usuário é obrigatório e deve conter 11 dígitos válidos.');
+    }
+    const cpfDuplicate = users.some(u => 
+      u.id !== user.id && 
+      this.cleanDigits(u.cpf) === cpfClean && 
+      u.ativo !== false
+    );
+    if (cpfDuplicate) {
+      throw new Error('Operação negada: Já existe um usuário ATIVO cadastrado com este CPF.');
+    }
+
+    // 4. Tratamento de senha padrão '0000'
+    if (user.senha === '0000') {
+      if (user.tentativas_senha_padrao === undefined) {
+        user.tentativas_senha_padrao = 10;
+      }
+    } else {
+      // Se trocou para senha definitiva pessoal, desativa bloqueio por contagem
+      user.tentativas_senha_padrao = 999;
+    }
+    user.pin = user.senha;
+
     if (!user.id) {
       user.id = typeof grafsisUUID === 'function' ? grafsisUUID() : 'usr-' + Date.now();
       user.data_cadastro = user.data_cadastro || new Date().toISOString();
@@ -249,17 +459,29 @@ class GrafsisAuth {
     }
     this.saveUsersLocal(users);
 
+    // Se o usuário editado for o mesmo logado na sessão, atualiza sessão
+    if (current && current.id === user.id) {
+      this.setCurrentUser(user);
+    }
+
     // Sincroniza com Supabase se conectado
     if (window.store && window.store.supabaseClient) {
       try {
         await window.store.supabaseClient.from('usuarios').upsert({
           id: user.id,
+          operador: user.operador,
           nome: user.nome,
+          cpf: user.cpf,
           login: user.login,
-          senha: user.senha || '1234',
-          pin: user.pin || '1234',
+          senha: user.senha || '0000',
+          pin: user.pin || '0000',
           role: user.role,
           ativo: user.ativo,
+          foto_url: user.foto_url || null,
+          telefone: user.telefone || null,
+          email: user.email || null,
+          tentativas_senha_padrao: user.tentativas_senha_padrao,
+          empresa_id: user.empresa_id || '001',
           data_cadastro: user.data_cadastro,
           data_ultimo_acesso: user.data_ultimo_acesso
         });
@@ -271,15 +493,31 @@ class GrafsisAuth {
   }
 
   async deleteUser(id) {
-    let users = this.getUsers();
-    users = users.filter(u => u.id !== id);
-    this.saveUsersLocal(users);
+    const users = this.getUsers();
+    const target = users.find(u => u.id === id);
+    if (!target) return;
+
+    if (this.cleanDigits(target.cpf) === '59156813287' || target.login === 'admin') {
+      throw new Error('Operação negada: O Administrador Geral do Sistema não pode ser excluído.');
+    }
+
+    const current = this.getCurrentUser();
+    if (current && current.id === id) {
+      throw new Error('Você não pode excluir o seu próprio usuário logado.');
+    }
+
+    if (!this.canManageTargetUser(target)) {
+      throw new Error('Permissão negada: seu perfil não possui autorização para excluir este usuário.');
+    }
+
+    const filtered = users.filter(u => u.id !== id);
+    this.saveUsersLocal(filtered);
 
     if (window.store && window.store.supabaseClient) {
       try {
         await window.store.supabaseClient.from('usuarios').delete().eq('id', id);
       } catch (err) {
-        console.warn('[Supabase] Falha ao deletar usuário:', err);
+        console.warn('[Supabase] Falha ao deletar usuário remoto:', err);
       }
     }
   }
@@ -289,16 +527,35 @@ class GrafsisAuth {
     const user = users.find(u => u.id === userId);
     if (!user) return { success: false, message: 'Usuário não encontrado.' };
 
-    const curr = (user.senha || user.pin || '1234').trim();
+    const curr = (user.senha || user.pin || '0000').trim();
     if (currentPassword.trim() !== curr) {
-      return { success: false, message: 'A senha atual está incorreta.' };
+      return { success: false, message: 'A senha atual informada está incorreta.' };
     }
 
-    user.senha = newPassword.trim();
-    user.pin = newPassword.trim();
-    await this.saveUser(user);
+    const np = newPassword.trim();
+    if (np.length !== 4 || !/^\d{4}$/.test(np)) {
+      return { success: false, message: 'A nova senha deve conter exatamente 4 dígitos numéricos.' };
+    }
+
+    user.senha = np;
+    user.pin = np;
+    user.tentativas_senha_padrao = 999; // Senha pessoal definida, remove limite de 10 entradas
+    this.saveUserWithoutValidation(user);
     this.setCurrentUser(user);
-    return { success: true, message: 'Senha alterada com sucesso!' };
+
+    if (window.store && window.store.supabaseClient) {
+      try {
+        await window.store.supabaseClient.from('usuarios').update({
+          senha: user.senha,
+          pin: user.pin,
+          tentativas_senha_padrao: 999
+        }).eq('id', user.id);
+      } catch (e) {
+        console.warn('[Supabase] Erro ao atualizar senha:', e);
+      }
+    }
+
+    return { success: true, message: 'Senha pessoal atualizada com sucesso!' };
   }
 
   async syncUsersWithCloud(supabaseClient) {
@@ -329,7 +586,7 @@ class GrafsisAuth {
       modal.classList.add('flex');
       const errEl = document.getElementById('auth-error');
       if (errEl) errEl.classList.add('hidden');
-      const loginInp = document.getElementById('auth-login');
+      const loginInp = document.getElementById('auth-cpf');
       if (loginInp) loginInp.focus();
     }
   }
@@ -344,18 +601,25 @@ class GrafsisAuth {
 
   submitLogin(e) {
     if (e) e.preventDefault();
-    const login = document.getElementById('auth-login').value;
-    const pin = document.getElementById('auth-pin').value;
-    const result = this.login(login, pin);
+    const cpfOuLogin = (document.getElementById('auth-cpf')?.value || '').trim();
+    const pin = (document.getElementById('auth-pin')?.value || '').trim();
+    const result = this.login(cpfOuLogin, pin);
 
     if (result.success) {
       this.closeLoginModal();
-      window.app.updateUserHeader();
-      const perms = this.getRolePermissions();
-      if (!this.canAccess(window.app.currentTab)) {
-        window.app.navigate(perms.tabs[0]);
-      } else {
-        window.app.navigate(window.app.currentTab);
+      if (window.app) {
+        window.app.updateUserHeader();
+        const perms = this.getRolePermissions();
+        if (!this.canAccess(window.app.currentTab)) {
+          window.app.navigate(perms.tabs[0]);
+        } else {
+          window.app.navigate(window.app.currentTab);
+        }
+
+        // Se estiver usando senha padrão '0000', alerta com urgência
+        if (result.warningDefaultPass) {
+          alert(`⚠️ ATENÇÃO: Você entrou com a senha padrão temporária ("0000").\nEsta senha deve ser trocada urgentemente!\nVocê tem ${result.remainingAttempts} entrada(s) restante(s) antes do bloqueio definitivo.\n\nAcesse a engrenagem no topo para cadastrar sua senha pessoal.`);
+        }
       }
     } else {
       const errEl = document.getElementById('auth-error');
@@ -371,21 +635,20 @@ class GrafsisAuth {
     const found = users.find(u => u.role === role);
     if (found) {
       found.data_ultimo_acesso = new Date().toISOString();
-      this.saveUser(found);
+      this.saveUserWithoutValidation(found);
       this.setCurrentUser(found);
       this.closeLoginModal();
-      window.app.updateUserHeader();
-      const perms = this.getRolePermissions();
-      if (!this.canAccess(window.app.currentTab)) {
-        window.app.navigate(perms.tabs[0]);
-      } else {
-        window.app.navigate(window.app.currentTab);
+      if (window.app) {
+        window.app.updateUserHeader();
+        const perms = this.getRolePermissions();
+        if (!this.canAccess(window.app.currentTab)) {
+          window.app.navigate(perms.tabs[0]);
+        } else {
+          window.app.navigate(window.app.currentTab);
+        }
       }
     }
   }
 }
 
 window.authModule = new GrafsisAuth();
-
-
-

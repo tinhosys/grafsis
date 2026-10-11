@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Módulo de Clientes
    Cadastro Completo: Nome, Apelido, WhatsApp, Plus Code, Foto, CEP, etc.
    ============================================================================== */
@@ -206,12 +206,12 @@ window.clientsModule = {
                 <div class="col-span-3 space-y-4">
                   <div>
                     <label id="lbl-nome" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'Nome *' : 'Razão Social *'}</label>
-                    <input type="text" name="nome" required value="${client ? client.nome : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <input type="text" name="nome" required value="${client ? client.nome : ''}" oninput="clientsModule.handleNomeInput(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label id="lbl-apelido" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'Nome Popular' : 'Nome Fantasia'}</label>
-                      <input type="text" name="apelido" value="${client ? (client.apelido || '') : ''}" placeholder="Ex: Marcos" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                      <input type="text" name="apelido" id="client-apelido" value="${client ? (client.apelido || '') : ''}" oninput="this.dataset.userEdited='true'" placeholder="Ex: Marcos" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div>
                       <label id="lbl-cpf" class="block text-xs font-semibold text-slate-600 mb-1">${!client || client.tipo_pessoa !== 'PJ' ? 'CPF' : 'CNPJ'}</label>
@@ -228,8 +228,8 @@ window.clientsModule = {
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
-                <input type="email" name="email" value="${client ? (client.email || '') : ''}" placeholder="cliente@email.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail *</label>
+                <input type="email" name="email" required value="${client ? (client.email || '') : ''}" placeholder="cliente@email.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               </div>
 
               <div>
@@ -291,12 +291,12 @@ window.clientsModule = {
 
               <div class="grid grid-cols-4 gap-2">
                 <div class="col-span-3">
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade</label>
-                  <input type="text" name="cidade" id="client-cidade" value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onblur="clientsModule.syncUF(this.value)">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade *</label>
+                  <input type="text" name="cidade" id="client-cidade" required value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onblur="clientsModule.syncUF(this.value)">
                 </div>
                 <div class="col-span-1">
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">UF</label>
-                  <input type="text" name="uf" id="client-uf" maxlength="2" value="${client ? (client.uf || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">UF *</label>
+                  <input type="text" name="uf" id="client-uf" maxlength="2" required value="${client ? (client.uf || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
               </div>
 
@@ -585,6 +585,15 @@ window.clientsModule = {
     }
   },
 
+  handleNomeInput(input) {
+    const nome = (input.value || '').trim();
+    const apelidoInp = document.getElementById('client-apelido');
+    if (apelidoInp && !apelidoInp.dataset.userEdited && (!apelidoInp.value || apelidoInp.value === '')) {
+      const primeiroNome = nome.split(' ')[0] || '';
+      apelidoInp.value = primeiroNome;
+    }
+  },
+
   maskPhone(v) {
     v = v.replace(/\D/g, '');
     if (v.length > 11) v = v.slice(0, 11);
@@ -712,20 +721,72 @@ window.clientsModule = {
     };
 
     const allClients = window.store.getClients();
-    const isDuplicateCpf = allClients.some(c => c.cpf_cnpj && c.cpf_cnpj === clientData.cpf_cnpj && c.id !== clientData.id);
-    if (isDuplicateCpf) {
-      alert("Operação negada: Já existe um cliente cadastrado com este CPF/CNPJ.");
+    // 1. Validação de Telefone WhatsApp: OBRIGATÓRIO SEMPRE e Chave Única (sem conflito com outros)
+    const cleanPhone = (clientData.telefone_whatsapp || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      alert("Operação negada: O número de Telefone WhatsApp é OBRIGATÓRIO SEMPRE e deve conter DDD válido.");
+      return;
+    }
+    const duplicatePhone = allClients.find(c => 
+      c.id !== clientData.id && 
+      (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone
+    );
+    if (duplicatePhone) {
+      alert(`Operação negada: O número de telefone informado já está cadastrado para outro cliente (${duplicatePhone.nome}). O telefone é chave de identificação e não pode duplicar.`);
       return;
     }
 
-    const hasSimilar = allClients.some(c => c.id !== clientData.id && (
-      (c.telefone_whatsapp && c.telefone_whatsapp === clientData.telefone_whatsapp) ||
-      (c.email && c.email === clientData.email) ||
-      (c.nome && c.nome.toLowerCase() === clientData.nome.toLowerCase())
-    ));
+    // 2. Validação de CPF/CNPJ: Chave Única (não obrigatório, mas se preenchido não pode conflitar com outro cliente)
+    const cleanCpfCnpj = (clientData.cpf_cnpj || '').replace(/\D/g, '');
+    if (cleanCpfCnpj) {
+      const duplicateCpf = allClients.find(c => 
+        c.id !== clientData.id && 
+        (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj
+      );
+      if (duplicateCpf) {
+        alert(`Operação negada: O CPF/CNPJ informado já está cadastrado para outro cliente (${duplicateCpf.nome}). Não é permitido duplicar o documento.`);
+        return;
+      }
+    }
 
-    if (hasSimilar) {
-      if (!confirm("Aviso: Já existe um cliente com o mesmo Nome, Telefone ou E-mail. Deseja salvar mesmo assim?")) {
+    // 3. Validação de Campos Requeridos: E-mail, Cidade e UF
+    if (!clientData.email || !clientData.email.includes('@')) {
+      alert("Operação negada: O campo E-mail é obrigatório e deve ser válido.");
+      return;
+    }
+    if (!clientData.cidade) {
+      alert("Operação negada: O campo Cidade é obrigatório.");
+      return;
+    }
+    if (!clientData.uf || clientData.uf.length !== 2) {
+      alert("Operação negada: O campo UF é obrigatório (2 letras).");
+      return;
+    }
+
+    // 4. Se Nome Popular estiver vazio, preencher com o primeiro nome por padrão
+    if (!clientData.apelido && clientData.nome) {
+      clientData.apelido = clientData.nome.split(' ')[0];
+    }
+
+    // 5. Alerta de Homônimo / Nome Popular (pode repetir, mas alerta com orientação e consentimento)
+    const homonimo = allClients.find(c => 
+      c.id !== clientData.id && (
+        (c.nome && c.nome.toLowerCase().trim() === clientData.nome.toLowerCase().trim()) ||
+        (clientData.apelido && c.apelido && c.apelido.toLowerCase().trim() === clientData.apelido.toLowerCase().trim())
+      )
+    );
+
+    if (homonimo) {
+      const msgAlerta = `⚠️ ALERTA: CLIENTE COM NOME OU NOME POPULAR SIMILAR ENCONTRADO!\n\n` +
+        `Já existe cadastrado: "${homonimo.nome}"` + 
+        (homonimo.apelido ? ` (Nome Popular: ${homonimo.apelido})` : '') + `.\n\n` +
+        `ORIENTAÇÃO IMPORTANTE SOBRE IDENTIFICAÇÃO:\n` +
+        `• O ideal é que haja uma diferenciação no Nome Popular (ex: Zé da Máquina, Zé Costa, Zé da Leste, etc.).\n` +
+        `• CUIDADO & RESPEITO: Esta relação é complexa e delicada e deve ser tratada com muito cuidado. NUNCA coloque apelido sem o consentimento do cliente!\n` +
+        `• Se o cliente não autorizar ou não houver relação específica, mantenha o primeiro nome/sobrenome mesmo.\n\n` +
+        `Deseja gravar os dados deste cliente agora?`;
+      
+      if (!confirm(msgAlerta)) {
         return;
       }
     }

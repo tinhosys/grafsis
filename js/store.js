@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Camada de Dados (Store) & Sincronização Supabase Cloud em Tempo Real
    Suporte a LocalStorage (Offline First) + Supabase (PostgreSQL Nuvem)
    ============================================================================== */
@@ -24,8 +24,31 @@ const STORAGE_KEYS = {
   PRODUCTS: 'grafsis_products',
   ORDERS: 'grafsis_orders',
   FINANCE: 'grafsis_finance',
-  SETTINGS: 'grafsis_settings'
+  SETTINGS: 'grafsis_settings',
+  TENANTS: 'grafsis_tenants'
 };
+
+const DEFAULT_TENANTS = [
+  {
+    id: '001',
+    razao_social: 'Top Digital Comunicação Visual Ltda',
+    nome_fantasia: 'Top Digital',
+    cnpj: '12.345.678/0001-90',
+    telefone_fixo: '(69) 3222-1000',
+    celular_whatsapp: '(69) 99922-1336',
+    email: 'contato@topdigital.com.br',
+    endereco: 'Rua Atlântica, Flodoaldo Pontes Pinto, Porto Velho - RO',
+    site: 'https://topdigital.com.br',
+    instagram: '@topdigital',
+    logo_url: 'assets/demo-top-digital.png',
+    rodape_msg: 'Agradecemos a preferência! Orçamento válido por 10 dias úteis.',
+    pacote_mensal: 'Plano Profissional Ilimitado',
+    data_expiracao: '2028-12-31',
+    ativo: true,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: new Date().toISOString()
+  }
+];
 
 const INITIAL_PRODUCTS = [
   {
@@ -104,6 +127,9 @@ class GrafsisStore {
     }
     if (!localStorage.getItem(STORAGE_KEYS.FINANCE)) {
       this.saveLocal(STORAGE_KEYS.FINANCE, []);
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.TENANTS)) {
+      this.saveLocal(STORAGE_KEYS.TENANTS, DEFAULT_TENANTS);
     }
 
     this.initSupabase();
@@ -573,6 +599,67 @@ class GrafsisStore {
   saveSettings(settings) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
     this.initSupabase();
+  }
+
+  // Gestão de Empresas / Gráficas (Tenants)
+  getTenants() {
+    const list = this.getLocal(STORAGE_KEYS.TENANTS);
+    return list.length ? list : DEFAULT_TENANTS;
+  }
+
+  getActiveTenant() {
+    const tenants = this.getTenants();
+    const currentUser = window.authModule ? window.authModule.getCurrentUser() : null;
+    const empId = currentUser ? (currentUser.empresa_id || '001') : '001';
+    return tenants.find(t => t.id === empId) || tenants[0] || DEFAULT_TENANTS[0];
+  }
+
+  async saveTenant(tenant) {
+    const tenants = this.getTenants();
+    if (!tenant.id) {
+      // Gera ID de 3 dígitos formatado '001', '002', etc.
+      let maxNum = 0;
+      tenants.forEach(t => {
+        const n = parseInt(t.id, 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      });
+      tenant.id = String(maxNum + 1).padStart(3, '0');
+      tenant.created_at = new Date().toISOString();
+      tenant.updated_at = tenant.created_at;
+      tenants.push(tenant);
+    } else {
+      tenant.updated_at = new Date().toISOString();
+      const index = tenants.findIndex(t => t.id === tenant.id);
+      if (index >= 0) tenants[index] = tenant;
+      else tenants.push(tenant);
+    }
+    this.saveLocal(STORAGE_KEYS.TENANTS, tenants);
+
+    // Se conectado ao Supabase, sincroniza com empresas_tenants
+    if (this.supabaseClient) {
+      try {
+        await this.supabaseClient.from('empresas_tenants').upsert(tenant);
+      } catch (err) {
+        console.warn('[Supabase] Falha ao sincronizar empresa_tenant:', err);
+      }
+    }
+    return tenant;
+  }
+
+  async deleteTenant(id) {
+    if (id === '001') {
+      alert('A empresa matriz padrão não pode ser excluída.');
+      return;
+    }
+    let tenants = this.getTenants().filter(t => t.id !== id);
+    this.saveLocal(STORAGE_KEYS.TENANTS, tenants);
+    if (this.supabaseClient) {
+      try {
+        await this.supabaseClient.from('empresas_tenants').delete().eq('id', id);
+      } catch (err) {
+        console.warn('[Supabase] Falha ao deletar empresa_tenant:', err);
+      }
+    }
   }
 
   // Backup JSON

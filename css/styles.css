@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Folha de Estilos Customizados
    Interface Moderna e Responsiva para Comunicação Visual e Gráfica
    ============================================================================== */
@@ -33,6 +33,21 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Scrollbar para barra lateral escura */
+.custom-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Kanban Board Fases de Produção */

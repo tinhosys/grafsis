@@ -1,4 +1,4 @@
--- ==============================================================================
+﻿-- ==============================================================================
 -- GRAFSIS - Banco de Dados PostgreSQL (Supabase Free Tier)
 -- Sistema de Gestao para Comunicacao Visual, Grafica, Brindes e Impressao Digital
 -- ==============================================================================
@@ -122,12 +122,19 @@ CREATE TABLE IF NOT EXISTS financeiro_lancamentos (
 -- 7. TABELA DE USUÁRIOS E CONTROLE DE ACESSO (RBAC)
 CREATE TABLE IF NOT EXISTS usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    operador VARCHAR(100) NOT NULL, -- Nome simples (ex: Jose) - unico por empresa
     nome VARCHAR(150) NOT NULL,
+    cpf VARCHAR(20) UNIQUE NOT NULL, -- Chave unica / identificador
     login VARCHAR(50) UNIQUE NOT NULL,
-    senha VARCHAR(100) NOT NULL DEFAULT '1234',
-    pin VARCHAR(20) NOT NULL DEFAULT '1234',
-    role VARCHAR(30) NOT NULL DEFAULT 'VENDAS', -- 'ADMIN', 'GERENTE', 'VENDAS', 'PRODUCAO'
+    senha VARCHAR(100) NOT NULL DEFAULT '0000',
+    pin VARCHAR(20) NOT NULL DEFAULT '0000',
+    role VARCHAR(30) NOT NULL DEFAULT 'VENDAS', -- 'ADMIN', 'PROPRIETARIO', 'GERENTE', 'VENDAS', 'PRODUCAO'
     ativo BOOLEAN DEFAULT TRUE,
+    foto_url TEXT,
+    telefone VARCHAR(30),
+    email VARCHAR(150),
+    tentativas_senha_padrao INT DEFAULT 10,
+    empresa_id VARCHAR(50) DEFAULT '001',
     data_cadastro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     data_ultimo_acesso TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -151,3 +158,33 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ativo'
 -- Atualizacoes v2.7.1
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS genero VARCHAR(2);
+
+-- 8. TABELA DE GESTÃO DE EMPRESAS / GRÁFICAS (TENANTS MULTI-CLIENTES - v2.8.0)
+CREATE TABLE IF NOT EXISTS empresas_tenants (
+    id VARCHAR(50) PRIMARY KEY, -- ID formatado '001', '002', etc.
+    razao_social VARCHAR(255) NOT NULL,
+    nome_fantasia VARCHAR(255),
+    cnpj VARCHAR(30),
+    telefone_fixo VARCHAR(30),
+    celular_whatsapp VARCHAR(30),
+    email VARCHAR(150),
+    endereco TEXT,
+    site VARCHAR(255),
+    instagram VARCHAR(100),
+    logo_url TEXT,
+    rodape_msg TEXT,
+    pacote_mensal VARCHAR(100) DEFAULT 'Profissional',
+    data_expiracao DATE,
+    ativo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Atualizacoes v2.8.0
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS operador VARCHAR(100);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cpf VARCHAR(20);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_url TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone VARCHAR(30);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email VARCHAR(150);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tentativas_senha_padrao INT DEFAULT 10;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS empresa_id VARCHAR(50) DEFAULT '001';

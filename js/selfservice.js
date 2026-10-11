@@ -1,4 +1,4 @@
-window.selfserviceModule = {
+﻿window.selfserviceModule = {
   currentClient: null,
   currentTab: 'pedido',
   cart: [],
