@@ -224,9 +224,15 @@ window.app = {
     const orders = (window.store && window.store.getOrders()) || [];
     const clients = (window.store && window.store.getClients()) || [];
     const totalOrders = orders.length;
-    const inProduction = orders.filter(o => o.status === 'PRODUCAO' || o.status === 'IMPRESSAO' || o.status === 'CORTE').length;
-    const completed = orders.filter(o => o.status === 'FINALIZADO' || o.status === 'ENTREGUE').length;
-    const totalRevenue = orders.reduce((acc, o) => acc + (parseFloat(o.total) || 0), 0);
+    const inProduction = orders.filter(o => {
+      const st = ((o.status_fase || o.status || '') + '').toLowerCase();
+      return ['producao', 'acabamento', 'embalagem', 'liberado', 'impressao', 'corte'].includes(st);
+    }).length;
+    const completed = orders.filter(o => {
+      const st = ((o.status_fase || o.status || '') + '').toLowerCase();
+      return ['finalizado', 'entregue', 'concluido'].includes(st);
+    }).length;
+    const totalRevenue = orders.reduce((acc, o) => acc + (parseFloat(o.valor_final || o.total) || 0), 0);
 
     const container = document.getElementById('view-container');
     if (!container) return;

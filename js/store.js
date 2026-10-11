@@ -262,9 +262,11 @@ class GrafsisStore {
       if (!isUserEditing && window.app && window.app.currentTab && window.authModule && window.authModule.isAuthenticated()) {
         try {
           // Atualiza apenas a lista passiva sem resetar a navegação global (app.navigate)
-          if (window.app.currentTab === 'production' && window.productionModule) {
+          if (window.app.currentTab === 'dashboard' && typeof window.app.renderDashboard === 'function') {
+            window.app.renderDashboard();
+          } else if (window.app.currentTab === 'production' && window.productionModule) {
             window.productionModule.render();
-          } else if (window.app.currentTab === 'orders' && window.salesModule && !window.salesModule.isFormOpen) {
+          } else if ((window.app.currentTab === 'sales' || window.app.currentTab === 'orders') && window.salesModule && !window.salesModule.isFormOpen) {
             window.salesModule.render();
           } else if (window.app.currentTab === 'clients' && window.clientsModule) {
             window.clientsModule.render();
@@ -343,6 +345,31 @@ class GrafsisStore {
         return;
       }
       if (data && Array.isArray(data)) {
+        // Se for tabela de pedidos, desempacota metadados caso tenham sido salvos em fallback JSON
+        if (tableName === 'pedidos') {
+          data.forEach(item => {
+            if (item.observacoes && typeof item.observacoes === 'string' && item.observacoes.trim().startsWith('{')) {
+              try {
+                const parsed = JSON.parse(item.observacoes);
+                if (parsed.itens && Array.isArray(parsed.itens)) item.itens = parsed.itens;
+                if (parsed.historico && Array.isArray(parsed.historico)) item.historico = parsed.historico;
+                if (parsed.numero) item.numero = parsed.numero;
+                if (parsed.valor_entrada !== undefined) item.valor_entrada = parsed.valor_entrada;
+                if (parsed.valor_recebido !== undefined) item.valor_recebido = parsed.valor_recebido;
+                if (parsed.vendedor) item.vendedor = parsed.vendedor;
+                if (parsed.data_aceite) item.data_aceite = parsed.data_aceite;
+                if (parsed.autorizo_producao) item.autorizo_producao = parsed.autorizo_producao;
+                if (parsed.conferencia_arte) item.conferencia_arte = parsed.conferencia_arte;
+                if (parsed.obs_pagto) item.obs_pagto = parsed.obs_pagto;
+                if (parsed.obs !== undefined) item.observacoes = parsed.obs;
+              } catch (e) {}
+            }
+            if (item.created_at && !item.data_criacao) {
+              item.data_criacao = item.created_at;
+            }
+          });
+        }
+
         const local = this.getLocal(storageKey);
         const map = new Map();
         local.forEach(item => map.set(item.id, item));
@@ -364,6 +391,11 @@ class GrafsisStore {
         record.id = clean.id;
       }
 
+      // Validação preventiva de Foreign Keys para o PostgreSQL do Supabase
+      if (clean.cliente_id && !isValidUUID(clean.cliente_id)) clean.cliente_id = null;
+      if (clean.fornecedor_id && !isValidUUID(clean.fornecedor_id)) clean.fornecedor_id = null;
+      if (clean.pedido_id && !isValidUUID(clean.pedido_id)) clean.pedido_id = null;
+
       // Converte strings vazias em null para colunas com restrições SQL
       for (const k in clean) {
         if (clean[k] === '') {
@@ -375,9 +407,48 @@ class GrafsisStore {
       if (error) {
         console.warn(`[Supabase] Erro ao enviar para ${tableName}:`, error.message);
 
-        // Se o erro for de coluna desconhecida (tabela clientes não atualizada com SQL novo),
-        // envia somente as colunas seguras básicas para não perder a sincronização entre dispositivos!
-        if (tableName === 'clientes' && (error.message.includes('column') || error.message.includes('schema cache'))) {
+        // Fallback 1: PEDIDOS (Garante que nunca falhe no celular ou PC mesmo em schema antigo)
+        if (tableName === 'pedidos') {
+          console.warn('[Supabase Fallback] Sincronizando pedido com proteção de colunas e metadados JSON...');
+          const metaPayload = {
+            numero: clean.numero || null,
+            vendedor: clean.vendedor || null,
+            tipo_operacao: clean.tipo_operacao || null,
+            valor_entrada: clean.valor_entrada || 0,
+            valor_recebido: clean.valor_recebido || 0,
+            data_aceite: clean.data_aceite || null,
+            autorizo_producao: clean.autorizo_producao || null,
+            conferencia_arte: clean.conferencia_arte || null,
+            obs_pagto: clean.obs_pagto || null,
+            itens: clean.itens || [],
+            historico: clean.historico || [],
+            obs: clean.observacoes || ''
+          };
+          const baseOrder = {
+            id: clean.id,
+            cliente_id: isValidUUID(clean.cliente_id) ? clean.cliente_id : null,
+            tipo: clean.tipo || clean.tipo_operacao || 'orcamento',
+            status_fase: clean.status_fase || 'orcamento',
+            valor_total: clean.valor_total || 0,
+            desconto: clean.desconto || 0,
+            valor_final: clean.valor_final || 0,
+            forma_pagamento: clean.forma_pagamento || null,
+            status_pagamento: clean.status_pagamento || 'pendente',
+            previsao_entrega: clean.previsao_entrega || null,
+            observacoes: JSON.stringify(metaPayload),
+            foto_arte_url: clean.foto_arte_url || null,
+            created_at: clean.created_at || clean.data_criacao || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          const fallbackRes = await this.supabaseClient.from('pedidos').upsert(baseOrder);
+          if (fallbackRes.error) {
+            console.error('[Supabase Fallback] Falha no fallback de pedidos:', fallbackRes.error.message);
+          } else {
+            console.log('[Supabase Fallback] Sucesso! Pedido gravado e sincronizado com a nuvem Supabase!');
+          }
+        }
+        // Fallback 2: CLIENTES
+        else if (tableName === 'clientes' && (error.message.includes('column') || error.message.includes('schema cache'))) {
           console.warn('[Supabase Fallback] Tentando sincronizar cliente com colunas fundamentais...');
           const baseClient = {
             id: clean.id,
@@ -398,13 +469,35 @@ class GrafsisStore {
           };
           const fallbackRes = await this.supabaseClient.from('clientes').upsert(baseClient);
           if (fallbackRes.error) {
-            console.error('[Supabase Fallback] Falha mesmo com colunas básicas:', fallbackRes.error.message);
+            console.error('[Supabase Fallback] Falha no fallback de clientes:', fallbackRes.error.message);
           } else {
             console.log('[Supabase Fallback] Sucesso! Cliente sincronizado com a nuvem (colunas básicas).');
           }
         }
+        // Fallback 3: FINANCEIRO
+        else if (tableName === 'financeiro_lancamentos') {
+          console.warn('[Supabase Fallback] Sincronizando lançamento financeiro sem FKs restritas...');
+          const baseFin = {
+            id: clean.id,
+            tipo: clean.tipo || 'receber',
+            descricao: clean.descricao || 'Lançamento',
+            categoria: clean.categoria || 'Geral',
+            valor: clean.valor || 0,
+            data_vencimento: clean.data_vencimento || new Date().toISOString().slice(0, 10),
+            data_pagamento: clean.data_pagamento || null,
+            status: clean.status || 'pendente',
+            forma_pagamento: clean.forma_pagamento || null,
+            observacoes: clean.observacoes || null
+          };
+          const fallbackRes = await this.supabaseClient.from('financeiro_lancamentos').upsert(baseFin);
+          if (fallbackRes.error) {
+            console.error('[Supabase Fallback] Falha no fallback financeiro:', fallbackRes.error.message);
+          } else {
+            console.log('[Supabase Fallback] Sucesso! Lançamento financeiro sincronizado na nuvem.');
+          }
+        }
       } else {
-        console.log(`[Supabase] Registro sincronizado em ${tableName}:`, clean.id);
+        console.log(`[Supabase] Registro sincronizado com sucesso em ${tableName}:`, clean.id);
       }
     } catch (err) {
       console.warn(`[Supabase] Falha ao enviar para ${tableName}:`, err);

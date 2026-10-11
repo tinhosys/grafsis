@@ -1,4 +1,4 @@
-﻿-- ==============================================================================
+-- ==============================================================================
 -- GRAFSIS - Banco de Dados PostgreSQL (Supabase Free Tier)
 -- Sistema de Gestao para Comunicacao Visual, Grafica, Brindes e Impressao Digital
 -- ==============================================================================
@@ -188,3 +188,17 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone VARCHAR(30);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email VARCHAR(150);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tentativas_senha_padrao INT DEFAULT 10;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS empresa_id VARCHAR(50) DEFAULT '001';
+
+-- Atualizações v3.6.0 (Pedidos Completos & Validações Operacionais)
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS itens JSONB DEFAULT '[]';
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS historico JSONB DEFAULT '[]';
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS valor_entrada NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS valor_recebido NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS vendedor VARCHAR(150);
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS obs_pagto TEXT;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS data_aceite TIMESTAMP WITH TIME ZONE;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS autorizo_producao VARCHAR(150);
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS conferencia_arte VARCHAR(150);
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS empresa_id VARCHAR(50) DEFAULT '001';
+

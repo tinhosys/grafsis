@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Módulo de Produtos & Calculadora Fracionada
    Venda Fracionada (m² e metros lineares): Largura (X) x Comprimento (Y), Brindes
    ============================================================================== */
@@ -483,86 +483,415 @@ window.productsModule = {
     });
   }
 ,
+  getInkData() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem('grafsis_ink_control') || 'null');
+    } catch (e) { saved = null; }
+    
+    if (!saved) {
+      saved = {
+        activeTab: 'solvente',
+        solvente: {
+          rendimento_m2: 120,
+          preco_litro_manual: null,
+          estoque: { C: 5.0, M: 4.5, Y: 6.0, K: 8.0 },
+          historico: [
+            { id: 'ink-s1', cor: 'C', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 70.00 },
+            { id: 'ink-s2', cor: 'M', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 70.00 },
+            { id: 'ink-s3', cor: 'Y', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 75.00 },
+            { id: 'ink-s4', cor: 'K', fornecedor: 'InkTec Brasil', data: '2026-10-05', qtde: 4.0, preco_unitario: 80.00 }
+          ]
+        },
+        sublimacao: {
+          rendimento_m2: 150,
+          preco_litro_manual: null,
+          estoque: { C: 3.0, M: 3.0, Y: 2.5, K: 4.0 },
+          historico: [
+            { id: 'ink-sub1', cor: 'C', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 85.00 },
+            { id: 'ink-sub2', cor: 'M', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 85.00 },
+            { id: 'ink-sub3', cor: 'Y', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 90.00 },
+            { id: 'ink-sub4', cor: 'K', fornecedor: 'Sensient Subli', data: '2026-10-04', qtde: 2.0, preco_unitario: 95.00 }
+          ]
+        }
+      };
+      this.saveInkData(saved);
+    }
+    return saved;
+  },
+
+  saveInkData(data) {
+    localStorage.setItem('grafsis_ink_control', JSON.stringify(data));
+    if (window.store && window.store.supabaseClient) {
+      window.store.pushRecord('settings', { id: 'ink_control', data: JSON.stringify(data) }).catch(() => {});
+    }
+  },
+
+  setInkTab(tab) {
+    const data = this.getInkData();
+    data.activeTab = tab;
+    this.saveInkData(data);
+    this.renderInkModalContent();
+  },
+
+  addInkPurchase() {
+    const cor = document.getElementById('new-ink-color').value;
+    const fornecedor = document.getElementById('new-ink-fornecedor').value.trim() || 'Fornecedor Padrão';
+    const data = document.getElementById('new-ink-date').value || new Date().toISOString().slice(0, 10);
+    const qtde = parseFloat(document.getElementById('new-ink-qtde').value) || 0;
+    const preco = parseFloat(document.getElementById('new-ink-preco').value) || 0;
+
+    if (qtde <= 0) return alert('Informe a quantidade de litros (maior que 0).');
+    if (preco <= 0) return alert('Informe o preço unitário por litro.');
+
+    const inkData = this.getInkData();
+    const cat = inkData.activeTab || 'solvente';
+    
+    // Adiciona ao histórico em linha simples
+    const newEntry = {
+      id: 'ink-' + Date.now(),
+      cor,
+      fornecedor,
+      data,
+      qtde,
+      preco_unitario: preco
+    };
+    inkData[cat].historico.unshift(newEntry);
+
+    // REGRA: Entrada vai automaticamente para o controle de estoque de tinta!
+    if (!inkData[cat].estoque) inkData[cat].estoque = { C: 0, M: 0, Y: 0, K: 0 };
+    inkData[cat].estoque[cor] = (parseFloat(inkData[cat].estoque[cor]) || 0) + qtde;
+
+    // Reseta override manual para que a Regra de Ouro recalcule imediatamente com o maior preço
+    inkData[cat].preco_litro_manual = null;
+
+    this.saveInkData(inkData);
+    this.renderInkModalContent();
+  },
+
+  deleteInkPurchase(id) {
+    if (!confirm('Deseja excluir esta entrada de compra do histórico?')) return;
+    const inkData = this.getInkData();
+    const cat = inkData.activeTab || 'solvente';
+    const entry = inkData[cat].historico.find(h => h.id === id);
+    if (entry) {
+      // Abate do estoque correspondente
+      if (inkData[cat].estoque && inkData[cat].estoque[entry.cor]) {
+        inkData[cat].estoque[entry.cor] = Math.max(0, inkData[cat].estoque[entry.cor] - entry.qtde);
+      }
+      inkData[cat].historico = inkData[cat].historico.filter(h => h.id !== id);
+      this.saveInkData(inkData);
+      this.renderInkModalContent();
+    }
+  },
+
+  updateInkStockManual(cor, val) {
+    const inkData = this.getInkData();
+    const cat = inkData.activeTab || 'solvente';
+    if (!inkData[cat].estoque) inkData[cat].estoque = {};
+    inkData[cat].estoque[cor] = Math.max(0, parseFloat(val) || 0);
+    this.saveInkData(inkData);
+  },
+
+  updateInkCalc() {
+    const inkData = this.getInkData();
+    const cat = inkData.activeTab || 'solvente';
+    const precoLitroInput = parseFloat(document.getElementById('ink-calc-preco-l').value) || 0;
+    const rendimentoInput = parseFloat(document.getElementById('ink-calc-rendimento').value) || 1;
+
+    inkData[cat].preco_litro_manual = precoLitroInput;
+    inkData[cat].rendimento_m2 = rendimentoInput;
+    this.saveInkData(inkData);
+
+    const custoM2 = rendimentoInput > 0 ? (precoLitroInput / rendimentoInput) : 0;
+    const resEl = document.getElementById('ink-calc-res-m2');
+    if (resEl) {
+      resEl.innerText = 'R$ ' + custoM2.toFixed(2);
+    }
+  },
+
   openInkModal() {
+    let existing = document.getElementById('ink-modal');
+    if (existing) existing.remove();
+
     const modalHtml = `
-      <div id="ink-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
-          <div class="flex justify-between items-center pb-3 border-b">
+      <div id="ink-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+          <!-- Topo do Modal -->
+          <div class="p-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
             <div>
-              <h2 class="text-xl font-black text-purple-800">💧 Controle de Tintas & Insumos</h2>
-              <p class="text-xs text-slate-500">Cálculo de rendimento e custo por m² impresso</p>
+              <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                💧 Controle de Tintas & Insumos Gráficos
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Gestão por cor CMYK, histórico de compras, estoque automático e Regra de Ouro (Maior Preço)</p>
             </div>
-            <button onclick="document.getElementById('ink-modal').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+            <button onclick="document.getElementById('ink-modal').remove()" class="text-slate-400 hover:text-slate-700 font-black text-2xl leading-none">&times;</button>
           </div>
 
-          <div class="mt-4 grid grid-cols-2 gap-4">
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <h3 class="font-bold text-slate-800 text-sm mb-3">Tinta Eco-Solvente (CMYK)</h3>
-              <div class="mb-3">
-                <label class="block font-semibold mb-1 text-xs">Estoque Atual (Kits / Litros)</label>
-                <input type="number" step="0.1" id="ink-eco-stock" value="${window.store.getSettings().inkEcoStock || 0}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded font-bold text-blue-700 bg-blue-50">
-              </div>
-              <div class="space-y-2 text-xs">
-                <div>
-                  <label class="block font-semibold mb-1">Custo do Kit 4L (R$)</label>
-                  <input type="number" id="ink-eco-price" value="${window.store.getSettings().inkEcoPrice || 280}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
-                </div>
-                <div>
-                  <label class="block font-semibold mb-1">Rendimento Esperado (m² por Kit)</label>
-                  <input type="number" id="ink-eco-yield" value="${window.store.getSettings().inkEcoYield || 1200}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
-                </div>
-                <div class="pt-2 border-t mt-2">
-                  <span class="block text-slate-500 font-semibold uppercase text-[10px]">Custo Calculado por m²</span>
-                  <span class="text-lg font-black text-purple-700" id="ink-eco-res">R$ 0,23</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <h3 class="font-bold text-slate-800 text-sm mb-3">Tinta Sublimática (CMYK)</h3>
-              <div class="mb-3">
-                <label class="block font-semibold mb-1 text-xs">Estoque Atual (Kits / Litros)</label>
-                <input type="number" step="0.1" id="ink-sub-stock" value="${window.store.getSettings().inkSubStock || 0}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded font-bold text-blue-700 bg-blue-50">
-              </div>
-              <div class="space-y-2 text-xs">
-                <div>
-                  <label class="block font-semibold mb-1">Custo do Kit 4L (R$)</label>
-                  <input type="number" id="ink-sub-price" value="${window.store.getSettings().inkSubPrice || 180}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
-                </div>
-                <div>
-                  <label class="block font-semibold mb-1">Rendimento Esperado (m² por Kit)</label>
-                  <input type="number" id="ink-sub-yield" value="${window.store.getSettings().inkSubYield || 800}" oninput="productsModule.calcInk()" class="w-full p-2 border rounded">
-                </div>
-                <div class="pt-2 border-t mt-2">
-                  <span class="block text-slate-500 font-semibold uppercase text-[10px]">Custo Calculado por m²</span>
-                  <span class="text-lg font-black text-purple-700" id="ink-sub-res">R$ 0,22</span>
-                </div>
-              </div>
-            </div>
+          <!-- Corpo com Conteúdo Dinâmico -->
+          <div id="ink-modal-body" class="p-5 overflow-y-auto flex-1 space-y-5">
           </div>
 
-          <div class="mt-4 pt-3 border-t text-right">
-            <button onclick="document.getElementById('ink-modal').remove()" class="px-5 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold">Fechar</button>
+          <!-- Rodapé -->
+          <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end shrink-0">
+            <button onclick="document.getElementById('ink-modal').remove()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-sm transition shadow-sm">
+              Concluir & Fechar
+            </button>
           </div>
         </div>
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    this.calcInk();
+    this.renderInkModalContent();
   },
-  
-  calcInk() {
-    const ecoP = parseFloat(document.getElementById('ink-eco-price').value) || 0;
-    const ecoY = parseFloat(document.getElementById('ink-eco-yield').value) || 1;
-    const subP = parseFloat(document.getElementById('ink-sub-price').value) || 0;
-    const subY = parseFloat(document.getElementById('ink-sub-yield').value) || 1;
-    document.getElementById('ink-eco-res').innerText = 'R$ ' + (ecoP / ecoY).toFixed(2);
-    let s = window.store.getSettings();
-    s.inkEcoPrice = ecoP; s.inkEcoYield = ecoY; s.inkSubPrice = subP; s.inkSubYield = subY;
-    s.inkEcoStock = parseFloat(document.getElementById('ink-eco-stock').value) || 0;
-    s.inkSubStock = parseFloat(document.getElementById('ink-sub-stock').value) || 0;
-    window.store.save('grafsis_settings', s);
-    document.getElementById('ink-sub-res').innerText = 'R$ ' + (subP / subY).toFixed(2);
+
+  renderInkModalContent() {
+    const container = document.getElementById('ink-modal-body');
+    if (!container) return;
+
+    const inkData = this.getInkData();
+    const cat = inkData.activeTab || 'solvente';
+    const catData = inkData[cat] || { estoque: {}, historico: [], rendimento_m2: 120 };
+
+    // Cores CMYK e suas propriedades visuais
+    const colors = [
+      { key: 'C', name: 'Ciano', hex: '#00AEEF', bg: 'bg-[#00AEEF]', text: 'text-white' },
+      { key: 'M', name: 'Magenta', hex: '#EC008C', bg: 'bg-[#EC008C]', text: 'text-white' },
+      { key: 'Y', name: 'Amarelo', hex: '#FFF200', bg: 'bg-[#FFF200]', text: 'text-slate-900 border border-amber-300' },
+      { key: 'K', name: 'Preto', hex: '#111827', bg: 'bg-[#111827]', text: 'text-white' }
+    ];
+
+    // REGRA DE OURO: O MAIOR PREÇO registrado no histórico independe da data de compra!
+    const allPrices = (catData.historico || []).map(h => parseFloat(h.preco_unitario) || 0).filter(p => p > 0);
+    const goldenRulePrice = allPrices.length > 0 ? Math.max(...allPrices) : (cat === 'solvente' ? 75.00 : 90.00);
+    
+    // Preço do Litro a ser considerado (manual ou Regra de Ouro)
+    const effectivePricePerL = catData.preco_litro_manual !== null && catData.preco_litro_manual !== undefined 
+      ? catData.preco_litro_manual 
+      : goldenRulePrice;
+
+    const rendimentoM2 = catData.rendimento_m2 || (cat === 'solvente' ? 120 : 150);
+    const custoM2 = rendimentoM2 > 0 ? (effectivePricePerL / rendimentoM2) : 0;
+
+    container.innerHTML = `
+      <!-- ABAS DE NAVEGAÇÃO ENTRE AS 2 CATEGORIAS -->
+      <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button 
+          type="button"
+          onclick="productsModule.setInkTab('solvente')"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition ${cat === 'solvente' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+          <span>🟨 Tinta Eco-Solvente (CMYK)</span>
+        </button>
+        <button 
+          type="button"
+          onclick="productsModule.setInkTab('sublimacao')"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition ${cat === 'sublimacao' ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+          <span>🟣 Tinta Sublimática (CMYK)</span>
+        </button>
+      </div>
+
+      <!-- CARDS DE CONTROLE POR COR CMYK (Estoque Atual, Última Compra e Maior Preço) -->
+      <div>
+        <div class="flex justify-between items-center mb-2.5">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Estoque Atual & Dados por Cor (CMYK)</h3>
+          <span class="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+            ⭐ Regra de Ouro: Maior Preço R$ ${goldenRulePrice.toFixed(2)}/L
+          </span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          ${colors.map(col => {
+            const stock = (catData.estoque && catData.estoque[col.key] !== undefined) ? catData.estoque[col.key] : 0;
+            const corHist = (catData.historico || []).filter(h => h.cor === col.key);
+            const lastBuy = corHist[0] || null;
+            const maxCorPrice = corHist.length > 0 ? Math.max(...corHist.map(h => h.preco_unitario)) : 0;
+
+            return `
+              <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                      <span class="w-4 h-4 rounded-full ${col.bg} shrink-0 shadow-sm"></span>
+                      <span class="font-black text-sm text-slate-800">${col.name} (${col.key})</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-400 uppercase font-bold block">Estoque em Litros:</span>
+                    <div class="flex items-center gap-1 mt-0.5">
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        value="${stock}" 
+                        onchange="productsModule.updateInkStockManual('${col.key}', this.value)"
+                        class="w-20 font-black text-base text-blue-700 bg-blue-50/60 border border-blue-200 rounded px-2 py-0.5 focus:bg-white focus:outline-none">
+                      <span class="text-xs font-bold text-slate-500">L</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] space-y-0.5 text-slate-500">
+                  <div><strong>Última compra:</strong> ${lastBuy ? new Date(lastBuy.data + 'T12:00:00').toLocaleDateString('pt-BR') : '--'}</div>
+                  <div class="truncate" title="${lastBuy ? lastBuy.fornecedor : ''}"><strong>Forn:</strong> ${lastBuy ? lastBuy.fornecedor : '--'}</div>
+                  <div><strong>Preço Último:</strong> ${lastBuy ? 'R$ ' + Number(lastBuy.preco_unitario).toFixed(2) : '--'}</div>
+                  <div class="text-amber-700 font-bold"><strong>Maior Preço:</strong> ${maxCorPrice > 0 ? 'R$ ' + maxCorPrice.toFixed(2) : '--'}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- CÁLCULO DE CUSTO POR M² BASEADO NO RENDIMENTO E PREÇO DO LITRO -->
+      <div class="bg-gradient-to-r from-slate-50 to-blue-50/40 p-4 rounded-2xl border border-slate-200/90 shadow-sm">
+        <h3 class="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+          Cálculo de Custo por m² Impresso (Regra de Ouro)
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Preço do Litro (R$/L) *</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">R$</span>
+              <input 
+                type="number" 
+                step="0.01" 
+                id="ink-calc-preco-l" 
+                value="${effectivePricePerL.toFixed(2)}" 
+                oninput="productsModule.updateInkCalc()"
+                class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-black text-slate-800 text-sm focus:ring-2 focus:ring-blue-500 shadow-sm"
+                title="Pré-carregado com o Maior Preço do histórico (Regra de Ouro)">
+            </div>
+            <span class="text-[10px] text-slate-400 mt-1 block">Sugerido: Maior preço R$ ${goldenRulePrice.toFixed(2)}</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Rendimento Esperado (m² por Litro) *</label>
+            <div class="relative">
+              <input 
+                type="number" 
+                step="1" 
+                id="ink-calc-rendimento" 
+                value="${rendimentoM2}" 
+                oninput="productsModule.updateInkCalc()"
+                placeholder="Ex: 120"
+                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-black text-slate-800 text-sm focus:ring-2 focus:ring-blue-500 shadow-sm">
+              <span class="absolute right-3 top-2 text-xs font-bold text-slate-400">m²/L</span>
+            </div>
+            <span class="text-[10px] text-slate-400 mt-1 block">Digitar o rendimento do equipamento</span>
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border-2 border-purple-200 shadow-inner flex flex-col justify-center">
+            <span class="text-[10px] font-black uppercase text-purple-700 tracking-wider">Custo Calculado por m²</span>
+            <span class="text-2xl font-black text-purple-800 font-mono mt-0.5" id="ink-calc-res-m2">R$ ${custoM2.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENTRADA DE COMPRA DE TINTA EM LINHA SIMPLES (Atualiza estoque automaticamente) -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 class="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Nova Entrada de Compra (Soma Automática no Estoque)
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-2.5 items-end">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Cor CMYK</label>
+            <select id="new-ink-color" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-bold text-slate-800">
+              <option value="C">🔵 Ciano (C)</option>
+              <option value="M">🟣 Magenta (M)</option>
+              <option value="Y">🟡 Amarelo (Y)</option>
+              <option value="K">⚫ Preto (K)</option>
+            </select>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Fornecedor</label>
+            <input type="text" id="new-ink-fornecedor" placeholder="Ex: Global Tintas" class="w-full p-2 border rounded-xl text-xs bg-slate-50">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Data</label>
+            <input type="date" id="new-ink-date" value="${new Date().toISOString().slice(0, 10)}" class="w-full p-2 border rounded-xl text-xs bg-slate-50">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Qtde (Litros)</label>
+            <input type="number" step="0.1" id="new-ink-qtde" placeholder="Ex: 2.0" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-bold">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Preço/L (R$)</label>
+            <input type="number" step="0.01" id="new-ink-preco" placeholder="0.00" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-bold">
+          </div>
+        </div>
+        <div class="mt-3 flex justify-end">
+          <button 
+            type="button" 
+            onclick="productsModule.addInkPurchase()" 
+            class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center gap-1.5">
+            <span>+ Dar Entrada & Atualizar Estoque</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO DAS TINTAS EM LINHA SIMPLES -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+          <h3 class="text-xs font-bold text-slate-700 uppercase">
+            Histórico de Compras - ${(cat === 'solvente' ? 'Tinta Eco-Solvente' : 'Tinta Sublimática')}
+          </h3>
+          <span class="text-[11px] text-slate-400 font-semibold">${(catData.historico || []).length} registro(s)</span>
+        </div>
+        <div class="overflow-x-auto max-h-48 overflow-y-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 text-slate-500 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200">
+              <tr>
+                <th class="p-2.5">Cor</th>
+                <th class="p-2.5">Fornecedor</th>
+                <th class="p-2.5">Data</th>
+                <th class="p-2.5 text-center">Qtde</th>
+                <th class="p-2.5 text-right">Preço Unit. (R$/L)</th>
+                <th class="p-2.5 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${(catData.historico && catData.historico.length > 0) ? catData.historico.map(h => {
+                const colInfo = colors.find(c => c.key === h.cor) || { bg: 'bg-slate-600', name: h.cor };
+                const isMax = parseFloat(h.preco_unitario) === goldenRulePrice;
+
+                return `
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="p-2.5 flex items-center gap-2">
+                      <span class="w-3.5 h-3.5 rounded-full ${colInfo.bg} shadow-sm"></span>
+                      <span class="font-bold text-slate-800">${colInfo.name} (${h.cor})</span>
+                    </td>
+                    <td class="p-2.5 text-slate-700 font-medium">${h.fornecedor}</td>
+                    <td class="p-2.5 text-slate-500">${new Date(h.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                    <td class="p-2.5 text-center font-bold text-slate-800">${h.qtde} L</td>
+                    <td class="p-2.5 text-right font-mono font-bold ${isMax ? 'text-amber-700 bg-amber-50/70 rounded' : 'text-slate-800'}">
+                      R$ ${Number(h.preco_unitario).toFixed(2)}
+                      ${isMax ? '<span class="text-[9px] text-amber-600 ml-1 font-sans" title="Maior preço da Regra de Ouro">⭐</span>' : ''}
+                    </td>
+                    <td class="p-2.5 text-center">
+                      <button 
+                        type="button" 
+                        onclick="productsModule.deleteInkPurchase('${h.id}')" 
+                        class="text-slate-400 hover:text-rose-600 transition p-1" 
+                        title="Excluir entrada">
+                        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join('') : `
+                <tr>
+                  <td colspan="6" class="p-6 text-center text-slate-400">Nenhuma compra registrada nesta categoria.</td>
+                </tr>
+              `}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   }
 };
 

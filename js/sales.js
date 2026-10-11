@@ -151,9 +151,10 @@ window.salesModule = {
       
       // Filtro Saldo Devedor
       if (f.pagamento) {
+         const entradaCadastrada = parseFloat(o.valor_entrada) || parseFloat(o.valor_recebido) || 0;
          const payments = allFinance.filter(fin => fin.pedido_id === o.id && fin.tipo === 'recebimento');
-         const totalPaid = payments.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0);
-         const balance = parseFloat(o.valor_final) - totalPaid;
+         const totalPaid = Math.max(payments.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0), entradaCadastrada);
+         const balance = Math.max(0, parseFloat(o.valor_final) - totalPaid);
          
          if (f.pagamento === 'devedor' && balance <= 0.01) return false;
          if (f.pagamento === 'pago' && balance > 0.01) return false;
@@ -175,15 +176,20 @@ window.salesModule = {
       const c = clients.find(cl => cl.id === o.cliente_id);
       const cName = c ? c.nome : 'Desconhecido';
       
+      const entradaCadastrada = parseFloat(o.valor_entrada) || parseFloat(o.valor_recebido) || 0;
       const payments = allFinance.filter(fin => fin.pedido_id === o.id && fin.tipo === 'recebimento');
-      const totalPaid = payments.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0);
-      const balance = parseFloat(o.valor_final) - totalPaid;
+      const paymentsSum = payments.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0);
+      const totalPaid = Math.max(paymentsSum, entradaCadastrada);
+      const balance = Math.max(0, parseFloat(o.valor_final) - totalPaid);
       
       let balanceBadge = '';
       if (balance > 0.01) {
-         balanceBadge = `<span class="block text-[10px] font-bold text-rose-600 uppercase mt-1">Falta: R$ ${balance.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>`;
+         balanceBadge = `
+           <span class="block text-[10px] font-bold text-rose-600 uppercase mt-1">Falta: R$ ${balance.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+           ${totalPaid > 0 ? `<span class="block text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded inline-block mt-0.5">Entrada: R$ ${totalPaid.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>` : ''}
+         `;
       } else {
-         balanceBadge = `<span class="block text-[10px] font-bold text-emerald-600 uppercase mt-1">Quitado</span>`;
+         balanceBadge = `<span class="block text-[10px] font-bold text-emerald-600 uppercase mt-1">Quitado (100%)</span>`;
       }
       
       let orderDateStr = '--';
@@ -471,20 +477,36 @@ window.salesModule = {
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Producao</h3>
+                <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Produção & Validações</h3>
                 
                 <div>
-                  <label class="block text-xs font-semibold mb-1 text-slate-700">Observacoes Tecnicas</label>
+                  <label class="block text-xs font-semibold mb-1 text-slate-700">Observações Técnicas</label>
                   <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
                 </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200">
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Data Aceite Cliente</label>
+                    <input type="date" name="data_aceite" id="order-data-aceite" value="${order && order.data_aceite ? order.data_aceite.slice(0,10) : ''}" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Autorizo Produção</label>
+                    <input type="text" name="autorizo_producao" id="order-autorizo-producao" value="${order ? (order.autorizo_producao || '') : ''}" placeholder="Nome / Visto" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Conferência Arte</label>
+                    <input type="text" name="conferencia_arte" id="order-conferencia-arte" value="${order ? (order.conferencia_arte || '') : ''}" placeholder="Designer / OK" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
+                  </div>
+                </div>
               </div>
+
               <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
                 <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
                 <div class="flex justify-between items-center">
                   <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
                   <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0,00</span>
                 </div>
-                                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center">
                   <span class="text-sm font-semibold text-slate-600">Desconto (%):</span>
                   <input type="number" step="0.01" id="order-discount-perc" value="0" oninput="salesModule.recalcTotals('perc')" class="w-20 p-1.5 border rounded-lg text-center font-mono text-sm bg-white text-purple-700 font-bold">
                 </div>
@@ -493,21 +515,37 @@ window.salesModule = {
                   <input type="number" step="0.01" id="order-discount" value="${order ? (order.desconto || 0) : 0}" oninput="salesModule.recalcTotals('val')" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white">
                 </div>
                 <div class="flex justify-between items-center pt-2 border-t border-blue-200">
-                  <span class="text-lg font-black text-blue-900">Total Final:</span>
-                  <span class="text-2xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
+                  <span class="text-base font-black text-blue-900">Total Final:</span>
+                  <span class="text-xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
                 </div>
-                <div class="mt-4 pt-4 border-t border-blue-100">
+                
+                <!-- ENTRADA DIRETA NO FORMULÁRIO -->
+                <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2 mt-2">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <span class="text-xs font-black text-emerald-800 uppercase block">Valor de Entrada (R$):</span>
+                      <span class="text-[10px] text-slate-400">Sinal pago no ato</span>
+                    </div>
+                    <input type="number" step="0.01" id="order-valor-entrada" value="${order ? (order.valor_entrada || order.valor_recebido || 0) : 0}" oninput="salesModule.recalcTotals('entrada')" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black">
+                  </div>
+                  <div class="flex justify-between items-center pt-1 border-t border-slate-100">
+                    <span class="text-xs font-bold text-slate-600 uppercase">Saldo a Pagar (Falta):</span>
+                    <span class="text-base font-black text-rose-600 font-mono" id="order-saldo-restante">R$ 0,00</span>
+                  </div>
+                </div>
+
+                <div class="mt-2 pt-2 border-t border-blue-100">
                   <button type="button" onclick="salesModule.openFinanceModal()" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    RECEBER / FINANCEIRO
+                    DETALHES / RECIBO / CARTÃO
                   </button>
                   <div class="text-center mt-3 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
                     <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
                     <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
-                    <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || 0) : 0}">
-<input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
-<input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
-</div>
+                    <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || order.valor_entrada || 0) : 0}">
+                    <input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
+                    <input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
+                  </div>
                 </div>
               </div>
             </div>
@@ -915,76 +953,242 @@ window.salesModule = {
   printOrder(type) {
     const orderIdStr = document.getElementById('current-display-id')?.value || 'NOVO PEDIDO';
     const clientSelect = document.querySelector('select[name="cliente_id"]');
-    const clientName = clientSelect && clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : 'Consumidor Final';
+    const clientId = clientSelect ? clientSelect.value : null;
+    const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || {};
+    const clientName = client.nome || (clientSelect && clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : 'Consumidor Final');
+    const clientDoc = client.cpf_cnpj || '';
+    const clientPhone = client.telefone_whatsapp || '';
+    const clientEmail = client.email || '';
+    const clientAddress = [client.endereco, client.logradouro, client.numero, client.bairro].filter(Boolean).join(', ') || '';
+    const clientCity = [client.cidade, client.uf].filter(Boolean).join(' - ') || '';
+    const clientLogo = client.foto_url || '';
+
     const dateStr = new Date().toLocaleString('pt-BR');
-    
+    const previsaoInput = document.getElementById('previsao_entrega')?.value || '';
+    const previsaoFormatada = previsaoInput ? new Date(previsaoInput + 'T12:00:00').toLocaleDateString('pt-BR') : 'A Combinar';
+    const dataAceiteInput = document.getElementById('order-data-aceite')?.value || '';
+    const dataAceiteFormatada = dataAceiteInput ? new Date(dataAceiteInput + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+    const autorizoProd = document.getElementById('order-autorizo-producao')?.value || '';
+    const confArte = document.getElementById('order-conferencia-arte')?.value || '';
+
     const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
     const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
     const finalTotal = Math.max(0, subtotal - discount);
+    const entrada = parseFloat(document.getElementById('order-valor-entrada')?.value || document.getElementById('order-valor-recebido')?.value || 0);
+    const restante = Math.max(0, finalTotal - entrada);
+    const metodoPagto = document.getElementById('order-metodo-pagto')?.value || 'A Combinar';
 
-    const conf = window.store?.getSettings ? window.store.getSettings() : {};
-    const companyName = conf.empresa_nome || 'Sua Empresa';
-    const companyLogo = conf.empresa_logo || '';
-    const logoHtml = companyLogo ? `<img src="${companyLogo}" style="max-height: 60px;">` : `<h2>${companyName}</h2>`;
+    const tenant = (window.store && window.store.getActiveTenant()) || {};
+    const companyName = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS';
+    const companyCNPJ = tenant.cnpj || '';
+    const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336';
+    const companyLogo = tenant.logo_url || '';
 
-    const title = type === 'os' ? 'Ordem de Servi\u00E7o' : 'Pedido de Venda / Or\u00E7amento';
+    const title = type === 'os' ? 'Ordem de Serviço' : 'Pedido de Venda / Orçamento';
 
     const itemsHtml = this.activeItems.map((it, idx) => `
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 8px;">${idx+1}</td>
-        <td style="padding: 8px;"><strong>${it.produto_nome}</strong><br><span style="font-size: 12px; color: #555;">${it.descricao}</span></td>
-        <td style="padding: 8px;">${it.largura_x}m x ${it.comprimento_y}m</td>
-        <td style="padding: 8px; text-align: center;">${it.quantidade}</td>
-        <td style="padding: 8px; text-align: right;">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-        <td style="padding: 8px; text-align: right; font-weight: bold;">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 10px 8px; vertical-align: top;">${idx+1}</td>
+        <td style="padding: 10px 8px;">
+          <div style="font-weight: bold; color: #0f172a; font-size: 13px;">${it.produto_nome}</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${it.descricao}</div>
+        </td>
+        <td style="padding: 10px 8px; vertical-align: top; font-family: monospace; font-size: 12px;">${it.largura_x}m x ${it.comprimento_y}m</td>
+        <td style="padding: 10px 8px; text-align: center; vertical-align: top; font-weight: bold;">${it.quantidade}</td>
+        <td style="padding: 10px 8px; text-align: right; vertical-align: top; font-family: monospace;">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td style="padding: 10px 8px; text-align: right; vertical-align: top; font-weight: bold; font-family: monospace; color: #0f172a;">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
       </tr>
     `).join('');
 
     const pdfHtml = `
-      <html><head><title>${title} - ${orderIdStr}</title>
-      <style>
-        body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; padding-bottom: 20px; margin-bottom: 20px; }
-        .title { font-size: 24px; font-weight: bold; color: #1e40af; text-transform: uppercase; }
-        .info-grid { display: flex; justify-content: space-between; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        table { border-collapse: collapse; margin-bottom: 20px; width: 100%; }
-        th { background: #f1f5f9; padding: 10px; text-align: left; border-bottom: 2px solid #cbd5e1; font-size: 14px; }
-        .totals { margin-left: auto; width: 300px; text-align: right; font-size: 16px; }
-        .totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dotted #ccc; padding-bottom: 4px; }
-        .totals .final { font-size: 20px; font-weight: bold; color: #15803d; border-bottom: none; }
-        @media print { body { padding: 0; } }
-      </style>
-      </head><body>
-        <div class="header">
-          ${logoHtml}
-          <div class="title">${title} #${orderIdStr}</div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${title} #${orderIdStr}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.4; margin: 0; padding: 15px; font-size: 12px; }
+          .header-box { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 15px; border-bottom: 2px solid #0284c7; margin-bottom: 15px; }
+          .client-brand { display: flex; align-items: center; gap: 14px; max-width: 60%; }
+          .client-logo-img { max-height: 65px; max-width: 110px; object-fit: contain; border-radius: 8px; border: 1px solid #cbd5e1; padding: 2px; }
+          .client-logo-fallback { width: 55px; height: 55px; border-radius: 10px; background: #0284c7; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; }
+          .order-title { text-align: right; }
+          .order-title h1 { margin: 0; font-size: 19px; color: #0284c7; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
+          .order-title .meta { font-size: 11px; color: #64748b; margin-top: 3px; }
+          
+          .client-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 15px; display: grid; grid-cols: 1; font-size: 11px; }
+          .client-card-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+
+          table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+          th { background: #f1f5f9; padding: 8px; text-align: left; font-size: 10px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
+          
+          .totals-bar { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+          .totals-table { width: 280px; font-size: 12px; }
+          .totals-table tr td { padding: 4px 6px; }
+          .totals-table tr.final-row td { font-size: 16px; font-weight: 900; color: #15803d; border-top: 2px solid #15803d; padding-top: 6px; }
+
+          /* Bloco Inferior: Informações do Pedido e Vistos de Produção / Aceite */
+          .validation-section { border-top: 2px dashed #cbd5e1; padding-top: 15px; margin-top: 15px; }
+          .order-info-strip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 11px; }
+          
+          .approval-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+          .approval-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #fff; min-height: 105px; display: flex; flex-col; justify-content: space-between; }
+          .approval-title { font-weight: bold; font-size: 11px; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+          .sig-line { border-top: 1px solid #94a3b8; margin-top: 30px; padding-top: 4px; text-align: center; font-size: 10px; color: #64748b; font-weight: 600; }
+
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <!-- CABEÇALHO COM LOGO E DADOS DO CLIENTE + DADOS DA EMPRESA EMISSORA (Imagem 2) -->
+        <div class="header-box">
+          <div class="client-brand">
+            ${clientLogo 
+              ? `<img src="${clientLogo}" class="client-logo-img" alt="Logo Cliente">` 
+              : `<div class="client-logo-fallback">${(clientName || 'CL').slice(0,2).toUpperCase()}</div>`
+            }
+            <div>
+              <div style="font-size: 16px; font-weight: 900; color: #0f172a;">${clientName}</div>
+              ${clientDoc ? `<div style="font-size: 11px; color: #475569;"><strong>CPF/CNPJ:</strong> ${clientDoc}</div>` : ''}
+              ${clientAddress ? `<div style="font-size: 11px; color: #475569;"><strong>Endereço:</strong> ${clientAddress}</div>` : ''}
+              ${clientCity ? `<div style="font-size: 11px; color: #475569;"><strong>Cidade/UF:</strong> ${clientCity}</div>` : ''}
+              ${clientPhone ? `<div style="font-size: 11px; color: #0284c7;"><strong>WhatsApp/Tel:</strong> ${clientPhone}</div>` : ''}
+              ${clientEmail ? `<div style="font-size: 11px; color: #64748b;"><strong>E-mail:</strong> ${clientEmail}</div>` : ''}
+            </div>
+          </div>
+
+          <div class="order-title">
+            <h1>${title}</h1>
+            <div style="font-size: 18px; font-weight: 900; color: #0f172a; font-family: monospace;">#${orderIdStr}</div>
+            <div class="meta"><strong>Emissão:</strong> ${dateStr}</div>
+            <div class="meta" style="margin-top: 4px; font-weight: bold; color: #334155;">${companyName}</div>
+            ${companyCNPJ ? `<div class="meta">CNPJ: ${companyCNPJ}</div>` : ''}
+            ${companyPhone ? `<div class="meta">Suporte: ${companyPhone}</div>` : ''}
+          </div>
         </div>
-        <div class="info-grid">
-          <div><strong>Cliente:</strong> ${clientName}</div>
-          <div><strong>Data:</strong> ${dateStr}</div>
-        </div>
+
+        <!-- TABELA DE ITENS -->
         <table>
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Produto / Descri\u00E7\u00E3o</th>
-              <th>Dimens\u00F5es</th>
-              <th style="text-align: center;">Qtd</th>
-              <th style="text-align: right;">V. Unit</th>
-              <th style="text-align: right;">Total</th>
+              <th style="width: 35px;">Item</th>
+              <th>Produto / Descrição</th>
+              <th style="width: 110px;">Dimensões</th>
+              <th style="text-align: center; width: 45px;">Qtd</th>
+              <th style="text-align: right; width: 85px;">V. Unit</th>
+              <th style="text-align: right; width: 95px;">Total</th>
             </tr>
           </thead>
           <tbody>
             ${itemsHtml}
           </tbody>
         </table>
-        <div class="totals">
-          <div class="row"><span>Subtotal:</span> <span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-          <div class="row"><span>Desconto:</span> <span>R$ ${discount.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-          <div class="row final"><span>Total Geral:</span> <span>R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+
+        <!-- TOTAL GERAL E CONDICOES -->
+        <div class="totals-bar">
+          <table class="totals-table">
+            <tr>
+              <td>Subtotal:</td>
+              <td style="text-align: right; font-family: monospace;">R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+            </tr>
+            ${discount > 0 ? `
+              <tr>
+                <td>Desconto:</td>
+                <td style="text-align: right; font-family: monospace; color: #dc2626;">- R$ ${discount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+              </tr>
+            ` : ''}
+            <tr class="final-row">
+              <td>Total Geral:</td>
+              <td style="text-align: right; font-family: monospace;">R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+            </tr>
+          </table>
         </div>
+
+        <!-- INFORMAÇÕES DO PEDIDO & VALIDAÇÕES OPERACIONAIS (Imagem 3) -->
+        <div class="validation-section">
+          <!-- Tira com Prazos, Entrada e Saldo Restante -->
+          <div class="order-info-strip">
+            <div>
+              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Prazo de Entrega:</span>
+              <strong style="color: #0f172a; font-size: 13px;">${previsaoFormatada}</strong>
+            </div>
+            <div>
+              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Forma de Pagto:</span>
+              <strong style="color: #0f172a;">${metodoPagto}</strong>
+            </div>
+            <div>
+              <span style="color: #15803d; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Entrada / Sinal Pago:</span>
+              <strong style="color: #15803d; font-size: 13px; font-family: monospace;">R$ ${entrada.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+            </div>
+            <div>
+              <span style="color: #dc2626; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Saldo Restante (Falta):</span>
+              <strong style="color: ${restante <= 0.01 ? '#15803d' : '#dc2626'}; font-size: 13px; font-family: monospace;">
+                ${restante <= 0.01 ? 'QUITADO' : 'R$ ' + restante.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+              </strong>
+            </div>
+          </div>
+
+          <!-- Grade de 3 Vistos: Aceite do Cliente, Autorizo de Produção, Conferência de Arte -->
+          <div class="approval-grid">
+            <!-- 1. Aceite do Cliente -->
+            <div class="approval-box">
+              <div>
+                <div class="approval-title">
+                  <span>1. Aceite do Cliente</span>
+                  <span style="font-size: 9px; color: #64748b;">${dataAceiteFormatada ? 'Data: ' + dataAceiteFormatada : 'Data: ___/___/___'}</span>
+                </div>
+                <div style="font-size: 9.5px; color: #475569; line-height: 1.3;">
+                  Declaro que conferi e estou de acordo com os itens, medidas, valores e condições acima relacionados.
+                </div>
+              </div>
+              <div class="sig-line">
+                Assinatura do Cliente
+              </div>
+            </div>
+
+            <!-- 2. Autorizo de Produção -->
+            <div class="approval-box">
+              <div>
+                <div class="approval-title">
+                  <span>2. Autorizo de Produção</span>
+                  <span style="font-size: 9px; color: #0284c7;">${autorizoProd ? autorizoProd : 'Visto'}</span>
+                </div>
+                <div style="font-size: 9.5px; color: #475569; line-height: 1.3;">
+                  Liberado para fila de corte/impressão. Materiais disponíveis e ordem de execução confirmada.
+                </div>
+              </div>
+              <div class="sig-line">
+                Responsável pela Produção
+              </div>
+            </div>
+
+            <!-- 3. Conferência da Arte -->
+            <div class="approval-box">
+              <div>
+                <div class="approval-title">
+                  <span>3. Conferência da Arte</span>
+                  <span style="font-size: 9px; color: #16a34a;">${confArte ? confArte : 'OK'}</span>
+                </div>
+                <div style="font-size: 9.5px; color: #475569; line-height: 1.3;">
+                  [ ✔ ] Arquivo em CMYK<br>
+                  [ ✔ ] Proporção e sangria conferidas<br>
+                  [ ✔ ] Textos em curvas e resolução alta
+                </div>
+              </div>
+              <div class="sig-line">
+                Conferente / Designer
+              </div>
+            </div>
+          </div>
+        </div>
+
         <script>window.print();</script>
-      </body></html>
+      </body>
+      </html>
     `;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(pdfHtml);
@@ -1195,7 +1399,7 @@ window.salesModule = {
         </tr>
       `).join('');
     },
-    recalcTotals(source = 'val') {
+  recalcTotals(source = 'val') {
     const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
     let descVal = parseFloat(document.getElementById('order-discount')?.value) || 0;
     let descPerc = parseFloat(document.getElementById('order-discount-perc')?.value) || 0;
@@ -1215,13 +1419,40 @@ window.salesModule = {
       document.getElementById('order-subtotal').innerText = 'R$ ' + subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('order-total-final').innerText = 'R$ ' + finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
+
+    // Entrada direta e cálculo de saldo restante
+    let entradaInput = document.getElementById('order-valor-entrada');
+    let hiddenRec = document.getElementById('order-valor-recebido');
     
-    const valorRecebido = parseFloat(document.getElementById('order-valor-recebido')?.value) || 0;
-    if (valorRecebido > 0 || finalTotal > 0) {
-      if (this.updateFinanceSummary) this.updateFinanceSummary(valorRecebido, finalTotal);
+    let valorEntrada = 0;
+    if (source === 'entrada' && entradaInput) {
+      valorEntrada = parseFloat(entradaInput.value) || 0;
+      if (hiddenRec) hiddenRec.value = valorEntrada;
+    } else if (hiddenRec && parseFloat(hiddenRec.value) > 0) {
+      valorEntrada = parseFloat(hiddenRec.value) || 0;
+      if (entradaInput) entradaInput.value = valorEntrada.toFixed(2);
+    } else if (entradaInput) {
+      valorEntrada = parseFloat(entradaInput.value) || 0;
+      if (hiddenRec) hiddenRec.value = valorEntrada;
+    }
+
+    const saldoRestante = Math.max(0, finalTotal - valorEntrada);
+    const saldoEl = document.getElementById('order-saldo-restante');
+    if (saldoEl) {
+      if (saldoRestante <= 0.01 && finalTotal > 0) {
+        saldoEl.innerText = 'QUITADO (R$ 0,00)';
+        saldoEl.className = 'text-base font-black text-emerald-600 font-mono';
+      } else {
+        saldoEl.innerText = 'R$ ' + saldoRestante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        saldoEl.className = 'text-base font-black text-rose-600 font-mono';
+      }
     }
     
-    return { subtotal, discount: descVal, finalTotal };
+    if (valorEntrada > 0 || finalTotal > 0) {
+      if (this.updateFinanceSummary) this.updateFinanceSummary(valorEntrada, finalTotal);
+    }
+    
+    return { subtotal, discount: descVal, finalTotal, valorEntrada, saldoRestante };
   },
       handleArteUpload(input) {
     if(!input.files || input.files.length === 0) return;
@@ -1261,6 +1492,10 @@ window.salesModule = {
       });
     }
 
+    const valorEntrada = parseFloat(document.getElementById("order-valor-entrada")?.value) || parseFloat(document.getElementById("order-valor-recebido")?.value) || 0;
+    const saldoRestante = Math.max(0, finalTotal - valorEntrada);
+    const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
+
     const orderData = {
       id: id || undefined,
       numero: geradoNumero,
@@ -1269,12 +1504,16 @@ window.salesModule = {
       vendedor: window.app?.currentUser?.nome || "Vendedor",
       status_fase: newPhase,
       previsao_entrega: form.previsao_entrega.value,
+      data_aceite: form.data_aceite?.value || null,
+      autorizo_producao: form.autorizo_producao?.value || '',
+      conferencia_arte: form.conferencia_arte?.value || '',
       foto_arte_url: form.foto_arte_url?.value || '',
       observacoes: form.observacoes.value,
-              forma_pagamento: document.getElementById('order-metodo-pagto')?.value || 'Dinheiro',
-        obs_pagto: document.getElementById('order-obs-pagto')?.value || '',
-        valor_recebido: parseFloat(document.getElementById("order-valor-recebido")?.value) || 0,
-        status_pagamento: (parseFloat(document.getElementById("order-valor-recebido")?.value) || 0) > 0 ? 'parcial' : 'pendente',
+      forma_pagamento: document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash',
+      obs_pagto: document.getElementById('order-obs-pagto')?.value || '',
+      valor_entrada: valorEntrada,
+      valor_recebido: valorEntrada,
+      status_pagamento: statusPagto,
       valor_total: subtotal,
       desconto: discount,
       valor_final: finalTotal,
@@ -1282,13 +1521,30 @@ window.salesModule = {
       historico: historico
     };
     const saved = await window.store.saveOrder(orderData);
-    if (orderData.status_pagamento !== 'pago') {
+
+    // Se houve entrada paga, lança o recebimento no caixa/financeiro
+    if (valorEntrada > 0) {
+      await window.store.saveFinanceEntry({
+        tipo: 'recebimento',
+        descricao: 'Entrada Pedido #' + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
+        valor: valorEntrada,
+        data_pagamento: new Date().toISOString().slice(0, 10),
+        data_vencimento: new Date().toISOString().slice(0, 10),
+        status: 'pago',
+        forma_pagamento: orderData.forma_pagamento,
+        pedido_id: saved.id,
+        cliente_id: orderData.cliente_id
+      });
+    }
+
+    // Se ainda restar saldo devedor, lança como conta a receber
+    if (saldoRestante > 0.01) {
       await window.store.saveFinanceEntry({
         tipo: 'receber',
-        descricao: 'Pedido #' + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicacao Visual'),
-        valor: finalTotal,
+        descricao: 'Saldo Restante Pedido #' + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
+        valor: saldoRestante,
         data_vencimento: orderData.previsao_entrega || new Date().toISOString().slice(0, 10),
-        status: orderData.status_pagamento === 'parcial' ? 'parcial' : 'pendente',
+        status: valorEntrada > 0 ? 'parcial' : 'pendente',
         pedido_id: saved.id,
         cliente_id: orderData.cliente_id
       });
