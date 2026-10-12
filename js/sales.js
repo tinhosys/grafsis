@@ -201,7 +201,12 @@ window.salesModule = {
       html += `
         <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0 group">
           <td class="p-4 text-xs font-bold text-slate-500">${orderDateStr}</td>
-          <td class="p-4 font-mono font-black text-blue-600">#${o.numero || o.id.substring(0,6)}</td>
+          <td class="p-4 font-mono font-black text-blue-600">
+            <button type="button" onclick="salesModule.openModal({orderId: '${o.id}'})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-900 border border-blue-200 transition font-mono font-black text-xs shadow-2xs group cursor-pointer" title="Clique para abrir e carregar este Pedido #${o.numero}">
+              <span>#${o.numero || o.id.substring(0,6)}</span>
+              <svg class="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-700 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            </button>
+          </td>
           <td class="p-4 font-bold text-slate-800 uppercase truncate max-w-[200px]" title="${cName}">${cName}</td>
           <td class="p-4">
             <span class="font-black text-slate-800">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
@@ -675,15 +680,8 @@ window.salesModule = {
             </div>
             <div class="text-right">
               <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider">ID OPERAÇÃO</span>
-              ${isEdit ? `
-                <span class="text-2xl font-black text-slate-900 dark:text-cyan-400 font-mono">#${order.numero}</span>
-                <input type="hidden" id="current-display-id" value="${order.numero}">
-              ` : `
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-bold text-sm rounded-lg" title="A numeração sequencial automática será gerada automaticamente ao salvar e efetivar a operação.">
-                  <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Gerado ao Efetivar
-                </span>
-                <input type="hidden" id="current-display-id" value="">
-              `}
+              <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">#${displayId}</span>
+              <input type="hidden" id="current-display-id" value="${displayId}">
             </div>
           </div>
           
@@ -925,14 +923,14 @@ window.salesModule = {
                     <span class="text-xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
                   </div>
                   
-                  <!-- ENTRADA DIRETA NO FORMULÁRIO -->
+                  <!-- ENTRADA DIRETA NO FORMULÁRIO (Imagem 1: 2 Casas Decimais) -->
                   <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2 mt-2">
                     <div class="flex justify-between items-center">
                       <div>
                         <span class="text-xs font-black text-emerald-800 uppercase block">Valor de Entrada (R$):</span>
                         <span class="text-[10px] text-slate-400">Sinal pago no ato</span>
                       </div>
-                      <input type="number" step="0.01" id="order-valor-entrada" value="${order ? (order.valor_entrada || order.valor_recebido || 0) : 0}" oninput="salesModule.recalcTotals('entrada')" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black">
+                      <input type="text" id="order-valor-entrada" value="${Number(order ? (order.valor_entrada || order.valor_recebido || 0) : 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" placeholder="0,00" oninput="salesModule.recalcTotals('entrada')" onblur="this.value = (parseFloat(String(this.value).replace(/\./g, '').replace(',', '.') || 0)).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); salesModule.recalcTotals('entrada');" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
                     <div class="flex justify-between items-center pt-1 border-t border-slate-100">
                       <span class="text-xs font-bold text-slate-600 uppercase">Saldo a Pagar (Falta):</span>
@@ -956,22 +954,14 @@ window.salesModule = {
                 </div>
               </div>
 
-              <!-- BARRA DE BOTÕES & FASE DA PRODUÇÃO -->
+              <!-- BARRA DE BOTÕES & CONTROLE OPERACIONAL (Imagem 2: Combo de Fases Retirado) -->
+              <input type="hidden" name="status_fase" value="${order ? (order.status_fase || 'orcamento') : 'orcamento'}">
               <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
-                <div class="w-full sm:w-1/3">
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Fase da Produção / Status Inicial</label>
-                  <select name="status_fase" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-black text-blue-700 shadow-sm border-blue-300">
-                    ${(window.productionModule ? window.productionModule.phases : [
-                        {id:'orcamento', name:'1. ORÇAMENTO'},
-                        {id:'prevenda', name:'2. PRÉ-VENDA'},
-                        {id:'aprovacao', name:'3. APROVAÇÃO'},
-                        {id:'liberado', name:'4. LIBERADO'},
-                        {id:'producao', name:'5. PRODUÇÃO'},
-                        {id:'acabamento', name:'6. ACABAMENTO'},
-                        {id:'embalagem', name:'7. EMBALAGEM'},
-                        {id:'entregue', name:'8. ENTREGA'}
-                    ]).map(p => `<option value="${p.id}" ${order && order.status_fase === p.id ? 'selected' : (!order && p.id === 'orcamento' ? 'selected' : '')}>${p.name}</option>`).join('')}
-                  </select>
+                <div class="text-xs text-slate-600 font-semibold flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                  <span>Operação <strong>#${displayId}</strong></span>
+                  <span class="text-slate-400">&bull;</span>
+                  <span class="text-slate-500">Fluxo controlado pelo Kanban da Produção</span>
                 </div>
                 <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                   <button type="button" onclick="salesModule.render()" class="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
@@ -1338,80 +1328,125 @@ window.salesModule = {
     printWindow.document.close();
   },
   printReceipt() {
-    const orderIdStr = document.getElementById('current-display-id')?.value || 'NOVO PEDIDO';
-    const clientSelect = document.querySelector('select[name="cliente_id"]');
-    const clientName = clientSelect && clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : 'Consumidor Final';
+    const orderIdStr = document.getElementById('current-display-id')?.value;
+    const orders = window.store?.getOrders ? window.store.getOrders() : [];
+    const savedOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) || (orderIdStr && orders.find(o => String(o.numero) === String(orderIdStr)));
     
-    const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
-    const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
-    const total = Math.max(0, subtotal - discount);
+    // BLOQUEIO DE IMPRESSÃO SEM ID VÁLIDO REGISTRADO (Imagem 3 & 5)
+    if (!savedOrder) {
+      alert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É obrigatório clicar em "Finalizar Pedido" para registrar o ID antes de emitir o recibo.`);
+      return;
+    }
 
-    const recebido = parseFloat(document.getElementById('fm-recebido')?.value || document.getElementById('order-valor-recebido')?.value || 0);
+    const tenant = (window.store && window.store.getActiveTenant ? window.store.getActiveTenant() : null) || {};
+    const conf = (window.store?.getSettings ? window.store.getSettings() : {}) || {};
+    const companyName = tenant.razao_social || tenant.nome_fantasia || conf.empresa_nome || 'GRAFSIS';
+    const companyCNPJ = tenant.cnpj || conf.empresa_cnpj || '00.000.000/0001-00';
+    const companyAddress = [tenant.endereco || tenant.logradouro, tenant.numero, tenant.bairro].filter(Boolean).join(', ') || conf.empresa_endereco || 'Endereço não informado';
+    const companyCityUf = [tenant.cidade || conf.empresa_cidade || 'Ji-Paraná', tenant.uf || 'RO'].filter(Boolean).join(' - ');
+    const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || conf.empresa_telefone || '(69) 99922-1336';
+    const companyLogo = tenant.logo_url || conf.empresa_logo || '';
+    const logoHtml = companyLogo ? `<img src="${companyLogo}" style="max-width: 140px; max-height: 70px; margin: 0 auto 8px auto; display: block; object-fit: contain;">` : '';
+
+    const clientId = savedOrder.cliente_id || document.querySelector('select[name="cliente_id"]')?.value;
+    const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || {};
+    const clientName = client.nome || savedOrder.cliente_nome || 'Consumidor Final';
+    const clientDoc = client.cpf_cnpj || '';
+    const clientPhone = client.telefone_whatsapp || '';
+
+    const total = parseFloat(savedOrder.valor_final || savedOrder.valor_total || 0);
+    const subtotal = parseFloat(savedOrder.valor_total || total);
+    const discount = parseFloat(savedOrder.desconto || 0);
+    const recebido = parseFloat(document.getElementById('fm-recebido')?.value || savedOrder.valor_entrada || savedOrder.valor_recebido || 0);
     const restante = Math.max(0, total - recebido);
-    const method = document.getElementById('fm-metodo')?.value || 'Dinheiro / Cash';
-    const obs = document.getElementById('fm-obs')?.value || '';
-    const dateStr = new Date().toLocaleString('pt-BR');
+    const method = document.getElementById('fm-metodo')?.value || savedOrder.forma_pagamento || 'Dinheiro / Cash';
+    const obs = document.getElementById('fm-obs')?.value || savedOrder.obs_pagto || '';
+    const dateStr = new Date(savedOrder.created_at || Date.now()).toLocaleString('pt-BR');
     const valExtenso = this.numeroPorExtenso(recebido);
-    const codValidacao = btoa(orderIdStr + '-' + Date.now()).substring(0, 12).toUpperCase();
+    const codValidacao = btoa((savedOrder.numero || orderIdStr) + '-' + Date.now()).substring(0, 12).toUpperCase();
 
-    const conf = window.store?.getSettings ? window.store.getSettings() : {};
-    const companyName = conf.empresa_nome || 'Sua Empresa';
-    const companyCNPJ = conf.empresa_cnpj || '00.000.000/0001-00';
-    const companyAddress = conf.empresa_endereco || 'Endere\u00E7o n\u00E3o informado';
-    const companyPhone = conf.empresa_telefone || '(00) 0000-0000';
-    const city = conf.empresa_cidade || 'Sua Cidade';
-    const companyLogo = conf.empresa_logo || '';
-    
-    const logoHtml = companyLogo ? `<img src="${companyLogo}" style="max-width: 150px; margin: 0 auto 10px auto; display: block;">` : '';
+    let tipoPagtoTexto = 'pagamento parcial / sinal';
+    if (restante <= 0.01 && total > 0) {
+      tipoPagtoTexto = 'pagamento total / quitação';
+    } else if (recebido > 0 && restante > 0) {
+      tipoPagtoTexto = 'pagamento parcial / acerto';
+    }
+
+    const items = (savedOrder.itens && savedOrder.itens.length) ? savedOrder.itens : this.activeItems;
+    const itemsListHtml = items.map((it, idx) => {
+      const qtd = it.quantidade || 1;
+      const desc = it.descricao || it.produto_nome || 'Produto/Serviço';
+      const tam = it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : (it.tipo_calculo === 'linear' ? `${it.comprimento_y}m linear` : 'Unidade');
+      const vUnit = Number(it.preco_unitario || it.preco_base || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      const subTot = Number(it.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      return `<div style="margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px dotted #ccc; text-align: left; font-size: 11px;">
+        <strong>${idx + 1} - </strong>Qtde: ${qtd}, ${desc}, Tam: ${tam}, V. Unit: R$ ${vUnit}, Subtotal: R$ ${subTot}
+      </div>`;
+    }).join('');
+
+    const currentUser = (window.authModule && window.authModule.getCurrentUser ? window.authModule.getCurrentUser() : null) || { nome: 'Operador', role: 'Vendas' };
+    const colaboradorStr = `${currentUser.nome || currentUser.login || 'Colaborador'} (${currentUser.role || currentUser.cargo || 'Atendimento'})`;
 
     const receiptHtml = `
-      <html><head><title>Recibo - ${orderIdStr}</title>
+      <html><head><title>Recibo - #${savedOrder.numero || orderIdStr}</title>
       <style>
-        body { font-family: monospace; padding: 20px; text-align: center; color: #000; }
-        .receipt { max-width: 350px; margin: 0 auto; border: 1px dashed #000; padding: 20px; }
-        .line { border-bottom: 1px dashed #000; margin: 12px 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; padding: 15px; text-align: center; color: #111; background: #fff; }
+        .receipt { max-width: 380px; margin: 0 auto; border: 1px dashed #999; padding: 16px; border-radius: 8px; box-sizing: border-box; }
+        .line { border-bottom: 1px dashed #777; margin: 10px 0; }
         .text-left { text-align: left; }
         .text-right { text-align: right; }
-        .flex { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .flex { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px; }
         .bold { font-weight: bold; }
-        h2 { margin: 0 0 10px 0; font-size: 20px; }
-        p { margin: 4px 0; font-size: 14px; }
+        h2 { margin: 4px 0 8px 0; font-size: 18px; letter-spacing: 1px; }
+        p { margin: 3px 0; font-size: 12px; }
         @media print {
             body { padding: 0; }
-            .receipt { border: none; padding: 0; max-width: 100%; width: 300px; }
+            .receipt { border: none; padding: 0; max-width: 100%; width: 320px; }
         }
       </style>
       </head><body>
       <div class="receipt">
         ${logoHtml}
         <h2>RECIBO</h2>
-        <div class="bold" style="font-size:16px;">${companyName}</div>
-        <div style="font-size: 12px;">CNPJ: ${companyCNPJ}</div>
-        <div style="font-size: 12px;">${companyAddress} - ${city}</div>
-        <div style="font-size: 12px;">Tel: ${companyPhone}</div>
+        <div class="bold" style="font-size:14px; text-transform: uppercase;">${companyName}</div>
+        <div style="font-size: 11px;">CNPJ: ${companyCNPJ}</div>
+        <div style="font-size: 11px;">${companyAddress}</div>
+        <div style="font-size: 11px;">${companyCityUf}</div>
+        <div style="font-size: 11px;">Tel: ${companyPhone}</div>
         <div class="line"></div>
         <div class="text-left">
-          <p><strong>Pedido ID:</strong> ${orderIdStr}</p>
-          <p><strong>Cliente:</strong> ${clientName}</p>
+          <p><strong>Pedido ID:</strong> <span class="bold" style="font-size:13px; font-family: monospace;">#${savedOrder.numero || orderIdStr}</span></p>
+          <p><strong>Cliente:</strong> ${clientName}${clientDoc ? ' (' + clientDoc + ')' : ''}</p>
+          ${clientPhone ? `<p><strong>Telefone:</strong> ${clientPhone}</p>` : ''}
           <p><strong>Data:</strong> ${dateStr}</p>
         </div>
         <div class="line"></div>
         <div class="text-left">
-          <p>Recebemos de ${clientName} a quantia de:</p>
-          <h2 style="text-align:center; margin: 15px 0;">R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
-          <p style="text-align:center; font-style: italic; font-size: 12px;">(${valExtenso})</p>
+          <div class="bold" style="font-size: 11px; margin-bottom: 5px; text-transform: uppercase;">Itens do Pedido:</div>
+          ${itemsListHtml}
+        </div>
+        <div class="line"></div>
+        <div class="text-left">
+          <p style="line-height: 1.4;">Recebemos de <strong>${clientName}</strong>${clientDoc ? ' (' + clientDoc + ')' : ''}, a importância de:</p>
+          <h2 style="text-align:center; margin: 10px 0; color: #1e3a8a;">R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
+          <p style="text-align:center; font-style: italic; font-size: 11px; margin-bottom: 8px;">(${valExtenso})</p>
+          <p><strong>Referente:</strong> ${tipoPagtoTexto} do pedido ID <strong>#${savedOrder.numero || orderIdStr}</strong>.</p>
           <p><strong>Forma Pagto:</strong> ${method}</p>
           ${obs ? `<p><strong>Obs:</strong> ${obs}</p>` : ''}
         </div>
         <div class="line"></div>
-        <div class="flex"><span class="bold">Valor Total:</span> <span>R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-        <div class="flex"><span class="bold">Valor Recebido:</span> <span>R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
-        <div class="flex"><span class="bold">Restante:</span> <span>R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+        <div class="flex"><span class="bold">Subtotal:</span> <span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+        ${discount > 0 ? `<div class="flex"><span class="bold">Desconto:</span> <span>R$ ${discount.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>` : ''}
+        <div class="flex"><span class="bold">Valor Total:</span> <span class="bold">R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+        <div class="flex"><span class="bold">Valor Recebido:</span> <span class="bold" style="color: #047857;">R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+        <div class="flex"><span class="bold">Saldo Restante:</span> <span class="bold" style="color: ${restante > 0 ? '#b91c1c' : '#047857'};">R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
         <div class="line"></div>
-        <p style="font-size: 11px; margin-top: 10px;">C\u00F3d. de Valida\u00E7\u00E3o: ${codValidacao}</p>
-        <br><br><br>
-        <p style="font-size: 12px;">_________________________________</p>
-        <p style="font-size: 12px; margin-top: 5px;">Assinatura do Recebedor</p>
+        <p style="font-size: 10px; margin-top: 8px; color: #555;">Cód. de Validação: ${codValidacao}</p>
+        <div style="margin-top: 25px;">
+          <p style="font-size: 11px; margin: 0;">_________________________________________</p>
+          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">${companyName}</p>
+          <p style="font-size: 11px; color: #444; margin: 2px 0;">Colaborador: ${colaboradorStr}</p>
+        </div>
       </div>
       <script>window.print();</script>
       </body></html>
@@ -1421,11 +1456,20 @@ window.salesModule = {
     printWindow.document.close();
   },
   printOrder(type) {
-    const orderIdStr = document.getElementById('current-display-id')?.value || 'NOVO PEDIDO';
+    const orderIdStr = document.getElementById('current-display-id')?.value;
+    const orders = window.store?.getOrders ? window.store.getOrders() : [];
+    const savedOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) || (orderIdStr && orders.find(o => String(o.numero) === String(orderIdStr)));
+    
+    // BLOQUEIO DE IMPRESSÃO SEM ID VÁLIDO REGISTRADO (Imagem 3 & 5)
+    if (!savedOrder) {
+      alert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É necessário clicar em "Finalizar Pedido" para registrar o ID antes de emitir impressões ou O.S.`);
+      return;
+    }
+
     const clientSelect = document.querySelector('select[name="cliente_id"]');
-    const clientId = clientSelect ? clientSelect.value : null;
+    const clientId = savedOrder.cliente_id || (clientSelect ? clientSelect.value : null);
     const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || {};
-    const clientName = client.nome || (clientSelect && clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : 'Consumidor Final');
+    const clientName = client.nome || savedOrder.cliente_nome || 'Consumidor Final';
     const clientDoc = client.cpf_cnpj || '';
     const clientPhone = client.telefone_whatsapp || '';
     const clientEmail = client.email || '';
@@ -1433,20 +1477,21 @@ window.salesModule = {
     const clientCity = [client.cidade, client.uf].filter(Boolean).join(' - ') || '';
     const clientLogo = client.foto_url || '';
 
-    const dateStr = new Date().toLocaleString('pt-BR');
-    const previsaoInput = document.getElementById('previsao_entrega')?.value || '';
+    const dateStr = new Date(savedOrder.created_at || Date.now()).toLocaleString('pt-BR');
+    const previsaoInput = document.getElementById('previsao_entrega')?.value || savedOrder.previsao_entrega || '';
     const previsaoFormatada = previsaoInput ? new Date(previsaoInput + 'T12:00:00').toLocaleDateString('pt-BR') : 'A Combinar';
-    const dataAceiteInput = document.getElementById('order-data-aceite')?.value || '';
+    const dataAceiteInput = document.getElementById('order-data-aceite')?.value || savedOrder.data_aceite || '';
     const dataAceiteFormatada = dataAceiteInput ? new Date(dataAceiteInput + 'T12:00:00').toLocaleDateString('pt-BR') : '';
-    const autorizoProd = document.getElementById('order-autorizo-producao')?.value || '';
-    const confArte = document.getElementById('order-conferencia-arte')?.value || '';
+    const autorizoProd = document.getElementById('order-autorizo-producao')?.value || savedOrder.autorizo_producao || '';
+    const confArte = document.getElementById('order-conferencia-arte')?.value || savedOrder.conferencia_arte || '';
 
-    const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
-    const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
+    const items = (savedOrder.itens && savedOrder.itens.length) ? savedOrder.itens : this.activeItems;
+    const subtotal = items.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
+    const discount = parseFloat(savedOrder.desconto || document.getElementById('order-discount')?.value || 0);
     const finalTotal = Math.max(0, subtotal - discount);
-    const entrada = parseFloat(document.getElementById('order-valor-entrada')?.value || document.getElementById('order-valor-recebido')?.value || 0);
+    const entrada = parseFloat(savedOrder.valor_entrada || savedOrder.valor_recebido || 0);
     const restante = Math.max(0, finalTotal - entrada);
-    const metodoPagto = document.getElementById('order-metodo-pagto')?.value || 'A Combinar';
+    const metodoPagto = savedOrder.forma_pagamento || document.getElementById('order-metodo-pagto')?.value || 'A Combinar';
 
     const tenant = (window.store && window.store.getActiveTenant()) || {};
     const companyName = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS';
@@ -1454,7 +1499,7 @@ window.salesModule = {
     const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336';
     const companyLogo = tenant.logo_url || '';
 
-    const opVal = (document.querySelector('select[name="tipo_operacao"]')?.value || 'venda').toLowerCase();
+    const opVal = (savedOrder.tipo_operacao || savedOrder.tipo || 'venda').toLowerCase();
     let title = 'Pedido de Venda';
     if (type === 'os') {
       title = 'Ordem de Serviço';
@@ -1932,13 +1977,17 @@ window.salesModule = {
     
     let valorEntrada = 0;
     if (source === 'entrada' && entradaInput) {
-      valorEntrada = parseFloat(entradaInput.value) || 0;
+      const cleanVal = String(entradaInput.value || '').trim().replace(/\./g, '').replace(',', '.');
+      valorEntrada = parseFloat(cleanVal) || 0;
       if (hiddenRec) hiddenRec.value = valorEntrada;
     } else if (hiddenRec && parseFloat(hiddenRec.value) > 0) {
       valorEntrada = parseFloat(hiddenRec.value) || 0;
-      if (entradaInput) entradaInput.value = valorEntrada.toFixed(2);
+      if (entradaInput && document.activeElement !== entradaInput) {
+        entradaInput.value = valorEntrada.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      }
     } else if (entradaInput) {
-      valorEntrada = parseFloat(entradaInput.value) || 0;
+      const cleanVal = String(entradaInput.value || '').trim().replace(/\./g, '').replace(',', '.');
+      valorEntrada = parseFloat(cleanVal) || 0;
       if (hiddenRec) hiddenRec.value = valorEntrada;
     }
 

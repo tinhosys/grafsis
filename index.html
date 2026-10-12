@@ -291,7 +291,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.3.0 (Ver Notas)
+              Versão 4.4.0 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -671,7 +671,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.3.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.4.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -679,14 +679,24 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.3.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Calculadora Fracionada, Botão Novo Produto, Chave Primária Cliente & Header Limpo</span>
+            <h4 class="font-bold text-slate-800">Versão 4.4.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Valor de Entrada 2 Decimais, Motor de Busca de ID, Recibo Oficial & Bloqueio sem ID</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Calculadora Fracionada:</strong> Removido preço do nome/descrição no seletor de material; formatação padronizada para decimais com vírgula (Área <code>###,00 m²</code>, Quantidade <code>###,0</code>, Desconto <code>###,00 %</code>, Preço Unitário e Valor Total <code>R$ ###.###,00</code>).</li>
-            <li><strong>Header Otimizado:</strong> Removido seletor duplicado de unidades no topo da tela; gestão corporativa centralizada exclusivamente em Configurações / Admin.</li>
-            <li><strong>Chave Primária de Clientes:</strong> Regra aprimorada para desconsiderar validação de chave primária duplicada na edição, permitindo atualizar endereço, nome e dados livremente sem bloqueios indevidos.</li>
-            <li><strong>Botão + Novo Produto no Pedido:</strong> Acionamento direto do formulário de Novo Produto / Serviço e sincronização instantânea com a grade de itens.</li>
+            <li><strong>Entrada Financeira (2 Decimais):</strong> Formatação padronizada para <code>###,00</code> com máscara de 2 casas decimais no valor de entrada do pedido.</li>
+            <li><strong>Fluxo de Produção Limpo:</strong> Removido seletor manual redundante de fases no pedido; status controlado de forma inteligente pelo Kanban de produção.</li>
+            <li><strong>ID Oficial & Motor de Busca:</strong> ID sequencial definitivo (ex: <code>#260001</code>) atribuído e exibido imediatamente na abertura; coluna CÓDIGO da tabela transformada em botão interativo que carrega o pedido com um clique.</li>
+            <li><strong>Recibo Oficial Completo:</strong> Cabeçalho com dados e logomarca da gráfica (CNPJ, endereço, telefone, cidade/UF), discriminação detalhada de cada item (quantidade, descrição, tamanho, valor unitário e subtotal), declaração formal com valor por extenso e rodapé com colaborador logado.</li>
+            <li><strong>Bloqueio de Impressão sem ID:</strong> Bloqueio estrito de emissão de recibo ou ordem de produção antes da gravação do pedido no banco de dados.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.3.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Calculadora Fracionada, Botão Novo Produto & Chave Primária Cliente</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li>Calculadora com vírgulas e casas decimais padronizadas, botão + Novo Produto direto no pedido, regra de chave primária em edições de clientes aprimorada.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
@@ -708,15 +718,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.3.0"></script>
-  <script src="js/auth.js?v=4.3.0"></script>
-  <script src="js/store.js?v=4.3.0"></script>
-  <script src="js/clients.js?v=4.3.0"></script>
-  <script src="js/suppliers.js?v=4.3.0"></script>
-  <script src="js/products.js?v=4.3.0"></script>
-  <script src="js/sales.js?v=4.3.0"></script>
-  <script src="js/production.js?v=4.3.0"></script>
-  <script src="js/finance.js?v=4.3.0"></script>
-  <script src="js/app.js?v=4.3.0"></script>
+  <script src="js/config.js?v=4.4.0"></script>
+  <script src="js/auth.js?v=4.4.0"></script>
+  <script src="js/store.js?v=4.4.0"></script>
+  <script src="js/clients.js?v=4.4.0"></script>
+  <script src="js/suppliers.js?v=4.4.0"></script>
+  <script src="js/products.js?v=4.4.0"></script>
+  <script src="js/sales.js?v=4.4.0"></script>
+  <script src="js/production.js?v=4.4.0"></script>
+  <script src="js/finance.js?v=4.4.0"></script>
+  <script src="js/app.js?v=4.4.0"></script>
 </body>
 </html>
