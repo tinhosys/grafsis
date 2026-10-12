@@ -610,7 +610,7 @@ window.productsModule = {
     const custoM2 = rendimentoInput > 0 ? (precoLitroInput / rendimentoInput) : 0;
     const resEl = document.getElementById('ink-calc-res-m2');
     if (resEl) {
-      resEl.innerText = 'R$ ' + custoM2.toFixed(2);
+      resEl.innerText = 'R$ ' + custoM2.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
   },
 
@@ -681,6 +681,10 @@ window.productsModule = {
     const totalStockL = colors.reduce((acc, col) => acc + (parseFloat(catData.estoque?.[col.key]) || 0), 0);
     const totalYieldM2 = totalStockL * rendimentoM2;
 
+    const formatDec = (n, dec = 3) => {
+      return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    };
+
     container.innerHTML = `
       <!-- ABAS DE NAVEGAÇÃO ENTRE AS 2 CATEGORIAS -->
       <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
@@ -707,7 +711,7 @@ window.productsModule = {
           <div>
             <div class="text-[11px] uppercase tracking-wider text-blue-200 font-bold">Rendimento Estimado da Categoria (${cat === 'solvente' ? 'Eco-Solvente' : 'Sublimação'})</div>
             <div class="text-xl font-black flex items-center gap-2 mt-0.5">
-              <span>${totalYieldM2.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m²</span>
+              <span>${formatDec(totalYieldM2, 1)} m²</span>
               <span class="text-xs font-medium text-slate-300">de capacidade total de impressão</span>
             </div>
           </div>
@@ -716,11 +720,11 @@ window.productsModule = {
         <div class="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-t-0 sm:border-l border-white/15 pt-2 sm:pt-0 sm:pl-4">
           <div class="text-center sm:text-right">
             <span class="text-[10px] text-blue-200 uppercase font-bold block">Estoque Total CMYK:</span>
-            <span class="text-lg font-black text-amber-300 font-mono">${totalStockL.toFixed(3)} L</span>
+            <span class="text-lg font-black text-amber-300 font-mono">${formatDec(totalStockL, 3)} L</span>
           </div>
           <div class="text-center sm:text-right pl-3 border-l border-white/15">
             <span class="text-[10px] text-blue-200 uppercase font-bold block">Rendimento do Equipamento:</span>
-            <span class="text-lg font-black text-white font-mono">${rendimentoM2} m²/L</span>
+            <span class="text-lg font-black text-white font-mono">${formatDec(rendimentoM2, 0)} m²/L</span>
           </div>
         </div>
       </div>
@@ -730,7 +734,7 @@ window.productsModule = {
         <div class="flex justify-between items-center mb-2.5">
           <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Estoque Atual & Dados por Cor (CMYK)</h3>
           <span class="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
-            ⭐ Regra de Ouro: Maior Preço R$ ${goldenRulePrice.toFixed(2)}/L
+            ⭐ Regra de Ouro: Maior Preço R$ ${formatDec(goldenRulePrice, 2)}/L
           </span>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -764,7 +768,7 @@ window.productsModule = {
                       <span class="text-xs font-bold text-slate-500">L</span>
                     </div>
                     <div class="mt-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block">
-                      Rendimento: ${yieldCor.toFixed(1)} m²
+                      Rendimento: ${formatDec(yieldCor, 1)} m²
                     </div>
                   </div>
                 </div>
@@ -774,8 +778,8 @@ window.productsModule = {
                   <div class="truncate" title="${lastBuy ? ((lastBuy.marca ? lastBuy.marca + ' - ' : '') + lastBuy.fornecedor) : ''}">
                     <strong>Marca/Forn:</strong> ${lastBuy ? ((lastBuy.marca ? lastBuy.marca + ' / ' : '') + lastBuy.fornecedor) : '--'}
                   </div>
-                  <div><strong>Preço Último:</strong> ${lastBuy ? 'R$ ' + Number(lastBuy.preco_unitario).toFixed(2) : '--'}</div>
-                  <div class="text-amber-700 font-bold"><strong>Maior Preço:</strong> ${maxCorPrice > 0 ? 'R$ ' + maxCorPrice.toFixed(2) : '--'}</div>
+                  <div><strong>Preço Último:</strong> ${lastBuy ? 'R$ ' + formatDec(lastBuy.preco_unitario, 2) : '--'}</div>
+                  <div class="text-amber-700 font-bold"><strong>Maior Preço:</strong> ${maxCorPrice > 0 ? 'R$ ' + formatDec(maxCorPrice, 2) : '--'}</div>
                 </div>
               </div>
             `;
@@ -803,7 +807,7 @@ window.productsModule = {
                 class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-black text-slate-800 text-sm focus:ring-2 focus:ring-blue-500 shadow-sm"
                 title="Pré-carregado com o Maior Preço do histórico (Regra de Ouro)">
             </div>
-            <span class="text-[10px] text-slate-400 mt-1 block">Sugerido: Maior preço R$ ${goldenRulePrice.toFixed(2)}</span>
+            <span class="text-[10px] text-slate-400 mt-1 block">Sugerido: Maior preço R$ ${formatDec(goldenRulePrice, 2)}</span>
           </div>
 
           <div>
@@ -824,7 +828,7 @@ window.productsModule = {
 
           <div class="bg-white p-3 rounded-xl border-2 border-purple-200 shadow-inner flex flex-col justify-center">
             <span class="text-[10px] font-black uppercase text-purple-700 tracking-wider">Custo Calculado por m²</span>
-            <span class="text-2xl font-black text-purple-800 font-mono mt-0.5" id="ink-calc-res-m2">R$ ${custoM2.toFixed(2)}</span>
+            <span class="text-2xl font-black text-purple-800 font-mono mt-0.5" id="ink-calc-res-m2">R$ ${formatDec(custoM2, 2)}</span>
           </div>
         </div>
       </div>
@@ -923,9 +927,9 @@ window.productsModule = {
                     <td class="p-2.5 text-slate-800 font-bold">${h.marca || '--'}</td>
                     <td class="p-2.5 text-slate-700 font-medium">${h.fornecedor}</td>
                     <td class="p-2.5 text-slate-500">${new Date(h.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                    <td class="p-2.5 text-center font-black text-slate-800">${Number(h.qtde).toFixed(3)} L</td>
+                    <td class="p-2.5 text-center font-black text-slate-800">${formatDec(h.qtde, 3)} L</td>
                     <td class="p-2.5 text-right font-mono font-bold ${isMax ? 'text-amber-700 bg-amber-50/70 rounded' : 'text-slate-800'}">
-                      R$ ${Number(h.preco_unitario).toFixed(2)}
+                      R$ ${formatDec(h.preco_unitario, 2)}
                       ${isMax ? '<span class="text-[9px] text-amber-600 ml-1 font-sans" title="Maior preço da Regra de Ouro">⭐</span>' : ''}
                     </td>
                     <td class="p-2.5 text-center">

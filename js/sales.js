@@ -699,15 +699,12 @@ window.salesModule = {
                 
                 <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
                   <div class="grid grid-cols-12 gap-2">
-                    <div class="col-span-12 sm:col-span-6 flex items-end gap-1">
-                      <div class="flex-1">
-                        <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
-                        <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
-                          <option value="">Selecione...</option>
-                          ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('')}
-                        </select>
-                      </div>
-                      <button type="button" onclick="salesModule.openNewProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2 rounded shadow-sm text-xs h-[38px]" title="Cadastrar Novo Produto Rápido">+ NOVO</button>
+                    <div class="col-span-12 sm:col-span-6">
+                      <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
+                      <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
+                        <option value="">Selecione...</option>
+                        ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome}</option>`).join('')}
+                      </select>
                     </div>
                     <div class="col-span-6 sm:col-span-3">
                       <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
@@ -718,8 +715,11 @@ window.salesModule = {
                       </select>
                     </div>
                     <div class="col-span-6 sm:col-span-3">
-                      <label class="block font-semibold mb-1 text-slate-700">Base m² / un</label>
-                      <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-transparent focus:text-blue-700 transition-colors font-bold selection:text-transparent focus:selection:text-white" title="Preço base - Fica invisível ao perder o foco">
+                      <label class="block font-semibold mb-1 text-slate-700 flex items-center justify-between">
+                        <span>Base m² / un</span>
+                        <span class="text-[9px] text-slate-400 font-normal">2x clique (4s)</span>
+                      </label>
+                      <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" onmouseenter="salesModule.handlePriceHover(this, true)" onmouseleave="salesModule.handlePriceHover(this, false)" ondblclick="salesModule.revealPrice4s(this)" style="color: transparent; text-shadow: none;" class="w-full p-2 border border-slate-300 rounded bg-white font-mono font-bold transition-all duration-200 cursor-pointer selection:text-transparent" title="Preço base - Passe o mouse ou dê duplo clique para visualizar por 4 segundos">
                     </div>
                   </div>
 
@@ -969,6 +969,23 @@ window.salesModule = {
     if (prevContainer) prevContainer.classList.add('hidden');
   },
 
+  handlePriceHover(el, isHover) {
+    if (!el) return;
+    if (el.dataset.lockedVisible === 'true') return;
+    el.style.color = isHover ? '#1e293b' : 'transparent';
+  },
+
+  revealPrice4s(el) {
+    if (!el) return;
+    el.dataset.lockedVisible = 'true';
+    el.style.color = '#1e293b';
+    if (el._revealTimer) clearTimeout(el._revealTimer);
+    el._revealTimer = setTimeout(() => {
+      el.dataset.lockedVisible = 'false';
+      el.style.color = 'transparent';
+    }, 4000);
+  },
+
   removeItemArte() {
     const itemArteInput = document.getElementById('item-arte-url');
     if (itemArteInput) itemArteInput.value = '';
@@ -981,6 +998,8 @@ window.salesModule = {
     }
     const prevContainer = document.getElementById('item-arte-preview-container');
     if (prevContainer) prevContainer.classList.add('hidden');
+    const prevImg = document.getElementById('item-arte-img');
+    if (prevImg) prevImg.src = '';
   },
 
   handleItemArteUpload(input) {
@@ -1663,7 +1682,7 @@ window.salesModule = {
     document.getElementById('quick-product-modal').remove();
     
     const sel = document.getElementById('item-prod-select');
-    sel.innerHTML = `<option value="">Selecione...</option>` + products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (R$ ${p.preco_base}/${p.unidade_medida})</option>`).join('');
+    sel.innerHTML = `<option value="">Selecione...</option>` + products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome}</option>`).join('');
     sel.value = newProd.id;
     this.handleProdSelect(sel);
     alert('Produto cadastrado com sucesso!');
@@ -1707,22 +1726,19 @@ window.salesModule = {
       valor_total: total,
       arte_url: arteUrl
     });
-        document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
-          document.getElementById('item-desc').value = '';
-      document.getElementById('item-prod-select').value = '';
-      document.getElementById('item-price').value = '0.00';
-      document.getElementById('item-width').value = '0.00';
-      document.getElementById('item-height').value = '0.00';
-      document.getElementById('item-qty').value = '1';
-          if(itemArteInput) itemArteInput.value = '';
-      const arteBtn = document.getElementById('item-arte-btn');
-      if(arteBtn) {
-        arteBtn.className = 'w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors';
-        arteBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>`;
-      }
-      const arteUpload = document.getElementById('item-arte-upload');
-      if(arteUpload) arteUpload.value = '';
-      this.calcPiecePrice();
+
+    document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
+    document.getElementById('item-desc').value = '';
+    document.getElementById('item-prod-select').value = '';
+    document.getElementById('item-price').value = '0.00';
+    document.getElementById('item-width').value = '0.00';
+    document.getElementById('item-height').value = '0.00';
+    document.getElementById('item-qty').value = '1';
+    
+    // LIMPA A ARTE DA MEMÓRIA E DO PREVIEW COMPLETAMENTE PARA O PRÓXIMO LAYOUT
+    this.removeItemArte();
+
+    this.calcPiecePrice();
     this.recalcTotals('val');
     document.getElementById('item-prod-select').focus();
   },
@@ -2076,18 +2092,84 @@ window.salesModule = {
   },  delete(id) {
     if (confirm('Excluir este pedido?')) { window.store.deleteOrder(id); this.render(); }
   },
-  sendWhatsAppOrder(orderId) {
+  sendWhatsAppOrder(orderId, customType = 'geral') {
     const order = window.store.getOrders().find(o => o.id === orderId);
     if (!order) return;
-    const client = window.store.getClients().find(c => c.id === order.cliente_id);
-    if (!client || !client.telefone_whatsapp) { alert('Cliente sem WhatsApp'); return; }
-    let msg = '*GRAFSIS - Pedido #' + order.numero + '*%0AOlá ' + client.nome + '!%0A';
-    order.itens.forEach((it, i) => {
-      msg += (i+1) + '. ' + it.descricao + ' | R$ ' + Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%0A';
-    });
-    msg += '%0A*Total: R$ ' + Number(order.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '*%0A';
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Cliente', telefone_whatsapp: '' };
+    if (!client.telefone_whatsapp) { alert('Cliente sem número de WhatsApp cadastrado!'); return; }
+    
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const companyName = tenant.razao_social || 'GRAFSIS';
+    const totalFmt = 'R$ ' + Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const entradaFmt = 'R$ ' + Number(order.valor_entrada || order.valor_recebido || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const saldo = Math.max(0, (order.valor_final || 0) - (order.valor_entrada || order.valor_recebido || 0));
+    const saldoFmt = 'R$ ' + saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const pixChave = tenant.chave_pix || tenant.cnpj || tenant.celular_whatsapp || 'Consulte no balcão';
+
+    let msg = '';
+    if (customType === 'fase') {
+      const faseNome = (order.status_fase || 'Produção').toUpperCase();
+      msg = `*${companyName}* - Atualização do Pedido #${order.numero}%0A%0A`;
+      msg += `Olá *${client.nome}*, seu pedido avançou no nosso fluxo!%0A`;
+      msg += `📌 *Fase Atual:* ${faseNome}%0A`;
+      if (order.previsao_entrega) msg += `📅 *Previsão de Entrega:* ${new Date(order.previsao_entrega + 'T12:00:00').toLocaleDateString('pt-BR')}%0A`;
+      msg += `%0AAgradecemos a preferência! Qualquer dúvida estamos à disposição.`;
+    } else if (customType === 'cobranca_pix') {
+      msg = `*${companyName}* - Cobrança / Pagamento Pedido #${order.numero}%0A%0A`;
+      msg += `Olá *${client.nome}*, segue o resumo financeiro do seu pedido:%0A`;
+      msg += `💰 *Valor Total:* ${totalFmt}%0A`;
+      msg += `💵 *Entrada Paga:* ${entradaFmt}%0A`;
+      msg += `⚠️ *Saldo a Pagar:* ${saldoFmt}%0A%0A`;
+      msg += `🔑 *Chave PIX:* ${pixChave}%0A`;
+      msg += `Por favor, envie o comprovante para confirmação.`;
+    } else if (customType === 'retirada') {
+      msg = `*${companyName}* - Pedido Pronto para Retirada! 🎉%0A%0A`;
+      msg += `Olá *${client.nome}*, excelente notícia! Seu Pedido #${order.numero} está 100% finalizado e pronto para retirada ou entrega.%0A`;
+      if (saldo > 0) msg += `💰 *Saldo pendente no ato da entrega:* ${saldoFmt}%0A`;
+      msg += `%0ANosso endereço: ${tenant.endereco || 'Consulte nosso atendimento'}.%0AEsperamos por você!`;
+    } else {
+      msg = `*${companyName} - Pedido #${order.numero}*%0AOlá *${client.nome}*!%0A`;
+      (order.itens || []).forEach((it, i) => {
+        msg += `${i+1}. ${it.descricao} | R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}%0A`;
+      });
+      msg += `%0A*Total: ${totalFmt}*%0A`;
+      if (saldo > 0) msg += `*Saldo a Pagar: ${saldoFmt}*%0A`;
+    }
+
     const phone = client.telefone_whatsapp.replace(/\D/g, '');
     window.open('https://wa.me/55' + phone + '?text=' + msg, '_blank');
+  },
+
+  sendEmailOrder(orderId, customType = 'geral') {
+    const order = window.store.getOrders().find(o => o.id === orderId);
+    if (!order) return;
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Cliente', email: '' };
+    if (!client.email) { alert('Cliente sem e-mail cadastrado!'); return; }
+
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const companyName = tenant.razao_social || 'GRAFSIS';
+    const totalFmt = 'R$ ' + Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const saldo = Math.max(0, (order.valor_final || 0) - (order.valor_entrada || order.valor_recebido || 0));
+    const saldoFmt = 'R$ ' + saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    let subject = `${companyName} - Pedido #${order.numero}`;
+    let body = `Olá ${client.nome},\n\n`;
+    if (customType === 'fase') {
+      subject = `${companyName} - Atualização de Status: Pedido #${order.numero}`;
+      body += `Seu pedido está atualmente na fase: ${(order.status_fase || 'Produção').toUpperCase()}.\n`;
+      if (order.previsao_entrega) body += `Previsão de Entrega: ${new Date(order.previsao_entrega + 'T12:00:00').toLocaleDateString('pt-BR')}\n`;
+    } else if (customType === 'cobranca_pix') {
+      subject = `${companyName} - Dados para Pagamento: Pedido #${order.numero}`;
+      body += `Valor Total: ${totalFmt}\nSaldo a Pagar: ${saldoFmt}\nChave PIX: ${tenant.chave_pix || tenant.cnpj || 'Consulte nosso balcão'}\n`;
+    } else if (customType === 'retirada') {
+      subject = `${companyName} - Seu Pedido #${order.numero} está Pronto para Retirada!`;
+      body += `Seu material já foi inspecionado e embalado, pronto para retirada.\nEndereço: ${tenant.endereco || ''}\n`;
+    } else {
+      body += `Segue o resumo do seu Pedido #${order.numero}:\nTotal: ${totalFmt}\n`;
+    }
+    body += `\nAtenciosamente,\n${companyName}`;
+
+    window.location.href = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   },
   openProtocolModal(orderId) {
     const order = window.store.getOrders().find(o => o.id === orderId);

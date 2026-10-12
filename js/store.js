@@ -179,21 +179,79 @@ class GrafsisStore {
       this.updateSyncBadge(false);
     }
   }
+  async handleManualSyncClick() {
+    const badge = document.getElementById('cloud-sync-status');
+    const originalHtml = badge ? badge.innerHTML : '';
+    
+    if (badge) {
+      badge.innerHTML = `
+        <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-600 text-white border border-blue-700 shadow-md transition-all scale-95" disabled>
+          <svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          Sincronizando Nuvem...
+        </button>
+      `;
+    }
+
+    try {
+      if (!this.supabaseClient) {
+        await this.initSupabase();
+      }
+      await this.syncAllWithCloud(true);
+
+      // Reorganiza e recarrega a página ativa imediatamente
+      if (window.app && window.app.currentTab) {
+        const tab = window.app.currentTab;
+        if (tab === 'dashboard' && typeof window.app.renderDashboard === 'function') window.app.renderDashboard();
+        else if (tab === 'production' && window.productionModule) window.productionModule.render();
+        else if (tab === 'sales' && window.salesModule && !window.salesModule.isFormOpen) window.salesModule.render();
+        else if (tab === 'clients' && window.clientsModule) window.clientsModule.render();
+        else if (tab === 'finance' && window.financeModule) window.financeModule.render();
+        else if (tab === 'products' && window.productsModule) window.productsModule.render();
+        else if (tab === 'suppliers' && window.suppliersModule) window.suppliersModule.render();
+        else if (tab === 'settings' && typeof window.app.renderSettings === 'function') window.app.renderSettings();
+      }
+
+      if (badge) {
+        badge.innerHTML = `
+          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white border border-emerald-700 shadow-md transition-all">
+            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            Nuvem Atualizada! ✓
+          </button>
+        `;
+      }
+    } catch (e) {
+      console.warn('[Sync Click] Erro ao sincronizar:', e);
+      if (badge) {
+        badge.innerHTML = `
+          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-sm">
+            Erro ao conectar
+          </button>
+        `;
+      }
+    }
+
+    setTimeout(() => {
+      this.updateSyncBadge(!!this.supabaseClient);
+    }, 2500);
+  }
+
   updateSyncBadge(connected) {
     const badge = document.getElementById('cloud-sync-status');
     if (badge) {
       if (connected) {
         badge.innerHTML = `
-          <button onclick="window.store.syncAllWithCloud()" title="Clique para forçar sincronização agora" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition shadow-sm">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Nuvem Sincronizada ↻
+          <button onclick="window.store.handleManualSyncClick()" title="Clique para sincronizar o banco na nuvem e atualizar a página" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-sm cursor-pointer group">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse group-hover:scale-125 transition-transform"></span>
+            <span>Nuvem Sincronizada</span>
+            <span class="text-xs transition-transform group-hover:rotate-180">↻</span>
           </button>
         `;
       } else {
         badge.innerHTML = `
-          <button onclick="app.navigate('settings')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition">
+          <button onclick="window.store.handleManualSyncClick()" title="Banco desconectado. Clique para tentar reconectar agora" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer">
             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            Configurar Nuvem
+            <span>Reconectar Nuvem</span>
+            <span class="text-xs">↻</span>
           </button>
         `;
       }
