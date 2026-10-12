@@ -468,7 +468,7 @@ window.productionModule = {
     const dataPedido = order.data_venda ? new Date(order.data_venda).toLocaleDateString('pt-BR') : 'Sem data';
     const prazo = order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'Sem prazo';
 
-    const msg = `MUDANÇA DE FASE\n\nID: #${order.numero}\nCliente: ${clientName}\nData do Pedido: ${dataPedido}\nPrazo de Entrega: ${prazo}\n\nConfirma a mudança de fase de "${oldPhaseObj.name}" para "${newPhaseObj.name}"?`;
+    const msg = `MUDANÇA DE FASE\n\nID: #${order.numero}\nCliente: ${clientName}\nData do Pedido: ${dataPedido}\nPrazo de Entrega: ${prazo}\n\nConfirma a mudança de fase:\nDe: "${oldPhaseObj.name}"\nPara: "${newPhaseObj.name}"?`;
     
     if (confirm(msg)) {
       if (sourceEl) {

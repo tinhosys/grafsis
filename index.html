@@ -291,7 +291,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.4.0 (Ver Notas)
+              Versão 4.5.0 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -671,7 +671,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.4.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.5.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -679,15 +679,24 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.4.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Valor de Entrada 2 Decimais, Motor de Busca de ID, Recibo Oficial & Bloqueio sem ID</span>
+            <h4 class="font-bold text-slate-800">Versão 4.5.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Relatório O.S. A4 Paisagem, Busca Rápida por ID & Finalizar Pedido Confiável</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Entrada Financeira (2 Decimais):</strong> Formatação padronizada para <code>###,00</code> com máscara de 2 casas decimais no valor de entrada do pedido.</li>
-            <li><strong>Fluxo de Produção Limpo:</strong> Removido seletor manual redundante de fases no pedido; status controlado de forma inteligente pelo Kanban de produção.</li>
-            <li><strong>ID Oficial & Motor de Busca:</strong> ID sequencial definitivo (ex: <code>#260001</code>) atribuído e exibido imediatamente na abertura; coluna CÓDIGO da tabela transformada em botão interativo que carrega o pedido com um clique.</li>
-            <li><strong>Recibo Oficial Completo:</strong> Cabeçalho com dados e logomarca da gráfica (CNPJ, endereço, telefone, cidade/UF), discriminação detalhada de cada item (quantidade, descrição, tamanho, valor unitário e subtotal), declaração formal com valor por extenso e rodapé com colaborador logado.</li>
-            <li><strong>Bloqueio de Impressão sem ID:</strong> Bloqueio estrito de emissão de recibo ou ordem de produção antes da gravação do pedido no banco de dados.</li>
+            <li><strong>Relatório de O.S. Técnica (A4 Paisagem):</strong> Emissão técnica para chão de fábrica sem valores financeiros, com arte geral aprovada, dados cadastrais completos da gráfica e cliente, e itens dispostos lado a lado com fotos ampliadas e área individual para data e visto manual.</li>
+            <li><strong>Controle de Imagens na O.S.:</strong> Checkbox na emissão para ativar/desativar a impressão das imagens e artes liberadas conforme a necessidade da oficina.</li>
+            <li><strong>Busca Rápida por ID no Topo:</strong> Campo de busca direta por ID (ex: <code>#260001</code>) no cabeçalho de Vendas & Pré-Vendas que localiza e carrega imediatamente o pedido completo com todos os seus itens na tela.</li>
+            <li><strong>Finalização de Pedido Confiável:</strong> Gravação aprimorada com suporte a auto-gravação ao clicar em emitir O.S./Pedido, tratamento de vírgulas nas frações decimais e feedback imediato de sucesso no registro.</li>
+            <li><strong>Mensagem de Mudança de Fase Padronizada:</strong> Diálogo do Kanban organizado em linhas separadas (<code>De: "Fase Anterior"</code> / <code>Para: "Nova Fase"</code>) para maior clareza operacional.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.4.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Valor de Entrada 2 Decimais, Recibo Oficial & Bloqueio sem ID</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li>Máscara de 2 casas decimais no valor de entrada, recibo discriminado com quitação por extenso e colaborador logado.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
@@ -697,15 +706,6 @@
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li>Calculadora com vírgulas e casas decimais padronizadas, botão + Novo Produto direto no pedido, regra de chave primária em edições de clientes aprimorada.</li>
-          </ul>
-        </div>
-        <div class="border-t border-slate-100 pt-3">
-          <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.2.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Catálogo, ID Operação, Perfil 360 & Chat CRM</span>
-          </div>
-          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Catálogo de Produtos/Serviços, numeração sequencial automática ao efetivar, fotos e logos realistas, perfil 360 do cliente com histórico e chat de anotações CRM.</li>
           </ul>
         </div>
       </div>
@@ -718,15 +718,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.4.0"></script>
-  <script src="js/auth.js?v=4.4.0"></script>
-  <script src="js/store.js?v=4.4.0"></script>
-  <script src="js/clients.js?v=4.4.0"></script>
-  <script src="js/suppliers.js?v=4.4.0"></script>
-  <script src="js/products.js?v=4.4.0"></script>
-  <script src="js/sales.js?v=4.4.0"></script>
-  <script src="js/production.js?v=4.4.0"></script>
-  <script src="js/finance.js?v=4.4.0"></script>
-  <script src="js/app.js?v=4.4.0"></script>
+  <script src="js/config.js?v=4.5.0"></script>
+  <script src="js/auth.js?v=4.5.0"></script>
+  <script src="js/store.js?v=4.5.0"></script>
+  <script src="js/clients.js?v=4.5.0"></script>
+  <script src="js/suppliers.js?v=4.5.0"></script>
+  <script src="js/products.js?v=4.5.0"></script>
+  <script src="js/sales.js?v=4.5.0"></script>
+  <script src="js/production.js?v=4.5.0"></script>
+  <script src="js/finance.js?v=4.5.0"></script>
+  <script src="js/app.js?v=4.5.0"></script>
 </body>
 </html>

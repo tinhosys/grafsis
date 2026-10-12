@@ -3,7 +3,7 @@
    ============================================================================== */
 
 window.GRAFSIS_CONFIG = {
-  VERSION: '4.4.0',
+  VERSION: '4.5.0',
   DEFAULT_SUPABASE_URL: 'https://mirhgxsiwjuondnpekru.supabase.co',
   DEFAULT_SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pcmhneHNpd2p1b25kbnBla3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5ODcyNzAsImV4cCI6MjEwNjU2MzI3MH0.DaHF9NQiUyYB8GpT-8pCmEWSX321zd3AMYMWKlWOTos',
 

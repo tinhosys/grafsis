@@ -9,15 +9,30 @@ window.salesModule = {
     if (!this.filters) this.filters = { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' };
     
     let html = `
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 class="text-2xl font-black text-slate-800">Vendas & Pré-Vendas</h1>
           <p class="text-slate-500 text-sm">Emissão de orçamentos, vendas, layouts e protocolos</p>
         </div>
-        <button onclick="salesModule.openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          Novo Orçamento / Venda
-        </button>
+        
+        <!-- BUSCADOR RÁPIDO POR ID (IMAGEM 5) -->
+        <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <div class="relative flex items-center">
+            <span class="absolute left-3 text-blue-500 font-mono font-black text-sm">#</span>
+            <input type="text" id="quick-order-search-id" placeholder="Buscar ID (ex: 260001)..." 
+              class="pl-7 pr-3 py-2 border-2 border-blue-300 dark:border-blue-700 rounded-xl text-sm font-mono font-bold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm w-44 sm:w-56"
+              onkeydown="if(event.key==='Enter'){ salesModule.searchAndOpenOrderById(this.value); }">
+          </div>
+          <button type="button" onclick="salesModule.searchAndOpenOrderById(document.getElementById('quick-order-search-id')?.value)" 
+            class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-sm font-bold shadow-2xs flex items-center gap-1.5 transition cursor-pointer" title="Buscar Pedido com todos os itens pelo ID">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <span>Buscar</span>
+          </button>
+          <button onclick="salesModule.openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-sm text-sm flex items-center gap-2 whitespace-nowrap cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Novo Orçamento / Venda
+          </button>
+        </div>
       </div>
       
       <!-- CONTROLE DE BUSCA -->
@@ -965,7 +980,7 @@ window.salesModule = {
                 </div>
                 <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                   <button type="button" onclick="salesModule.render()" class="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
-                  <button type="submit" id="btn-submit-order" class="px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
+                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition cursor-pointer">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
                   <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="px-5 py-2.5 text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Documento A4">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Emitir Pedido
@@ -1334,6 +1349,13 @@ window.salesModule = {
     
     // BLOQUEIO DE IMPRESSÃO SEM ID VÁLIDO REGISTRADO (Imagem 3 & 5)
     if (!savedOrder) {
+      if (confirm(`O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema.\n\nDeseja salvar e finalizar o pedido agora para emitir o recibo imediatamente?`)) {
+        const formEl = document.getElementById('order-form');
+        if (formEl) {
+          this.saveOrder(null, this.currentEditingOrderId, orderIdStr, { autoPrintAfter: 'recibo' });
+          return;
+        }
+      }
       alert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É obrigatório clicar em "Finalizar Pedido" para registrar o ID antes de emitir o recibo.`);
       return;
     }
@@ -1462,7 +1484,20 @@ window.salesModule = {
     
     // BLOQUEIO DE IMPRESSÃO SEM ID VÁLIDO REGISTRADO (Imagem 3 & 5)
     if (!savedOrder) {
+      if (confirm(`O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema.\n\nDeseja salvar e registrar o pedido agora para emitir a ${type === 'os' ? 'O.S. Técnica' : 'impressão'} imediatamente?`)) {
+        const formEl = document.getElementById('order-form');
+        if (formEl) {
+          this.saveOrder(null, this.currentEditingOrderId, orderIdStr, { autoPrintAfter: type });
+          return;
+        }
+      }
       alert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É necessário clicar em "Finalizar Pedido" para registrar o ID antes de emitir impressões ou O.S.`);
+      return;
+    }
+
+    // Se for Ordem de Serviço, emite no formato A4 Paisagem Técnico sem valores financeiros (Imagem 2 & 3)
+    if (type === 'os') {
+      this.printTechnicalWorkOrder(savedOrder.id, { includeImages: true });
       return;
     }
 
@@ -2025,123 +2060,163 @@ window.salesModule = {
     };
     reader.readAsDataURL(file);
   },
-  async saveOrder(e, id, geradoNumero) {
-    e.preventDefault();
-    const form = e.target;
-    if (!form.cliente_id.value) {
+  async saveOrder(e, id, geradoNumero, options = {}) {
+    if (e && e.preventDefault) e.preventDefault();
+    const form = document.getElementById('order-form') || (e && e.target && e.target.tagName === 'FORM' ? e.target : e?.target?.closest('form'));
+    if (!form) {
+      alert('Erro: Formulário do pedido não localizado na tela.');
+      return;
+    }
+
+    const clienteId = form.cliente_id ? form.cliente_id.value : document.getElementById('order-cliente-select')?.value;
+    if (!clienteId) {
       alert('Selecione um cliente para prosseguir com o pedido.');
       return;
     }
-    if (this.activeItems.length === 0) { 
-      alert('Adicione pelo menos um item ao pedido'); 
+    if (!this.activeItems || this.activeItems.length === 0) { 
+      alert('Adicione pelo menos um item ao pedido antes de finalizar.'); 
       return; 
     }
 
-    const { subtotal, discount, finalTotal } = this.recalcTotals();
-    const op = form.tipo_operacao ? form.tipo_operacao.value : 'venda';
-    
-    // Perfis autorizados para Permuta e Patrocínio
-    if ((op === 'permuta' || op === 'patrocinio') && !this.canManagePermutaPatrocinio()) {
-      alert('Operação negada: Permuta e Patrocínio só podem ser autorizados pelos perfis Gerente ou Proprietário.');
-      return;
+    const submitBtn = document.getElementById('btn-submit-order');
+    const originalBtnText = submitBtn ? submitBtn.innerText : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Gravando...';
     }
 
-    let historico = [];
-    const oldOrder = id ? window.store.getOrders().find(o => o.id === id) : null;
-    if (oldOrder && oldOrder.historico) {
-      historico = JSON.parse(JSON.stringify(oldOrder.historico));
-    }
-    
-    // Status/Fase da Produção respeitando o tipo de operação
-    let newPhase = form.status_fase ? form.status_fase.value : 'orcamento';
-    if (op === 'orcamento') newPhase = 'orcamento';
-    else if (op === 'pre-venda') newPhase = 'prevenda';
+    try {
+      const { subtotal, discount, finalTotal } = this.recalcTotals();
+      const op = form.tipo_operacao ? form.tipo_operacao.value : 'venda';
+      
+      // Perfis autorizados para Permuta e Patrocínio
+      if ((op === 'permuta' || op === 'patrocinio') && !this.canManagePermutaPatrocinio()) {
+        alert('Operação negada: Permuta e Patrocínio só podem ser autorizados pelos perfis Gerente ou Proprietário.');
+        return;
+      }
 
-    const oldPhase = oldOrder ? oldOrder.status_fase : null;
-    if (newPhase !== oldPhase) {
-      historico.push({
-        fase: newPhase,
-        data: new Date().toISOString(),
-        usuario: window.app?.currentUser?.nome || 'Sistema'
+      let historico = [];
+      const currentId = id || this.currentEditingOrderId;
+      const oldOrder = currentId ? window.store.getOrders().find(o => o.id === currentId) : null;
+      if (oldOrder && oldOrder.historico) {
+        historico = JSON.parse(JSON.stringify(oldOrder.historico));
+      }
+      
+      // Status/Fase da Produção respeitando o tipo de operação
+      let newPhase = form.status_fase ? form.status_fase.value : 'orcamento';
+      if (op === 'orcamento') newPhase = 'orcamento';
+      else if (op === 'pre-venda') newPhase = 'prevenda';
+
+      const oldPhase = oldOrder ? oldOrder.status_fase : null;
+      if (newPhase !== oldPhase) {
+        historico.push({
+          fase: newPhase,
+          data: new Date().toISOString(),
+          usuario: window.app?.currentUser?.nome || 'Sistema'
+        });
+      }
+
+      const rawEntrada = document.getElementById("order-valor-entrada")?.value || document.getElementById("order-valor-recebido")?.value || '0';
+      const cleanEntrada = String(rawEntrada).trim().replace(/\./g, '').replace(',', '.');
+      const valorEntrada = parseFloat(cleanEntrada) || 0;
+      const saldoRestante = Math.max(0, finalTotal - valorEntrada);
+      const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
+
+      const activeDisplayId = document.getElementById('current-display-id')?.value;
+      const finalNumber = (currentId && oldOrder && oldOrder.numero) ? oldOrder.numero : (geradoNumero || activeDisplayId || this.getNextOrderId());
+
+      // Atualiza sequencial dos itens vinculados ao numero oficial da operacao
+      this.activeItems.forEach((it, idx) => {
+        it.item_id = finalNumber + String(idx + 1).padStart(2, '0');
       });
-    }
 
-    const valorEntrada = parseFloat(document.getElementById("order-valor-entrada")?.value) || parseFloat(document.getElementById("order-valor-recebido")?.value) || 0;
-    const saldoRestante = Math.max(0, finalTotal - valorEntrada);
-    const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
+      const orderData = {
+        id: currentId || undefined,
+        numero: finalNumber,
+        cliente_id: clienteId,
+        tipo_operacao: op,
+        tipo: op,
+        vendedor: window.app?.currentUser?.nome || "Vendedor",
+        status_fase: newPhase,
+        previsao_entrega: (op === 'orcamento' || op === 'pre-venda') ? (form.previsao_entrega?.value || null) : (form.previsao_entrega?.value || null),
+        validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : null,
+        data_validade: form.data_validade ? form.data_validade.value : null,
+        percentual_operacao: form.percentual_operacao ? (parseFloat(form.percentual_operacao.value) || 100) : 100,
+        data_aceite: form.data_aceite?.value || null,
+        autorizo_producao: form.autorizo_producao?.value || '',
+        conferencia_arte: form.conferencia_arte?.value || '',
+        foto_arte_url: document.getElementById('order-arte-url')?.value || form.foto_arte_url?.value || '',
+        observacoes: form.observacoes ? form.observacoes.value : '',
+        forma_pagamento: document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash',
+        obs_pagto: document.getElementById('order-obs-pagto')?.value || '',
+        valor_entrada: valorEntrada,
+        valor_recebido: valorEntrada,
+        status_pagamento: statusPagto,
+        valor_total: subtotal,
+        desconto: discount,
+        valor_final: finalTotal,
+        itens: this.activeItems,
+        historico: historico
+      };
 
-    const finalNumber = (id && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
+      const saved = await window.store.saveOrder(orderData);
+      this.currentEditingOrderId = saved.id;
 
-    // Atualiza sequencial dos itens vinculados ao numero oficial da operacao
-    this.activeItems.forEach((it, idx) => {
-      it.item_id = finalNumber + String(idx + 1).padStart(2, '0');
-    });
+      // REGRA FINANCEIRA:
+      // Orçamento, Pré-Venda e Patrocínio NÃO abrem caixa definitivo
+      const isBudgetOrPreSale = (op === 'orcamento' || op === 'pre-venda');
+      const isPatrocinio = (op === 'patrocinio');
 
-    const orderData = {
-      id: id || undefined,
-      numero: finalNumber,
-      cliente_id: form.cliente_id.value,
-      tipo_operacao: op,
-      tipo: op,
-      vendedor: window.app?.currentUser?.nome || "Vendedor",
-      status_fase: newPhase,
-      previsao_entrega: (op === 'orcamento' || op === 'pre-venda') ? (form.previsao_entrega?.value || null) : form.previsao_entrega.value,
-      validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : null,
-      data_validade: form.data_validade ? form.data_validade.value : null,
-      percentual_operacao: form.percentual_operacao ? (parseFloat(form.percentual_operacao.value) || 100) : 100,
-      data_aceite: form.data_aceite?.value || null,
-      autorizo_producao: form.autorizo_producao?.value || '',
-      conferencia_arte: form.conferencia_arte?.value || '',
-      foto_arte_url: document.getElementById('order-arte-url')?.value || form.foto_arte_url?.value || '',
-      observacoes: form.observacoes.value,
-      forma_pagamento: document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash',
-      obs_pagto: document.getElementById('order-obs-pagto')?.value || '',
-      valor_entrada: valorEntrada,
-      valor_recebido: valorEntrada,
-      status_pagamento: statusPagto,
-      valor_total: subtotal,
-      desconto: discount,
-      valor_final: finalTotal,
-      itens: this.activeItems,
-      historico: historico
-    };
-    const saved = await window.store.saveOrder(orderData);
+      if (!isBudgetOrPreSale && !isPatrocinio) {
+        if (valorEntrada > 0) {
+          await window.store.saveFinanceEntry({
+            tipo: 'recebimento',
+            descricao: (op === 'permuta' ? 'Entrada Permuta #' : 'Entrada Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
+            valor: valorEntrada,
+            data_pagamento: new Date().toISOString().slice(0, 10),
+            data_vencimento: new Date().toISOString().slice(0, 10),
+            status: 'pago',
+            forma_pagamento: orderData.forma_pagamento,
+            pedido_id: saved.id,
+            cliente_id: orderData.cliente_id
+          });
+        }
 
-    // REGRA DE OURO FINANCEIRA:
-    // Orçamento, Pré-Venda e Patrocínio NÃO abrem caixa e NÃO geram contas a pagar/receber no financeiro definitivo
-    const isBudgetOrPreSale = (op === 'orcamento' || op === 'pre-venda');
-    const isPatrocinio = (op === 'patrocinio');
-
-    if (!isBudgetOrPreSale && !isPatrocinio) {
-      // Se houve entrada paga, lança o recebimento no caixa/financeiro
-      if (valorEntrada > 0) {
-        await window.store.saveFinanceEntry({
-          tipo: 'recebimento',
-          descricao: (op === 'permuta' ? 'Entrada Permuta #' : 'Entrada Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
-          valor: valorEntrada,
-          data_pagamento: new Date().toISOString().slice(0, 10),
-          data_vencimento: new Date().toISOString().slice(0, 10),
-          status: 'pago',
-          forma_pagamento: orderData.forma_pagamento,
-          pedido_id: saved.id,
-          cliente_id: orderData.cliente_id
-        });
+        if (saldoRestante > 0.01) {
+          await window.store.saveFinanceEntry({
+            tipo: 'receber',
+            descricao: (op === 'permuta' ? 'Saldo Restante Permuta #' : 'Saldo Restante Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
+            valor: saldoRestante,
+            data_vencimento: orderData.previsao_entrega || new Date().toISOString().slice(0, 10),
+            status: valorEntrada > 0 ? 'parcial' : 'pendente',
+            pedido_id: saved.id,
+            cliente_id: orderData.cliente_id
+          });
+        }
       }
 
-      // Se ainda restar saldo devedor, lança como conta a receber
-      if (saldoRestante > 0.01) {
-        await window.store.saveFinanceEntry({
-          tipo: 'receber',
-          descricao: (op === 'permuta' ? 'Saldo Restante Permuta #' : 'Saldo Restante Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
-          valor: saldoRestante,
-          data_vencimento: orderData.previsao_entrega || new Date().toISOString().slice(0, 10),
-          status: valorEntrada > 0 ? 'parcial' : 'pendente',
-          pedido_id: saved.id,
-          cliente_id: orderData.cliente_id
-        });
+      if (options && options.autoPrintAfter) {
+        if (options.autoPrintAfter === 'os') {
+          this.printTechnicalWorkOrder(saved.id, { includeImages: true });
+        } else if (options.autoPrintAfter === 'recibo') {
+          this.printReceipt();
+        } else {
+          this.printOrder(options.autoPrintAfter);
+        }
+      } else {
+        alert(`Pedido #${saved.numero} registrado e gravado com sucesso no sistema!`);
+      }
+
+      this.render();
+    } catch (err) {
+      console.error('[GRAFSIS] Erro ao salvar pedido:', err);
+      alert('Erro ao gravar pedido no sistema: ' + (err.message || err));
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
       }
     }
-    this.render();
   },
   editModal(id) { this.renderOrderForm({ orderId: id }); },
   quickView(orderId) {
@@ -2514,13 +2589,19 @@ window.salesModule = {
 
           </div>
 
-          <!-- Rodapé com Ações -->
-          <div class="border-t border-slate-200 dark:border-slate-800 pt-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <button type="button" onclick="document.getElementById('work-order-modal').remove()" class="w-full sm:w-auto px-5 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold hover:bg-slate-300 transition cursor-pointer">
-              Fechar
-            </button>
-            <div class="flex gap-2 w-full sm:w-auto">
-              <button type="button" onclick="window.print()" class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <!-- Rodapé com Ações & Opção de Impressão de Imagens (Imagem 2 & 3) -->
+          <div class="border-t border-slate-200 dark:border-slate-800 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <button type="button" onclick="document.getElementById('work-order-modal').remove()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold hover:bg-slate-300 transition cursor-pointer">
+                Fechar
+              </button>
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700" title="Marque para incluir imagens dos itens no relatório impresso">
+                <input type="checkbox" id="os-modal-print-images" checked class="w-4 h-4 rounded text-blue-600 border-slate-300">
+                <span>Imprimir Imagens da Arte Liberada</span>
+              </label>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto justify-end">
+              <button type="button" onclick="salesModule.printTechnicalWorkOrder('${order.id}', { includeImages: document.getElementById('os-modal-print-images')?.checked })" class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow transition flex items-center justify-center gap-1.5 cursor-pointer" title="Emitir Relatório de O.S. Técnica em A4 Paisagem">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                 Imprimir O.S. Técnica
               </button>
@@ -2535,6 +2616,460 @@ window.salesModule = {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  // BUSCA DIRETA DE PEDIDO PELO ID (IMAGEM 5)
+  searchAndOpenOrderById(term) {
+    if (!term || !String(term).trim()) {
+      alert('Por favor, informe o número do ID para buscar (ex: 260001 ou 1008).');
+      return;
+    }
+    const cleanTerm = String(term).replace('#', '').trim().toLowerCase();
+    const orders = window.store?.getOrders ? window.store.getOrders() : [];
+    const found = orders.find(o => {
+      const num = String(o.numero || '').toLowerCase();
+      const id = String(o.id || '').toLowerCase();
+      return num === cleanTerm || id === cleanTerm || num.padStart(6, '0') === cleanTerm || id.startsWith(cleanTerm);
+    });
+
+    if (found) {
+      this.openModal({ orderId: found.id });
+    } else {
+      alert(`Nenhum pedido encontrado com o ID #${term}. Verifique a numeração digitada.`);
+    }
+  },
+
+  // EMISSÃO DE O.S. TÉCNICA EM A4 PAISAGEM - ITENS LADO A LADO E SEM VALORES FINANCEIROS (IMAGEM 2 & 3)
+  printTechnicalWorkOrder(orderId, options = {}) {
+    const orders = window.store?.getOrders ? window.store.getOrders() : [];
+    const order = (orderId ? orders.find(o => o.id === orderId || String(o.numero) === String(orderId)) : null) || (this.currentEditingOrderId ? orders.find(o => o.id === this.currentEditingOrderId) : null);
+    if (!order) {
+      alert('Ordem de Serviço não localizada para impressão.');
+      return;
+    }
+
+    const includeImages = options.includeImages !== undefined ? options.includeImages : true;
+    const client = (window.store && window.store.getClients().find(c => c.id === order.cliente_id)) || {
+      nome: order.cliente_nome || 'Cliente não informado',
+      telefone_whatsapp: '',
+      cpf_cnpj: '',
+      endereco: '',
+      cidade: '',
+      uf: ''
+    };
+
+    const tenant = (window.store && window.store.getActiveTenant()) || {};
+    const companyName = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS COMUNICAÇÃO VISUAL';
+    const companyCNPJ = tenant.cnpj || '';
+    const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336';
+    const companyAddress = [tenant.endereco || tenant.logradouro, tenant.numero, tenant.bairro, tenant.cidade, tenant.uf].filter(Boolean).join(', ') || 'Endereço não informado';
+    const companyLogo = tenant.logo_url || '';
+
+    const phaseNames = {
+      'orcamento': '1. ORÇAMENTO',
+      'prevenda': '2. PRÉ-VENDA',
+      'aprovacao': '3. APROVAÇÃO DA ARTE',
+      'liberado': '4. LIBERADO P/ PRODUÇÃO',
+      'producao': '5. EM IMPRESSÃO / PRODUÇÃO',
+      'acabamento': '6. ACABAMENTO / SOLDA',
+      'embalagem': '7. EMBALAGEM & EXPEDIÇÃO',
+      'entregue': '8. CONCLUÍDO / ENTREGUE'
+    };
+    const faseNome = phaseNames[order.status_fase] || (order.status_fase || 'PRODUÇÃO').toUpperCase();
+
+    const dataPedido = order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR') : (order.data_criacao ? new Date(order.data_criacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR'));
+    const prazoEntrega = order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'A Combinar';
+    const clientAddressStr = [client.endereco, client.numero, client.bairro, client.cidade, client.uf].filter(Boolean).join(', ');
+
+    const items = order.itens && order.itens.length > 0 ? order.itens : [];
+
+    const itemsCardsHtml = items.map((it, idx) => {
+      const itemImg = it.arte_url || order.foto_arte_url || '';
+      const dimensao = it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m (${(Number(it.largura_x || 0) * Number(it.comprimento_y || 0)).toFixed(2)} m²)` : (it.tipo_calculo === 'linear' ? `${it.largura_x || it.quantidade} metros lineares` : 'Peça Unidade');
+      
+      return `
+        <div class="item-card">
+          <div class="item-header">
+            <div>
+              <span class="item-number">[ ] ITEM #${idx + 1}</span>
+              <strong style="display: block; font-size: 11px; margin-top: 1px; color: #0f172a;">${it.produto_nome || it.descricao || 'Item de Produção'}</strong>
+              ${it.descricao && it.descricao !== it.produto_nome ? `<div style="font-size: 9.5px; color: #64748b;">${it.descricao}</div>` : ''}
+            </div>
+            <span class="item-qty-badge">${it.quantidade}x</span>
+          </div>
+
+          <div class="tech-specs">
+            <div><strong>Medidas:</strong> ${dimensao}</div>
+            <div><strong>Acabamento:</strong> <span style="color: #92400e; font-weight: bold;">${it.acabamento || 'Ilhós nas 4 pontas + Bainha vulcanizada'}</span></div>
+          </div>
+
+          ${(includeImages && itemImg) ? `
+            <div class="item-img-container">
+              <img src="${itemImg}" class="item-img" alt="Arte Item #${idx + 1}">
+            </div>
+          ` : `
+            <div class="item-img-placeholder">
+              <span>Arte sem anexo gráfico</span>
+            </div>
+          `}
+
+          <div class="item-sign-box">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px;">
+              <label><input type="checkbox"> Impressão OK</label>
+              <label><input type="checkbox"> Acabamento OK</label>
+            </div>
+            <div class="item-sign-line">
+              <span>Data: ____/____/________</span>
+              <span>Visto: ___________________</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8">
+        <title>O.S. Técnica #${order.numero} - Chão de Fábrica</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 7mm 8mm;
+          }
+          * { box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #0f172a;
+            background: #fff;
+            font-size: 11px;
+            line-height: 1.3;
+          }
+          .os-container {
+            width: 100%;
+            max-width: 100%;
+          }
+          .header-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2.5px solid #0f172a;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+          }
+          .company-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 50%;
+          }
+          .company-logo {
+            max-height: 55px;
+            max-width: 120px;
+            object-fit: contain;
+          }
+          .title-center {
+            text-align: center;
+          }
+          .title-center h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+          }
+          .no-finance-badge {
+            display: inline-block;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+            font-size: 9.5px;
+            font-weight: 900;
+            padding: 1px 8px;
+            border-radius: 4px;
+            margin-top: 2px;
+            text-transform: uppercase;
+          }
+          .os-number-box {
+            text-align: right;
+          }
+          .os-id-tag {
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: 900;
+            color: #0369a1;
+          }
+          .phase-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 2px;
+            text-transform: uppercase;
+          }
+          .data-bar {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1.2fr;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+          }
+          .data-bar .cell span {
+            display: block;
+            font-size: 9px;
+            font-weight: bold;
+            color: #64748b;
+            text-transform: uppercase;
+          }
+          .data-bar .cell strong {
+            font-size: 11.5px;
+            color: #0f172a;
+          }
+          .obs-box {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-bottom: 8px;
+            font-size: 10px;
+          }
+          .obs-box strong {
+            text-transform: uppercase;
+            font-size: 9px;
+            color: #475569;
+          }
+          .items-header {
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-bottom: 1.5px solid #334155;
+            padding-bottom: 3px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+          }
+          /* GRID DOS ITENS UM AO LADO DO OUTRO (PAISAGEM A4) */
+          .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
+          }
+          .item-card {
+            border: 1.5px solid #334155;
+            border-radius: 6px;
+            padding: 6px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            page-break-inside: avoid;
+          }
+          .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
+          }
+          .item-number {
+            font-family: monospace;
+            font-weight: 900;
+            color: #0369a1;
+            font-size: 11px;
+          }
+          .item-qty-badge {
+            background: #0f172a;
+            color: #fff;
+            font-weight: 900;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+          }
+          .tech-specs {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 3px 5px;
+            font-size: 9.5px;
+            margin-bottom: 4px;
+          }
+          .item-img-container {
+            text-align: center;
+            height: 125px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            overflow: hidden;
+          }
+          .item-img {
+            max-height: 120px;
+            max-width: 100%;
+            object-fit: contain;
+          }
+          .item-img-placeholder {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 9px;
+            color: #94a3b8;
+          }
+          .item-sign-box {
+            border-top: 1px dashed #94a3b8;
+            padding-top: 3px;
+            margin-top: 2px;
+            font-size: 9px;
+          }
+          .item-sign-line {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3px;
+          }
+          .footer-signs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            border-top: 2px solid #0f172a;
+            padding-top: 6px;
+            margin-top: 6px;
+            page-break-inside: avoid;
+          }
+          .sign-col {
+            text-align: center;
+            font-size: 9px;
+          }
+          .sign-col .line {
+            border-top: 1px solid #334155;
+            margin-top: 20px;
+            padding-top: 2px;
+            font-weight: bold;
+          }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="os-container">
+          <!-- CABEÇALHO OFICIAL DE PRODUÇÃO -->
+          <div class="header-box">
+            <div class="company-info">
+              ${companyLogo ? `<img src="${companyLogo}" class="company-logo" alt="Logo">` : ''}
+              <div>
+                <strong style="font-size: 13px; text-transform: uppercase;">${companyName}</strong>
+                ${companyCNPJ ? `<div style="font-size: 10px; color: #475569;">CNPJ: ${companyCNPJ}</div>` : ''}
+                <div style="font-size: 9.5px; color: #64748b;">${companyAddress}</div>
+                <div style="font-size: 9.5px; color: #64748b;">Tel: ${companyPhone}</div>
+              </div>
+            </div>
+
+            <div class="title-center">
+              <h1>ORDEM DE SERVIÇO TÉCNICA</h1>
+              <div class="no-finance-badge">SEM VALORES FINANCEIROS - CHÃO DE FÁBRICA</div>
+            </div>
+
+            <div class="os-number-box">
+              <div class="os-id-tag">#${order.numero}</div>
+              <div class="phase-badge">${faseNome}</div>
+              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">Emissão: ${dataPedido}</div>
+            </div>
+          </div>
+
+          <!-- DADOS DO CLIENTE, PRAZO E RESPONSÁVEIS -->
+          <div class="data-bar">
+            <div class="cell">
+              <span>Cliente / Empresa</span>
+              <strong>${client.nome}</strong>
+              <div style="font-size: 9.5px; color: #475569;">${client.cpf_cnpj ? client.cpf_cnpj + ' &bull; ' : ''}${client.telefone_whatsapp || ''}</div>
+              ${clientAddressStr ? `<div style="font-size: 9px; color: #64748b;">${clientAddressStr}</div>` : ''}
+            </div>
+            <div class="cell">
+              <span>Data do Pedido</span>
+              <strong>${dataPedido}</strong>
+              <div style="font-size: 9px; color: #64748b;">Vendedor: ${order.vendedor || 'Comercial'}</div>
+            </div>
+            <div class="cell">
+              <span>Prazo de Entrega</span>
+              <strong style="color: #b91c1c; font-size: 13px;">${prazoEntrega}</strong>
+              <div style="font-size: 9px; color: #64748b;">Operador: ${order.operador || 'Oficina Geral'}</div>
+            </div>
+            <div class="cell">
+              <span>Status & Volume</span>
+              <strong style="color: #0369a1;">${items.length} item(ns) a produzir</strong>
+              <div style="font-size: 9px; color: #64748b;">Controle: ${faseNome}</div>
+            </div>
+          </div>
+
+          <!-- OBSERVAÇÕES TÉCNICAS -->
+          ${order.observacoes ? `
+            <div class="obs-box">
+              <strong>Observações Técnicas / Instruções de Produção:</strong> ${order.observacoes}
+            </div>
+          ` : ''}
+
+          <!-- GRADE DE ITENS (DISPOSTOS UM AO LADO DO OUTRO) -->
+          <div class="items-header">
+            <span>Itens a Produzir & Especificações Técnicas (${items.length} itens)</span>
+            <span style="font-size: 9px; font-weight: normal; text-transform: none; color: #64748b;">Conferência visual e liberação técnica por item</span>
+          </div>
+
+          <div class="items-grid">
+            ${itemsCardsHtml}
+          </div>
+
+          <!-- ASSINATURAS FÍSICAS DE LIBERAÇÃO DA FÁBRICA -->
+          <div class="footer-signs">
+            <div class="sign-col">
+              <div class="line">Conferência Arte / Designer</div>
+              <div>Data: ____/____/________</div>
+            </div>
+            <div class="sign-col">
+              <div class="line">Impressor / Operador Máquina</div>
+              <div>Data: ____/____/________</div>
+            </div>
+            <div class="sign-col">
+              <div class="line">Acabamento & Refile</div>
+              <div>Data: ____/____/________</div>
+            </div>
+            <div class="sign-col">
+              <div class="line">Controle de Qualidade Final</div>
+              <div>Data: ____/____/________</div>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(html);
+    printWin.document.close();
   },
 
   // =========================================================================
