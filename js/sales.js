@@ -2245,8 +2245,404 @@ window.salesModule = {
       document.getElementById('protocol-modal-wrap').remove();
       this.render();
     }
-  }
+  },
 
+  // =========================================================================
+  // ORDEM DE SERVIÇO DE PRODUÇÃO (CHÃO DE FÁBRICA) - SEM VALORES FINANCEIROS
+  // =========================================================================
+  openProductionWorkOrder(orderId) {
+    const order = window.store.getOrders().find(o => o.id === orderId);
+    if (!order) return;
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Cliente Não Vinculado', telefone_whatsapp: '' };
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+
+    const phaseNames = {
+      'orcamento': '1. ORÇAMENTO',
+      'prevenda': '2. PRÉ-VENDA',
+      'aprovacao': '3. APROVAÇÃO DA ARTE',
+      'liberado': '4. LIBERADO P/ OFICINA',
+      'producao': '5. EM IMPRESSÃO / PRODUÇÃO',
+      'acabamento': '6. ACABAMENTO / SOLDA',
+      'embalagem': '7. EMBALAGEM & EXPEDIÇÃO',
+      'entregue': '8. CONCLUÍDO / ENTREGUE'
+    };
+
+    const totalAreaM2 = (order.itens || []).reduce((acc, it) => {
+      return acc + (it.tipo_calculo === 'm2' ? (Number(it.largura_x || 0) * Number(it.comprimento_y || 0) * Number(it.quantidade || 1)) : 0);
+    }, 0);
+
+    const modalHtml = `
+      <div id="work-order-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 max-h-[92vh] flex flex-col">
+          
+          <!-- Cabeçalho Técnico de Chão de Fábrica -->
+          <div class="border-b-2 border-slate-800 dark:border-slate-700 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-black tracking-wider uppercase">O.S. TÉCNICA</span>
+                <span class="font-mono text-xl sm:text-2xl font-black text-blue-600 dark:text-cyan-400">#${order.numero}</span>
+              </div>
+              <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase">Ordem de Produção & Fábrica - Sem Valores Financeiros</h2>
+            </div>
+            <div class="text-left sm:text-right">
+              <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                ${phaseNames[order.status_fase] || order.status_fase}
+              </span>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">📅 Prazo: <strong class="text-rose-600 dark:text-rose-400 font-black">${order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'Não definido'}</strong></p>
+            </div>
+          </div>
+
+          <!-- Corpo Rolável com Especificações Técnicas -->
+          <div class="overflow-y-auto flex-1 py-4 space-y-4">
+            
+            <!-- Dados do Cliente & Operador -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Cliente / Empresa:</span>
+                <strong class="text-sm text-slate-900 dark:text-white">${client.nome}</strong>
+                <span class="block text-slate-500 mt-0.5">${client.telefone_whatsapp || ''}</span>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Operador / Vendedor:</span>
+                <strong class="text-slate-800 dark:text-slate-200">${order.operador || 'Oficina Geral'}</strong>
+                <span class="block text-slate-500 mt-0.5">Venda: ${order.vendedor || 'Comercial'}</span>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Volume Total Produzido:</span>
+                <strong class="text-sm font-mono text-indigo-600 dark:text-cyan-400">${totalAreaM2 > 0 ? totalAreaM2.toFixed(2) + ' m² total' : (order.itens ? order.itens.length + ' item(ns)' : '1 item')}</strong>
+                <span class="block text-[10px] text-slate-400">Emissão: ${new Date(order.data_criacao || Date.now()).toLocaleDateString('pt-BR')}</span>
+              </div>
+            </div>
+
+            <!-- Imagem da Arte / Layout do Pedido (Em Alta Resolução) -->
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Arte Aprovada do Pedido
+                </h4>
+                ${order.foto_arte_url ? `<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300">Arquivo Conforme</span>` : ''}
+              </div>
+              <div class="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center min-h-[160px] max-h-[260px] overflow-hidden group relative">
+                ${order.foto_arte_url ? `
+                  <img src="${order.foto_arte_url}" class="max-h-[240px] w-auto max-w-full object-contain rounded-lg shadow-sm group-hover:scale-105 transition-transform">
+                ` : `
+                  <div class="text-center text-slate-400 py-6">
+                    <svg class="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <p class="text-xs font-bold">Nenhum anexo de arte vinculado</p>
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <!-- Tabela Técnica de Itens de Produção (SEM VALORES R$) -->
+            <div>
+              <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                Itens a Produzir & Especificações Técnicas
+              </h4>
+              <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 font-extrabold uppercase text-[10px]">
+                    <tr>
+                      <th class="p-3">#</th>
+                      <th class="p-3">Produto / Material</th>
+                      <th class="p-3">Medidas Técnicas</th>
+                      <th class="p-3 text-center">Qtd</th>
+                      <th class="p-3">Acabamento / Instruções</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    ${(order.itens || []).map((it, idx) => `
+                      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <td class="p-3 font-mono font-bold text-blue-600 dark:text-cyan-400">${idx + 1}</td>
+                        <td class="p-3">
+                          <strong class="text-slate-900 dark:text-white block">${it.produto_nome || it.descricao}</strong>
+                          <span class="text-[11px] text-slate-500">${it.descricao || ''}</span>
+                        </td>
+                        <td class="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
+                          ${it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m (${(it.largura_x * it.comprimento_y).toFixed(2)} m²)` : (it.tipo_calculo === 'linear' ? `${it.largura_x || it.quantidade} metros lineares` : 'Peça Unidade')}
+                        </td>
+                        <td class="p-3 text-center font-bold text-slate-900 dark:text-white">${it.quantidade}x</td>
+                        <td class="p-3 text-amber-700 dark:text-amber-300 font-medium text-[11px]">
+                          ${it.acabamento || 'Ilhós nas 4 pontas + Bainha vulcanizada'}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Checklist de Qualidade e Chão de Fábrica -->
+            <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+              <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 block mb-2">Checklist de Liberação da Produção:</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked class="w-4 h-4 rounded text-blue-600 border-slate-300">
+                  <span>Conferência de Medidas e Resolução da Arte</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked class="w-4 h-4 rounded text-blue-600 border-slate-300">
+                  <span>Impressão Concluída (Perfil de Cor CMYK OK)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="w-4 h-4 rounded text-blue-600 border-slate-300">
+                  <span>Acabamento, Bainha e Refile Finalizados</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="w-4 h-4 rounded text-blue-600 border-slate-300">
+                  <span>Inspeção Final de Qualidade Aprovada</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Rodapé com Ações -->
+          <div class="border-t border-slate-200 dark:border-slate-800 pt-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <button type="button" onclick="document.getElementById('work-order-modal').remove()" class="w-full sm:w-auto px-5 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold hover:bg-slate-300 transition cursor-pointer">
+              Fechar
+            </button>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <button type="button" onclick="window.print()" class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Imprimir O.S. Técnica
+              </button>
+              <button type="button" onclick="productionModule.advancePhase('${order.id}'); document.getElementById('work-order-modal').remove();" class="flex-1 sm:flex-none px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                Avançar Fase &rarr;
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  // =========================================================================
+  // CRM, INTELIGÊNCIA DE CLIENTES & PÓS-VENDA (ARP COMPLETO)
+  // =========================================================================
+  openCrmModal() {
+    const inactiveClients = window.store.getInactiveClients(30);
+    const priceStats = window.store.getPriceAverages();
+    const surveys = window.store.getPostSalesSurveys();
+
+    const modalHtml = `
+      <div id="crm-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 max-h-[92vh] flex flex-col">
+          
+          <div class="border-b border-slate-200 dark:border-slate-800 pb-4 flex justify-between items-center">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 bg-purple-600 text-white rounded-lg text-xs font-black uppercase">ARP / CRM</span>
+                <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Inteligência de Clientes, Médias de Preços & Pós-Venda</h3>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Reativação de clientes inativos, análise de margem e pesquisa de satisfação</p>
+            </div>
+            <button onclick="document.getElementById('crm-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+          </div>
+
+          <div class="overflow-y-auto flex-1 py-4 space-y-6">
+            
+            <!-- Cards de Médias de Preços Praticados -->
+            <div>
+              <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Médias de Preços & Margens do Catálogo
+              </h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl">
+                  <span class="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase block">M² (Metro Quadrado)</span>
+                  <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">R$ ${priceStats.m2.avgPrice.toFixed(2)}</strong>
+                  <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Margem: ~${priceStats.m2.avgMargin.toFixed(0)}%</span>
+                </div>
+                <div class="p-3.5 bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl">
+                  <span class="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase block">Brindes / Unidades</span>
+                  <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">R$ ${priceStats.unidade.avgPrice.toFixed(2)}</strong>
+                  <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Margem: ~${priceStats.unidade.avgMargin.toFixed(0)}%</span>
+                </div>
+                <div class="p-3.5 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl">
+                  <span class="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase block">Hora Técnica</span>
+                  <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">R$ ${priceStats.hora.avgPrice.toFixed(2)}/h</strong>
+                  <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Margem: ~${priceStats.hora.avgMargin.toFixed(0)}%</span>
+                </div>
+                <div class="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                  <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase block">Diária de Campo</span>
+                  <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">R$ ${priceStats.diaria.avgPrice.toFixed(2)}/dia</strong>
+                  <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Margem: ~${priceStats.diaria.avgMargin.toFixed(0)}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Seção de Clientes Inativos (> 30 dias sem compras) -->
+            <div>
+              <div class="flex justify-between items-center mb-3">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                  Clientes Inativos & Sem Pedidos Recentes (${inactiveClients.length})
+                </h4>
+                <span class="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded border border-rose-200">Requer Contato</span>
+              </div>
+              <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 uppercase font-extrabold text-[10px]">
+                    <tr>
+                      <th class="p-3">Cliente / Empresa</th>
+                      <th class="p-3">Perfil</th>
+                      <th class="p-3">Último Pedido</th>
+                      <th class="p-3">Dias Sem Comprar</th>
+                      <th class="p-3 text-right">Ação de Campanha</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    ${inactiveClients.slice(0, 8).map(cli => `
+                      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td class="p-3">
+                          <strong class="text-slate-900 dark:text-white block">${cli.nome}</strong>
+                          <span class="text-[11px] text-slate-500">${cli.cidade || ''} • ${cli.telefone_whatsapp}</span>
+                        </td>
+                        <td class="p-3">
+                          <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${cli.perfil === 'VIP' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700 border border-slate-300'}">
+                            ${cli.perfil || 'Recorrente'}
+                          </span>
+                        </td>
+                        <td class="p-3 font-mono text-slate-500">${cli.lastOrderDate}</td>
+                        <td class="p-3">
+                          <span class="font-bold text-rose-600 dark:text-rose-400 font-mono">${cli.daysInactive} dias atrás</span>
+                        </td>
+                        <td class="p-3 text-right">
+                          <button onclick="salesModule.sendReactivationCampaign('${cli.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition inline-flex items-center gap-1">
+                            <span>📲 Oferta WhatsApp</span>
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Pesquisa de Satisfação & Pós-Venda -->
+            <div>
+              <div class="flex justify-between items-center mb-3">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                  Avaliações Recentes de Pós-Venda (NPS)
+                </h4>
+                <button onclick="salesModule.openNewPostSaleForm()" class="text-xs font-bold text-blue-600 hover:underline">+ Nova Avaliação</button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                ${surveys.slice(0, 3).map(s => `
+                  <div class="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                    <div class="flex justify-between items-start mb-1">
+                      <strong class="text-slate-900 dark:text-white truncate">${s.cliente_nome}</strong>
+                      <span class="px-2 py-0.5 bg-emerald-600 text-white rounded font-bold text-[10px]">NPS ${s.nps}/10</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 italic text-[11px] mt-1">"${s.comentario}"</p>
+                    <div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-[10px] text-slate-400">
+                      <span>Qualidade: ⭐ ${s.qualidade}/5</span>
+                      <span>${s.data}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+          </div>
+
+          <div class="border-t border-slate-200 dark:border-slate-800 pt-3 text-right">
+            <button onclick="document.getElementById('crm-modal').remove()" class="px-5 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900 transition">
+              Fechar Painel
+            </button>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  sendReactivationCampaign(clientId) {
+    const client = window.store.getClients().find(c => c.id === clientId);
+    if (!client || !client.telefone_whatsapp) {
+      alert('Cliente sem número de WhatsApp cadastrado!');
+      return;
+    }
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const company = tenant.nome_fantasia || tenant.razao_social || 'Nossa Gráfica';
+
+    const msg = `Olá *${client.nome}*, tudo bem?%0A%0AAqui é da *${company}*! Notamos que faz um tempo que não produzimos materiais juntos e preparamos uma condição exclusiva para o seu próximo pedido:%0A%0A🎁 *15% de Desconto na renovação de fachadas, banners e adesivos!*%0A%0APodemos orçar seu projeto sem compromisso?`;
+    const fone = client.telefone_whatsapp.replace(/\D/g, '');
+    window.open('https://wa.me/55' + fone + '?text=' + msg, '_blank');
+  },
+
+  openNewPostSaleForm() {
+    const clients = window.store.getClients();
+    const modalHtml = `
+      <div id="new-postsale-modal" class="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100">
+          <h3 class="text-base font-black text-slate-900 dark:text-white mb-3">Registrar Pesquisa de Pós-Venda</h3>
+          <form onsubmit="salesModule.submitPostSaleForm(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold mb-1">Cliente:</label>
+              <select id="ps-client-id" class="w-full px-3 py-2 border rounded-lg text-xs" required>
+                ${clients.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-bold mb-1">Nota NPS (0 a 10):</label>
+                <input type="number" id="ps-nps" min="0" max="10" value="10" required class="w-full px-3 py-2 border rounded-lg text-xs font-bold">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Qualidade (1 a 5):</label>
+                <input type="number" id="ps-qualidade" min="1" max="5" value="5" required class="w-full px-3 py-2 border rounded-lg text-xs font-bold">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Feedback do Cliente:</label>
+              <textarea id="ps-comentario" rows="3" placeholder="Depoimento do cliente sobre o atendimento e prazo..." required class="w-full px-3 py-2 border rounded-lg text-xs"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+              <button type="button" onclick="document.getElementById('new-postsale-modal').remove()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">Cancelar</button>
+              <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold shadow">Salvar Avaliação</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  submitPostSaleForm(e) {
+    if (e) e.preventDefault();
+    const cId = document.getElementById('ps-client-id').value;
+    const client = window.store.getClients().find(c => c.id === cId) || { nome: 'Cliente' };
+    const nps = Number(document.getElementById('ps-nps').value);
+    const qual = Number(document.getElementById('ps-qualidade').value);
+    const com = document.getElementById('ps-comentario').value;
+
+    window.store.savePostSalesSurvey({
+      cliente_id: cId,
+      cliente_nome: client.nome,
+      nps,
+      qualidade: qual,
+      comentario: com
+    });
+
+    alert('Pesquisa pós-venda registrada com sucesso!');
+    const m = document.getElementById('new-postsale-modal');
+    if (m) m.remove();
+    const crmM = document.getElementById('crm-modal');
+    if (crmM) {
+      crmM.remove();
+      this.openCrmModal();
+    }
+  }
 
 };
 
