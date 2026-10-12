@@ -972,13 +972,15 @@ window.salesModule = {
   handlePriceHover(el, isHover) {
     if (!el) return;
     if (el.dataset.lockedVisible === 'true') return;
-    el.style.color = isHover ? '#1e293b' : 'transparent';
+    const activeColor = document.documentElement.classList.contains('dark') ? '#38bdf8' : '#1e293b';
+    el.style.color = isHover ? activeColor : 'transparent';
   },
 
   revealPrice4s(el) {
     if (!el) return;
     el.dataset.lockedVisible = 'true';
-    el.style.color = '#1e293b';
+    const activeColor = document.documentElement.classList.contains('dark') ? '#38bdf8' : '#1e293b';
+    el.style.color = activeColor;
     if (el._revealTimer) clearTimeout(el._revealTimer);
     el._revealTimer = setTimeout(() => {
       el.dataset.lockedVisible = 'false';

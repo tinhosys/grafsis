@@ -7,7 +7,70 @@
 window.app = {
   currentTab: 'production',
 
+  initTheme() {
+    let savedTheme = localStorage.getItem('grafsis_theme');
+    if (!savedTheme) {
+      savedTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    this.applyTheme(savedTheme);
+  },
+
+  toggleTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const nextTheme = isDark ? 'light' : 'dark';
+    this.applyTheme(nextTheme);
+  },
+
+  applyTheme(theme) {
+    const isDark = (theme === 'dark');
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('grafsis_theme', theme);
+    } catch (e) {}
+
+    this.updateThemeButton(theme);
+  },
+
+  updateThemeButton(theme) {
+    const isDark = (theme === 'dark');
+    const btn = document.getElementById('btn-theme-toggle');
+    if (btn) {
+      btn.setAttribute('title', isDark ? 'Modo Noite Ativo (Clique para Modo Dia ☀️)' : 'Modo Dia Ativo (Clique para Modo Noite 🌙)');
+      if (isDark) {
+        btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-700 bg-slate-800 text-indigo-300 hover:bg-slate-700 transition-all shadow-sm cursor-pointer select-none';
+      } else {
+        btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50/80 text-amber-800 hover:bg-amber-100 transition-all shadow-sm cursor-pointer select-none';
+      }
+    }
+
+    const sunIcon = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
+    const sliderTrack = document.getElementById('theme-slider-track');
+    const sliderKnob = document.getElementById('theme-slider-knob');
+    const menuLabel = document.getElementById('menu-theme-label');
+
+    if (sunIcon) sunIcon.style.opacity = isDark ? '0.4' : '1';
+    if (moonIcon) moonIcon.style.opacity = isDark ? '1' : '0.4';
+    if (sliderTrack) {
+      sliderTrack.className = isDark ? 'w-7 h-3.5 bg-indigo-600 rounded-full relative p-0.5 transition-colors hidden sm:inline-block' : 'w-7 h-3.5 bg-slate-300 rounded-full relative p-0.5 transition-colors hidden sm:inline-block';
+    }
+    if (sliderKnob) {
+      sliderKnob.style.transform = isDark ? 'translateX(14px)' : 'translateX(0)';
+    }
+    if (menuLabel) {
+      menuLabel.textContent = isDark ? 'Noite (Escuro)' : 'Dia (Claro)';
+      menuLabel.className = isDark ? 'text-[10px] font-black uppercase text-indigo-300 bg-indigo-950 px-2 py-0.5 rounded-full border border-indigo-700' : 'text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200';
+    }
+  },
+
   init() {
+    this.initTheme();
     this.updateUserHeader();
 
     // Primeiro de tudo: tela de login. Só entra se tiver acesso autenticado.

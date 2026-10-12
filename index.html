@@ -5,6 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GRAFSIS - Controle de Vendas, Produção e Comunicação Visual</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: '#0b2545'
+          }
+        }
+      }
+    };
+  </script>
+  <script>
+    // Inicialização imediata do Modo Claro / Escuro antes da renderização do DOM
+    (function() {
+      try {
+        var saved = localStorage.getItem('grafsis_theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (saved === 'dark' || (!saved && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,6 +133,21 @@
         <!-- Status de Nuvem Supabase -->
         <div id="cloud-sync-status" class="hidden xl:block"></div>
 
+        <!-- Botão Alternador Modo Claro / Escuro (Dia ☀️ / Noite 🌙) -->
+        <button id="btn-theme-toggle" onclick="app.toggleTheme()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50/80 text-amber-800 hover:bg-amber-100 transition-all shadow-sm cursor-pointer select-none" title="Alternar entre Modo Dia (Claro) e Modo Noite (Escuro)">
+          <span id="theme-icon-sun" class="flex items-center gap-1 text-xs font-bold text-amber-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <span class="hidden xl:inline text-[11px] font-black">Dia</span>
+          </span>
+          <span id="theme-slider-track" class="w-7 h-3.5 bg-slate-300 rounded-full relative p-0.5 transition-colors hidden sm:inline-block">
+            <span id="theme-slider-knob" class="block w-2.5 h-2.5 bg-white rounded-full shadow transition-transform"></span>
+          </span>
+          <span id="theme-icon-moon" class="flex items-center gap-1 text-xs font-bold text-indigo-400 opacity-40">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            <span class="hidden xl:inline text-[11px] font-black">Noite</span>
+          </span>
+        </button>
+
         <!-- Botão Calculadora m² -->
         <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold border border-emerald-200 transition shadow-sm" title="Calculadora de Área e Preço por Metro Quadrado">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
@@ -129,11 +170,20 @@
           </button>
           
           <!-- Menu do Usuário Suspenso -->
-          <div id="top-user-menu" class="hidden absolute top-full right-0 mt-1 w-52 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
+          <div id="top-user-menu" class="hidden absolute top-full right-0 mt-1 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
             <div class="px-4 py-2 border-b border-slate-100">
               <div id="user-header-name" class="text-xs font-bold text-slate-800">Administrador</div>
               <div id="user-header-badge" class="text-[9px] font-extrabold uppercase text-blue-600">ADMIN</div>
             </div>
+            <!-- Alternador de Tema no Menu -->
+            <button onclick="app.toggleTheme(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span>🌓</span>
+                <span>Modo Dia / Noite</span>
+              </span>
+              <span id="menu-theme-label" class="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Dia (Claro)</span>
+            </button>
+            <div class="border-t border-slate-100 my-1"></div>
             <button onclick="app.openUserProfileConfigModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
               Meu Perfil & Senha
@@ -144,7 +194,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v3.9.0)
+              Notas de Versão (v4.0.0)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -635,7 +685,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v3.9.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.0.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -643,26 +693,23 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.9.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Valor Base Oculto 4s, Limpeza de Arte, Vírgulas em Tintas, Sync Interativo & Painel Admin Master</span>
+            <h4 class="font-bold text-slate-800">Versão 4.0.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Modo Claro (Dia ☀️) e Modo Escuro (Noite 🌙) Completo, Skins Imersivas & Alternador Rápido</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Produto Base Limpo & Sem Preço no Label:</strong> Removido o valor por m² do corpo do nome do produto no select e retirado o botão "+ NOVO".</li>
-            <li><strong>Preço Base Invisível com Duplo Clique (4s):</strong> O campo de valor base permanece em sua posição original, mantendo-se invisível até passar o mouse ou dar duplo clique, permanecendo visível por 4 segundos.</li>
-            <li><strong>Descarte Automático da Arte do Item:</strong> Após inserir o item no pedido, a imagem/arte anterior é completamente expurgada da memória e do preview, liberando o formulário para o próximo layout.</li>
-            <li><strong>Frações e Decimais com Vírgula em Tintas CMYK:</strong> Formatação padronizada em pt-BR com vírgulas em todas as frações, litros e rendimentos (ex: 22,500 L, R$ 85,00, 625,0 m²).</li>
-            <li><strong>Botão de Nuvem Interativo com Feedback Tátil:</strong> Botão com animação de clique, spinner "Sincronizando...", refresh imediato no banco e recarregamento automático da página ativa.</li>
-            <li><strong>Painel do Administrador Geral da GRAFSIS:</strong> Página de Configurações reativada e enriquecida com caminho do banco Supabase, monitor de usuários online em tempo real, health-check dos subsistemas, gráficos e relatórios consolidados de todas as gráficas.</li>
-            <li><strong>Notificações Multicanal para Clientes:</strong> Disparos com 1 clique para WhatsApp e E-mail com status de fase da produção, cobrança com chave PIX e aviso de retirada.</li>
+            <li><strong>Modo Claro & Modo Escuro (Dia ☀️ / Noite 🌙):</strong> Alternador dinâmico de tema com ícones de Dia (Sol ☀️) e Noite (Lua 🌙) no topo da aplicação e no menu de perfil, com persistência automática de preferência.</li>
+            <li><strong>Skins Completas em Todas as Telas:</strong> Reestilização imersiva para modo escuro cobrindo cabeçalho, barra lateral, cards, tabelas, modais, formulários, grids de produtos e painel de controle.</li>
+            <li><strong>Sem Fita Branca ou Flashes:</strong> Carregamento e renderização instantânea do tema escolhido no cabeçalho antes da pintura do DOM.</li>
+            <li><strong>Contraste Calibrado & Legibilidade:</strong> Cores de texto, foco de campos, bordas e botões adaptados para excelente visibilidade diurna e conforto visual noturno.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.8.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Tintas CMYK Pro, Acordeão A-Z Royal, Logo Proprietário & Alertas</span>
+            <h4 class="font-bold text-slate-800">Versão 3.9.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Valor Base Oculto 4s, Limpeza de Arte, Vírgulas em Tintas & Sync Nuvem</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Controle de cores CMYK com primeira coluna colorida, cálculo de estoque e rendimento em m², frações de 0,250L, acordeão A-Z em duas cores e alertas inteligentes.</li>
+            <li>Preço base invisível com duplo clique por 4s, descarte de arte após inserção do item, vírgulas em decimais de tintas e painel master admin.</li>
           </ul>
         </div>
       </div>
@@ -675,15 +722,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=3.9.0"></script>
-  <script src="js/auth.js?v=3.9.0"></script>
-  <script src="js/store.js?v=3.9.0"></script>
-  <script src="js/clients.js?v=3.9.0"></script>
-  <script src="js/suppliers.js?v=3.9.0"></script>
-  <script src="js/products.js?v=3.9.0"></script>
-  <script src="js/sales.js?v=3.9.0"></script>
-  <script src="js/production.js?v=3.9.0"></script>
-  <script src="js/finance.js?v=3.9.0"></script>
-  <script src="js/app.js?v=3.9.0"></script>
+  <script src="js/config.js?v=4.0.0"></script>
+  <script src="js/auth.js?v=4.0.0"></script>
+  <script src="js/store.js?v=4.0.0"></script>
+  <script src="js/clients.js?v=4.0.0"></script>
+  <script src="js/suppliers.js?v=4.0.0"></script>
+  <script src="js/products.js?v=4.0.0"></script>
+  <script src="js/sales.js?v=4.0.0"></script>
+  <script src="js/production.js?v=4.0.0"></script>
+  <script src="js/finance.js?v=4.0.0"></script>
+  <script src="js/app.js?v=4.0.0"></script>
 </body>
 </html>
