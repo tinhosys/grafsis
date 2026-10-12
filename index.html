@@ -101,29 +101,6 @@
           <button onclick="app.navigate('products')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="products">
             Catálogo (Produtos/Serviços)
           </button>
-          
-          <!-- Seletor de Unidade / Empresa com Dropdown (Forte ⌄ / Top Digital ⌄) -->
-          <div class="relative ml-1">
-            <button onclick="app.toggleTenantDropdown()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100 font-semibold transition" id="btn-top-tenant">
-              <span id="top-tenant-name">Forte</span>
-              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </button>
-            <div id="top-tenant-dropdown" class="hidden absolute top-full left-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
-              <div class="px-3 py-1 text-[10px] font-bold uppercase text-slate-400">Unidades Disponíveis</div>
-              <button onclick="app.selectTenant('Forte')" class="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between">
-                <span>Forte</span>
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              </button>
-              <button onclick="app.selectTenant('Top Digital')" class="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-between">
-                <span>Top Digital</span>
-                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
-              </button>
-              <div class="border-t border-slate-100 my-1"></div>
-              <button onclick="app.navigate('tenants')" class="w-full px-3 py-1.5 text-left text-xs font-bold text-blue-600 hover:bg-blue-50">
-                Gerenciar Empresas &rarr;
-              </button>
-            </div>
-          </div>
         </nav>
       </div>
 
@@ -313,8 +290,8 @@
           <div class="mt-2 sm:mt-0 flex items-center gap-2">
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
-            <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold">
-              Versão 3.6.0 (Ver Notas)
+            <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
+              Versão 4.3.0 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -694,7 +671,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.0.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.3.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -702,23 +679,23 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.0.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Modo Claro (Dia ☀️) e Modo Escuro (Noite 🌙) Completo, Skins Imersivas & Alternador Rápido</span>
+            <h4 class="font-bold text-slate-800">Versão 4.3.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Calculadora Fracionada, Botão Novo Produto, Chave Primária Cliente & Header Limpo</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Modo Claro & Modo Escuro (Dia ☀️ / Noite 🌙):</strong> Alternador dinâmico de tema com ícones de Dia (Sol ☀️) e Noite (Lua 🌙) no topo da aplicação e no menu de perfil, com persistência automática de preferência.</li>
-            <li><strong>Skins Completas em Todas as Telas:</strong> Reestilização imersiva para modo escuro cobrindo cabeçalho, barra lateral, cards, tabelas, modais, formulários, grids de produtos e painel de controle.</li>
-            <li><strong>Sem Fita Branca ou Flashes:</strong> Carregamento e renderização instantânea do tema escolhido no cabeçalho antes da pintura do DOM.</li>
-            <li><strong>Contraste Calibrado & Legibilidade:</strong> Cores de texto, foco de campos, bordas e botões adaptados para excelente visibilidade diurna e conforto visual noturno.</li>
+            <li><strong>Calculadora Fracionada:</strong> Removido preço do nome/descrição no seletor de material; formatação padronizada para decimais com vírgula (Área <code>###,00 m²</code>, Quantidade <code>###,0</code>, Desconto <code>###,00 %</code>, Preço Unitário e Valor Total <code>R$ ###.###,00</code>).</li>
+            <li><strong>Header Otimizado:</strong> Removido seletor duplicado de unidades no topo da tela; gestão corporativa centralizada exclusivamente em Configurações / Admin.</li>
+            <li><strong>Chave Primária de Clientes:</strong> Regra aprimorada para desconsiderar validação de chave primária duplicada na edição, permitindo atualizar endereço, nome e dados livremente sem bloqueios indevidos.</li>
+            <li><strong>Botão + Novo Produto no Pedido:</strong> Acionamento direto do formulário de Novo Produto / Serviço e sincronização instantânea com a grade de itens.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 3.9.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Valor Base Oculto 4s, Limpeza de Arte, Vírgulas em Tintas & Sync Nuvem</span>
+            <h4 class="font-bold text-slate-800">Versão 4.2.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Catálogo, ID Operação, Perfil 360 & Chat CRM</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Preço base invisível com duplo clique por 4s, descarte de arte após inserção do item, vírgulas em decimais de tintas e painel master admin.</li>
+            <li>Catálogo de Produtos/Serviços, numeração sequencial automática ao efetivar, fotos e logos realistas, perfil 360 do cliente com histórico e chat de anotações CRM.</li>
           </ul>
         </div>
       </div>
@@ -731,15 +708,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.0.0"></script>
-  <script src="js/auth.js?v=4.0.0"></script>
-  <script src="js/store.js?v=4.0.0"></script>
-  <script src="js/clients.js?v=4.0.0"></script>
-  <script src="js/suppliers.js?v=4.0.0"></script>
-  <script src="js/products.js?v=4.0.0"></script>
-  <script src="js/sales.js?v=4.0.0"></script>
-  <script src="js/production.js?v=4.0.0"></script>
-  <script src="js/finance.js?v=4.0.0"></script>
-  <script src="js/app.js?v=4.0.0"></script>
+  <script src="js/config.js?v=4.3.0"></script>
+  <script src="js/auth.js?v=4.3.0"></script>
+  <script src="js/store.js?v=4.3.0"></script>
+  <script src="js/clients.js?v=4.3.0"></script>
+  <script src="js/suppliers.js?v=4.3.0"></script>
+  <script src="js/products.js?v=4.3.0"></script>
+  <script src="js/sales.js?v=4.3.0"></script>
+  <script src="js/production.js?v=4.3.0"></script>
+  <script src="js/finance.js?v=4.3.0"></script>
+  <script src="js/app.js?v=4.3.0"></script>
 </body>
 </html>

@@ -904,7 +904,7 @@ window.clientsModule = {
     
     // Identifica com precisão se é uma edição
     const formIdVal = (form.client_id && form.client_id.value) ? form.client_id.value.trim() : '';
-    const targetId = id || formIdVal || this.currentEditingClientId || undefined;
+    let targetId = id || formIdVal || this.currentEditingClientId || undefined;
 
     const clientData = {
       id: targetId,
@@ -934,32 +934,38 @@ window.clientsModule = {
     };
 
     const allClients = window.store.getClients();
-    // 1. Validação de Telefone WhatsApp: OBRIGATÓRIO SEMPRE e Chave Única (sem conflito com outros clientes)
+    if (!targetId && clientData.nome) {
+      const existingByName = allClients.find(c => c.nome && c.nome.toLowerCase().trim() === clientData.nome.toLowerCase().trim());
+      if (existingByName) targetId = existingByName.id;
+    }
+    const isEdit = !!targetId;
+    clientData.id = targetId;
+
+    // 1. Validação de Telefone WhatsApp: OBRIGATÓRIO SEMPRE e deve conter DDD válido
     const cleanPhone = (clientData.telefone_whatsapp || '').replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
       alert("Operação negada: O número de Telefone WhatsApp é OBRIGATÓRIO SEMPRE e deve conter DDD válido.");
       return;
     }
-    const duplicatePhone = allClients.find(c => {
-      // Se é edição, o próprio cliente é o mesmo e não deve ser considerado
-      if (targetId && String(c.id) === String(targetId)) return false;
-      return (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone;
-    });
-    if (duplicatePhone) {
-      alert(`Operação negada: O número de telefone informado já está cadastrado para outro cliente (${duplicatePhone.nome}). O telefone é chave de identificação e não pode duplicar.`);
-      return;
-    }
 
-    // 2. Validação de CPF/CNPJ: Chave Única (se for edição do próprio cliente, não considera duplicado)
     const cleanCpfCnpj = (clientData.cpf_cnpj || '').replace(/\D/g, '');
-    if (cleanCpfCnpj) {
-      const duplicateCpf = allClients.find(c => {
-        if (targetId && String(c.id) === String(targetId)) return false;
-        return (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj;
-      });
-      if (duplicateCpf) {
-        alert(`Operação negada: O CPF/CNPJ informado já está cadastrado para outro cliente (${duplicateCpf.nome}). Não é permitido duplicar o documento.`);
+
+    // REGRA DE CHAVE PRIMÁRIA: Se é uma EDIÇÃO, o sistema desconsidera a validação de chave primária,
+    // pois o cliente e sua chave já estão gravados no sistema. Edição de endereço, nome, etc., não pode ser travada.
+    // Apenas quando for cadastro de NOVO cliente (!isEdit), valida unicidade contra outros clientes.
+    if (!isEdit) {
+      const duplicatePhone = allClients.find(c => (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone);
+      if (duplicatePhone) {
+        alert(`Operação negada: O número de telefone informado já está cadastrado para outro cliente (${duplicatePhone.nome}). O telefone é chave de identificação e não pode duplicar.`);
         return;
+      }
+
+      if (cleanCpfCnpj) {
+        const duplicateCpf = allClients.find(c => (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj);
+        if (duplicateCpf) {
+          alert(`Operação negada: O CPF/CNPJ informado já está cadastrado para outro cliente (${duplicateCpf.nome}). Não é permitido duplicar o documento.`);
+          return;
+        }
       }
     }
 

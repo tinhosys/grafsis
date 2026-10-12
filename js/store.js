@@ -1598,12 +1598,19 @@ class GrafsisStore {
   // Clientes
   getClients() {
     const list = this.getLocal(STORAGE_KEYS.CLIENTS) || [];
-    return list.map(c => {
-      if (!c.uf) {
-        c.uf = (c.cidade && c.cidade.includes(' - ')) ? c.cidade.split(' - ')[1].trim().toUpperCase() : 'RO';
+    const seen = new Set();
+    const deduped = [];
+    for (const c of list) {
+      const key = String(c.id || c.telefone_whatsapp || c.nome).trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        if (!c.uf) {
+          c.uf = (c.cidade && c.cidade.includes(' - ')) ? c.cidade.split(' - ')[1].trim().toUpperCase() : 'RO';
+        }
+        deduped.push(c);
       }
-      return c;
-    });
+    }
+    return deduped;
   }
 
   async saveClient(client) {
@@ -1612,11 +1619,21 @@ class GrafsisStore {
       client.id = grafsisUUID();
       clients.unshift(client);
     } else {
-      const index = clients.findIndex(c => String(c.id) === String(client.id));
+      const index = clients.findIndex(c => String(c.id) === String(client.id) || (c.nome && client.nome && c.nome.toLowerCase().trim() === client.nome.toLowerCase().trim()));
       if (index >= 0) clients[index] = client;
       else clients.unshift(client);
     }
-    this.saveLocal(STORAGE_KEYS.CLIENTS, clients);
+    // Remove qualquer duplicata residual com o mesmo ID ou mesmo nome
+    const cleaned = [];
+    const seenIds = new Set();
+    for (const c of clients) {
+      const idKey = String(c.id);
+      if (!seenIds.has(idKey)) {
+        seenIds.add(idKey);
+        cleaned.push(c);
+      }
+    }
+    this.saveLocal(STORAGE_KEYS.CLIENTS, cleaned);
     await this.pushRecord('clientes', client);
     return client;
   }

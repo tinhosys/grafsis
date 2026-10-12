@@ -281,9 +281,12 @@ window.productsModule = {
       descricao: form.descricao.value.trim()
     };
 
-    window.store.saveProduct(productData);
+    const savedProd = window.store.saveProduct(productData);
     document.getElementById('product-modal').remove();
     this.render();
+    if (window.salesModule && typeof window.salesModule.refreshProductOptions === 'function') {
+      window.salesModule.refreshProductOptions(productData.id || (savedProd ? savedProd.id : null));
+    }
   },
 
   delete(id) {
@@ -319,7 +322,7 @@ window.productsModule = {
               <select id="calc-product" onchange="productsModule.updateCalcProductPrice()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 ${products.map(p => `
                   <option value="${p.id}" data-price="${p.preco_base}" data-type="${p.tipo_cobranca}" ${selectedProd && selectedProd.id === p.id ? 'selected' : ''}>
-                    ${p.nome} (${p.tipo_cobranca === 'm2' ? 'm²' : p.unidade_medida}) - R$ ${Number(p.preco_base).toFixed(2)}
+                    ${p.nome} (${p.tipo_cobranca === 'm2' ? 'm²' : p.unidade_medida})
                   </option>
                 `).join('')}
               </select>
@@ -328,28 +331,31 @@ window.productsModule = {
             <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Largura X (metros)</label>
-                <input type="number" id="calc-width" step="0.01" value="1.20" oninput="productsModule.runCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <span class="text-[10px] text-slate-500">Ex: 1.20 m</span>
+                <input type="text" id="calc-width" value="1,20" placeholder="0,00" oninput="productsModule.runCalculation()" onblur="this.value = productsModule.parseCalcVal(this.value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <span class="text-[10px] text-slate-500">Ex: 1,20 m</span>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Comprimento Y (metros)</label>
-                <input type="number" id="calc-height" step="0.01" value="2.50" oninput="productsModule.runCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <span class="text-[10px] text-slate-500">Ex: 2.50 m</span>
+                <input type="text" id="calc-height" value="2,50" placeholder="0,00" oninput="productsModule.runCalculation()" onblur="this.value = productsModule.parseCalcVal(this.value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <span class="text-[10px] text-slate-500">Ex: 2,50 m</span>
               </div>
             </div>
 
             <div class="grid grid-cols-3 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Quantidade</label>
-                <input type="number" id="calc-qty" step="1" value="1" min="1" oninput="productsModule.runCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" id="calc-qty" value="1,0" placeholder="1,0" oninput="productsModule.runCalculation()" onblur="this.value = productsModule.parseCalcVal(this.value).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <span class="text-[10px] text-slate-400">Ex: 1,0</span>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Desconto (%)</label>
-                <input type="number" id="calc-discount" step="1" value="0" min="0" max="100" oninput="productsModule.runCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" id="calc-discount" value="0,00" placeholder="0,00" oninput="productsModule.runCalculation()" onblur="this.value = productsModule.parseCalcVal(this.value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <span class="text-[10px] text-slate-400">Ex: 0,00 %</span>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Preço Unitário m²</label>
-                <input type="number" id="calc-unit-price" step="0.01" value="${selectedProd ? selectedProd.preco_base : '45.00'}" oninput="productsModule.runCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" id="calc-unit-price" value="${selectedProd ? Number(selectedProd.preco_base).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '45,00'}" placeholder="0,00" oninput="productsModule.runCalculation()" onblur="this.value = productsModule.parseCalcVal(this.value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <span class="text-[10px] text-slate-400">Ex: 55,00</span>
               </div>
             </div>
 
@@ -357,13 +363,13 @@ window.productsModule = {
             <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
               <div>
                 <p class="text-xs text-blue-700 font-medium">Área Total Fracionada:</p>
-                <p class="text-lg font-extrabold text-blue-900" id="calc-res-area">3.000 m²</p>
-                <p class="text-[11px] text-blue-600" id="calc-res-sub">1 peça(s) de 1.20m x 2.50m</p>
+                <p class="text-lg font-extrabold text-blue-900" id="calc-res-area">3,00 m²</p>
+                <p class="text-[11px] text-blue-600" id="calc-res-sub">1,0 peça(s) de 1,20m x 2,50m</p>
                 <div id="calc-res-sugestao" class="mt-2 text-[10px] font-semibold text-amber-700 bg-amber-50 p-1.5 rounded border border-amber-200 hidden"></div>
               </div>
               <div class="text-right">
                 <p class="text-xs text-blue-700 font-medium">Valor Total:</p>
-                <p class="text-2xl font-black text-blue-700" id="calc-res-total">R$ 135,00</p>
+                <p class="text-2xl font-black text-blue-700" id="calc-res-total">R$ 165,00</p>
               </div>
             </div>
 
@@ -385,20 +391,26 @@ window.productsModule = {
     this.openCalculatorModal(prodId);
   },
 
+  parseCalcVal(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    const s = String(val).trim().replace(/\./g, '').replace(',', '.');
+    return parseFloat(s) || 0;
+  },
+
   updateCalcProductPrice() {
     const sel = document.getElementById('calc-product');
     const opt = sel.options[sel.selectedIndex];
-    const price = opt.getAttribute('data-price');
-    document.getElementById('calc-unit-price').value = price;
+    const price = parseFloat(opt.getAttribute('data-price')) || 0;
+    document.getElementById('calc-unit-price').value = price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     this.runCalculation();
   },
 
   runCalculation() {
-    const width = parseFloat(document.getElementById('calc-width').value) || 0;
-    const height = parseFloat(document.getElementById('calc-height').value) || 0;
-    const qty = parseFloat(document.getElementById('calc-qty').value) || 1;
-    const discount = parseFloat(document.getElementById('calc-discount').value) || 0;
-    const unitPrice = parseFloat(document.getElementById('calc-unit-price').value) || 0;
+    const width = this.parseCalcVal(document.getElementById('calc-width')?.value);
+    const height = this.parseCalcVal(document.getElementById('calc-height')?.value);
+    const qty = this.parseCalcVal(document.getElementById('calc-qty')?.value) || 1;
+    const discount = this.parseCalcVal(document.getElementById('calc-discount')?.value) || 0;
+    const unitPrice = this.parseCalcVal(document.getElementById('calc-unit-price')?.value) || 0;
 
     const areaPerUnit = width * height;
     const totalArea = areaPerUnit * qty;
@@ -408,63 +420,67 @@ window.productsModule = {
       totalValue = totalValue * (1 - (discount / 100));
     }
 
-    document.getElementById('calc-res-area').innerText = `${totalArea.toFixed(3)} m²`;
-    document.getElementById('calc-res-sub').innerText = `${qty} peça(s) de ${width.toFixed(2)}m x ${height.toFixed(2)}m`;
+    const areaEl = document.getElementById('calc-res-area');
+    if (areaEl) areaEl.innerText = `${totalArea.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
+
+    const subEl = document.getElementById('calc-res-sub');
+    if (subEl) subEl.innerText = `${qty.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} peça(s) de ${width.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m x ${height.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m`;
     
     // Suggest Roll logic
     const sel = document.getElementById('calc-product');
-    const opt = sel.options[sel.selectedIndex];
-    const prodId = sel.value;
-    const prod = window.store.getProducts().find(p => p.id === prodId);
-    const sugEl = document.getElementById('calc-res-sugestao');
-    
-    if (prod && prod.tipo_cobranca === 'm2' && prod.larguras_bobinas) {
-      const rollsStr = prod.larguras_bobinas.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-      if (rollsStr.length > 0) {
-        let bestRoll = null;
-        let minWaste = Infinity;
-        let orientation = '';
+    if (sel) {
+      const opt = sel.options[sel.selectedIndex];
+      const prodId = sel.value;
+      const prod = window.store.getProducts().find(p => p.id === prodId);
+      const sugEl = document.getElementById('calc-res-sugestao');
+      
+      if (sugEl && prod && prod.tipo_cobranca === 'm2' && prod.larguras_bobinas) {
+        const rollsStr = prod.larguras_bobinas.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+        if (rollsStr.length > 0) {
+          let bestRoll = null;
+          let minWaste = Infinity;
+          let orientation = '';
 
-        for (const r of rollsStr) {
-          // Normal: width along the roll width
-          if (width <= r) {
-            const wasteW = r - width;
-            const wasteArea = wasteW * height;
-            if (wasteArea < minWaste) { minWaste = wasteArea; bestRoll = r; orientation = 'Normal'; }
+          for (const r of rollsStr) {
+            if (width <= r) {
+              const wasteW = r - width;
+              const wasteArea = wasteW * height;
+              if (wasteArea < minWaste) { minWaste = wasteArea; bestRoll = r; orientation = 'Normal'; }
+            }
+            if (height <= r) {
+              const wasteW = r - height;
+              const wasteArea = wasteW * width;
+              if (wasteArea < minWaste) { minWaste = wasteArea; bestRoll = r; orientation = 'Rotacionado'; }
+            }
           }
-          // Rotated: height along the roll width
-          if (height <= r) {
-            const wasteW = r - height;
-            const wasteArea = wasteW * width;
-            if (wasteArea < minWaste) { minWaste = wasteArea; bestRoll = r; orientation = 'Rotacionado'; }
+          
+          if (bestRoll) {
+            sugEl.style.display = 'block';
+            sugEl.innerHTML = `💡 <b>Produção:</b> Usar bobina <b>${bestRoll.toFixed(2)}m</b> (${orientation}).<br>Perda aprox: <b>${minWaste.toFixed(2)}m²</b> por peça.`;
+          } else {
+            sugEl.style.display = 'block';
+            sugEl.innerHTML = `⚠️ Peça maior que todas as bobinas (${prod.larguras_bobinas}). Necessário emenda!`;
           }
-        }
-        
-        if (bestRoll) {
-          sugEl.style.display = 'block';
-          sugEl.innerHTML = `💡 <b>Produção:</b> Usar bobina <b>${bestRoll.toFixed(2)}m</b> (${orientation}).<br>Perda aprox: <b>${minWaste.toFixed(2)}m²</b> por peça.`;
         } else {
-          sugEl.style.display = 'block';
-          sugEl.innerHTML = `⚠️ Peça maior que todas as bobinas (${prod.larguras_bobinas}). Necessário emenda!`;
+          sugEl.style.display = 'none';
         }
-      } else {
+      } else if (sugEl) {
         sugEl.style.display = 'none';
       }
-    } else {
-      sugEl.style.display = 'none';
     }
-    document.getElementById('calc-res-total').innerText = `R$ ${totalValue.toFixed(2)}`;
+    const totEl = document.getElementById('calc-res-total');
+    if (totEl) totEl.innerText = `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   },
 
   sendCalcToNewOrder() {
     const sel = document.getElementById('calc-product');
     const opt = sel.options[sel.selectedIndex];
     const prodId = sel.value;
-    const width = parseFloat(document.getElementById('calc-width').value) || 0;
-    const height = parseFloat(document.getElementById('calc-height').value) || 0;
-    const qty = parseFloat(document.getElementById('calc-qty').value) || 1;
-    const discount = parseFloat(document.getElementById('calc-discount').value) || 0;
-    const unitPrice = parseFloat(document.getElementById('calc-unit-price').value) || 0;
+    const width = this.parseCalcVal(document.getElementById('calc-width')?.value);
+    const height = this.parseCalcVal(document.getElementById('calc-height')?.value);
+    const qty = this.parseCalcVal(document.getElementById('calc-qty')?.value) || 1;
+    const discount = this.parseCalcVal(document.getElementById('calc-discount')?.value) || 0;
+    const unitPrice = this.parseCalcVal(document.getElementById('calc-unit-price')?.value) || 0;
 
     document.getElementById('calc-modal').remove();
     
@@ -472,7 +488,7 @@ window.productsModule = {
     window.salesModule.openModal({
       preItem: {
         produto_id: prodId,
-        descricao: opt.text.split(' - ')[0],
+        descricao: opt.text.trim(),
         tipo_calculo: 'm2',
         largura_x: width,
         comprimento_y: height,

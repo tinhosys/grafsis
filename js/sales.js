@@ -560,6 +560,26 @@ window.salesModule = {
     this.calcPiecePrice();
   },
 
+  openQuickProductModal() {
+    if (window.productsModule && typeof window.productsModule.openModal === 'function') {
+      window.productsModule.openModal();
+    }
+  },
+
+  refreshProductOptions(selectedId = null) {
+    const sel = document.getElementById('item-prod-select');
+    if (!sel) return;
+    const products = window.store.getProducts() || [];
+    sel.innerHTML = `
+      <option value="">Selecione...</option>
+      ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome}</option>`).join('')}
+    `;
+    if (selectedId) {
+      sel.value = selectedId;
+      this.handleProdSelect(sel);
+    }
+  },
+
   editItem(idx) {
     const it = this.activeItems[idx];
     const prodSelect = document.getElementById('item-prod-select');
