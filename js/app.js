@@ -60,7 +60,7 @@ window.app = {
       }
     }
 
-    // Identificação do Ambiente / Empresa (Multi-tenant)
+    // Identificação do Ambiente / Empresa Proprietária (Multi-tenant)
     if (window.store) {
       const activeTenant = window.store.getActiveTenant();
       const tenantNameEl = document.getElementById('header-tenant-name');
@@ -75,6 +75,28 @@ window.app = {
       }
       if (tenantEnvBadge) {
         tenantEnvBadge.innerHTML = `🏢 Ambiente: <span class="font-bold text-slate-800">${activeTenant.nome_fantasia || activeTenant.razao_social}</span> <span class="font-mono text-blue-600">(ID: ${activeTenant.id})</span>`;
+      }
+
+      // Logomarca Oficial do Cliente Proprietário no Header Superior (Imagem 4)
+      const compLogoImg = document.getElementById('header-company-logo-img');
+      const compLogoDefault = document.getElementById('header-company-logo-default');
+      const compNameText = document.getElementById('header-company-name-text');
+      const compSubtext = document.getElementById('header-company-subtext');
+
+      if (compNameText) {
+        compNameText.textContent = activeTenant.nome_fantasia || activeTenant.razao_social || 'Grafsis';
+      }
+      if (compSubtext) {
+        compSubtext.textContent = (activeTenant.nome_fantasia || activeTenant.razao_social) ? 'Sua Gráfica nas Nuvens' : 'Sua Gráfica nas Nuvens';
+      }
+
+      if (activeTenant.logo_url && compLogoImg && compLogoDefault) {
+        compLogoImg.src = activeTenant.logo_url;
+        compLogoImg.classList.remove('hidden');
+        compLogoDefault.classList.add('hidden');
+      } else if (compLogoImg && compLogoDefault) {
+        compLogoImg.classList.add('hidden');
+        compLogoDefault.classList.remove('hidden');
       }
     }
 
@@ -101,6 +123,9 @@ window.app = {
     if (window.store) {
       window.store.updateSyncBadge(!!window.store.supabaseClient);
     }
+
+    // Atualização em tempo real do badge de Notificação Inteligente (Vermelho = 3 dias úteis expira / Amarelo = Entrega atrasada)
+    this.updateNotificationStatus();
   },
 
   navigate(tab) {
@@ -1559,6 +1584,289 @@ window.app = {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
+  },
+
+  /* ==============================================================================
+     NOTIFICAÇÕES INTELIGENTES & CONTROLE DE PRAZOS (Imagem 4)
+     - Vermelho: Expiração do sistema em até 3 dias úteis
+     - Amarelo: Pedidos com prazo de entrega vencido
+     ============================================================================== */
+  calculateBusinessDays(startDate, endDate) {
+    let count = 0;
+    let cur = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Normaliza horários para comparar apenas datas
+    cur.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    if (cur > end) return -1; // Já expirado
+
+    while (cur < end) {
+      cur.setDate(cur.getDate() + 1);
+      const day = cur.getDay();
+      if (day !== 0 && day !== 6) { // Ignora sábado (6) e domingo (0)
+        count++;
+      }
+    }
+    return count;
+  },
+
+  getSystemExpirationStatus() {
+    if (!window.store) return null;
+    const activeTenant = window.store.getActiveTenant();
+    if (!activeTenant || !activeTenant.data_expiracao || activeTenant.plano === 'INDETERMINADO') {
+      return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expDate = new Date(activeTenant.data_expiracao + 'T23:59:59');
+    
+    if (today > expDate) {
+      return { expired: true, expiringSoon: true, businessDays: 0, date: activeTenant.data_expiracao };
+    }
+
+    const businessDays = this.calculateBusinessDays(today, expDate);
+    if (businessDays <= 3) {
+      return { expired: false, expiringSoon: true, businessDays, date: activeTenant.data_expiracao };
+    }
+
+    return { expired: false, expiringSoon: false, businessDays, date: activeTenant.data_expiracao };
+  },
+
+  getOverdueOrders() {
+    if (!window.store) return [];
+    const orders = window.store.getOrders() || [];
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    return orders.filter(o => {
+      const statusFase = ((o.status_fase || o.status || '') + '').toLowerCase();
+      const isDone = ['entregue', 'finalizado', 'concluido'].includes(statusFase);
+      if (isDone) return false;
+
+      const deliveryDate = (o.previsao_entrega || o.data_entrega || '').slice(0, 10);
+      if (!deliveryDate) return false;
+
+      return deliveryDate < todayStr;
+    });
+  },
+
+  updateNotificationStatus() {
+    const expStatus = this.getSystemExpirationStatus();
+    const overdueOrders = this.getOverdueOrders();
+
+    const badge = document.getElementById('header-notification-badge');
+    const sideDot = document.getElementById('sidebar-notif-dot');
+
+    if (!badge) return;
+
+    if (expStatus && expStatus.expiringSoon) {
+      // REGRA: VERMELHO - 3 dias úteis antes de expirar o sistema (ou expirado)
+      badge.classList.remove('hidden');
+      badge.className = 'absolute top-1.5 right-1.5 min-w-4 h-4 px-1 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm bg-red-600 text-white animate-pulse';
+      badge.textContent = '!';
+      badge.title = expStatus.expired ? 'Alerta: Licença do sistema expirada!' : `Atenção: Sistema expira em ${expStatus.businessDays} dias úteis!`;
+      
+      if (sideDot) {
+        sideDot.classList.remove('hidden');
+        sideDot.className = 'w-2 h-2 rounded-full bg-red-500 animate-pulse';
+      }
+    } else if (overdueOrders.length > 0) {
+      // REGRA: AMARELO - Informa pedidos com prazo de entrega vencido
+      badge.classList.remove('hidden');
+      badge.className = 'absolute top-1.5 right-1.5 min-w-4 h-4 px-1 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm bg-amber-400 text-slate-900 font-black';
+      badge.textContent = overdueOrders.length;
+      badge.title = `${overdueOrders.length} pedido(s) com prazo de entrega vencido!`;
+      
+      if (sideDot) {
+        sideDot.classList.remove('hidden');
+        sideDot.className = 'w-2 h-2 rounded-full bg-amber-500';
+      }
+    } else {
+      // Sem alertas críticos
+      badge.classList.add('hidden');
+      if (sideDot) sideDot.classList.add('hidden');
+    }
+  },
+
+  openNotificationsModal() {
+    let existing = document.getElementById('notifications-modal');
+    if (existing) existing.remove();
+
+    const expStatus = this.getSystemExpirationStatus();
+    const overdueOrders = this.getOverdueOrders();
+    const activeTenant = window.store ? window.store.getActiveTenant() : {};
+
+    const modalHtml = `
+      <div id="notifications-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[90vh] flex flex-col">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">🔔</span>
+              <div>
+                <h3 class="text-base font-bold text-slate-800">Central de Notificações & Prazos</h3>
+                <p class="text-[11px] text-slate-500">Monitoramento operacional de licenças e entregas da gráfica</p>
+              </div>
+            </div>
+            <button onclick="document.getElementById('notifications-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <!-- 1. ALERTA DE EXPIRAÇÃO DO SISTEMA (VERMELHO) -->
+            ${(expStatus && expStatus.expiringSoon) ? `
+              <div class="p-4 rounded-xl border border-red-200 bg-red-50 text-red-900 shadow-sm flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center font-black text-xs shrink-0">!</span>
+                  <span class="font-bold text-sm text-red-800">
+                    ${expStatus.expired ? 'ALERTA CRÍTICO: LICENÇA DO SISTEMA EXPIRADA!' : 'ATENÇÃO: LICENÇA DO SISTEMA EXPIRA EM BREVE!'}
+                  </span>
+                </div>
+                <p class="text-xs text-red-700 leading-relaxed">
+                  ${expStatus.expired ? `
+                    A licença do sistema para a empresa <strong>${activeTenant.nome_fantasia || activeTenant.razao_social}</strong> expirou em <strong>${new Date(expStatus.date + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>. Renove para manter o funcionamento completo.
+                  ` : `
+                    A sua licença do sistema vence em <strong>${expStatus.businessDays} dia(s) útil(eis)</strong> (Data Limite: <strong>${new Date(expStatus.date + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>). Renove agora para evitar o bloqueio automático de novas operações.
+                  `}
+                </p>
+                <div class="mt-1 flex justify-end">
+                  <button 
+                    onclick="document.getElementById('notifications-modal').remove(); app.navigate('tenants');" 
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs shadow transition">
+                    Renovar Plano Agora &rarr;
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- 2. ALERTA DE PEDIDOS COM PRAZO DE ENTREGA VENCIDO (AMARELO) -->
+            ${(overdueOrders.length > 0) ? `
+              <div class="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 shadow-sm space-y-3">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0">⏱️</span>
+                  <span class="font-bold text-sm text-amber-900">
+                    ${overdueOrders.length} Pedido(s) com Prazo de Entrega Vencido!
+                  </span>
+                </div>
+                <p class="text-xs text-amber-800">
+                  Os seguintes pedidos ainda estão pendentes e já ultrapassaram a previsão de entrega prometida ao cliente:
+                </p>
+                <div class="divide-y divide-amber-200 bg-white/80 rounded-xl border border-amber-200 overflow-hidden">
+                  ${overdueOrders.slice(0, 5).map(o => `
+                    <div class="p-2.5 flex items-center justify-between gap-3 text-xs">
+                      <div>
+                        <div class="font-black text-slate-800">#${o.id || o.numero_pedido || '---'} • ${o.cliente_nome || 'Cliente'}</div>
+                        <div class="text-[11px] text-red-600 font-bold">Entrega prevista: ${new Date((o.previsao_entrega || o.data_entrega) + 'T12:00:00').toLocaleDateString('pt-BR')} (Atrasado)</div>
+                      </div>
+                      <button 
+                        onclick="document.getElementById('notifications-modal').remove(); window.salesModule.openModal({ id: '${o.id}' });" 
+                        class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded text-[11px] shrink-0 transition">
+                        Ver Pedido
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+                ${overdueOrders.length > 5 ? `<div class="text-[11px] text-amber-700 font-semibold text-center">+ ${overdueOrders.length - 5} pedidos atrasados adicionais</div>` : ''}
+              </div>
+            ` : ''}
+
+            <!-- 3. STATUS REGULAR SE NÃO HOUVER PENDÊNCIAS -->
+            ${(!expStatus?.expiringSoon && overdueOrders.length === 0) ? `
+              <div class="p-6 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-center space-y-2">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold">
+                  ✓
+                </div>
+                <div class="font-black text-base text-emerald-800">Tudo em Dia!</div>
+                <p class="text-xs text-emerald-700 max-w-sm mx-auto">
+                  Sua empresa está com a licença ativa e não possui nenhum pedido com prazo de entrega vencido no momento.
+                </p>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+            <button onclick="document.getElementById('notifications-modal').remove()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  openClientPortalModal() {
+    let existing = document.getElementById('client-portal-modal');
+    if (existing) existing.remove();
+
+    const orders = window.store ? window.store.getOrders().slice(0, 5) : [];
+
+    const modalHtml = `
+      <div id="client-portal-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[90vh] flex flex-col">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-blue-50/50">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm">🛡️</span>
+              <div>
+                <h3 class="text-base font-bold text-slate-800">Portal de Aprovação do Cliente</h3>
+                <p class="text-[11px] text-slate-500">Aprovação de arte, acompanhamento e pagamentos pelo cliente</p>
+              </div>
+            </div>
+            <button onclick="document.getElementById('client-portal-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 text-slate-700 space-y-2">
+              <div class="font-bold text-sm text-blue-900 flex items-center gap-1.5">
+                <span>📱</span> Como funciona o Portal do Cliente?
+              </div>
+              <p class="text-xs leading-relaxed text-slate-600">
+                Ao gerar o link de um pedido, seu cliente recebe um endereço seguro no WhatsApp para:
+              </p>
+              <ul class="list-disc list-inside space-y-1 text-xs text-slate-600 font-medium pl-1">
+                <li>Visualizar a prova/arte em alta definição</li>
+                <li>Dar o <strong>Autorizo de Produção</strong> formal com assinatura digital</li>
+                <li>Acompanhar em tempo real as etapas de impressão e acabamento</li>
+                <li>Pagar a entrada ou quitar o saldo via PIX com QR Code dinâmico</li>
+              </ul>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Selecione um Pedido para Gerar Link de Teste:</label>
+              <select id="portal-sel-order" class="w-full p-2.5 border rounded-xl bg-slate-50 text-xs font-bold text-slate-800">
+                ${orders.map(o => `
+                  <option value="${o.id}">Pedido #${o.id || o.numero_pedido} - ${o.cliente_nome || 'Cliente'} (R$ ${Number(o.total || o.valor_final || 0).toFixed(2)})</option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
+              <span class="font-mono text-[11px] text-slate-600 truncate" id="portal-link-preview">
+                https://tinhosys.github.io/grafsis/#aprovacao?id=demo
+              </span>
+              <button 
+                type="button"
+                onclick="
+                  const sel = document.getElementById('portal-sel-order');
+                  const url = 'https://tinhosys.github.io/grafsis/#aprovacao?id=' + (sel ? sel.value : 'demo');
+                  navigator.clipboard.writeText(url);
+                  alert('Link do Portal de Aprovação copiado com sucesso! Pode enviar ao cliente pelo WhatsApp.');
+                "
+                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shrink-0 transition">
+                Copiar Link WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <button onclick="document.getElementById('client-portal-modal').remove()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
   openNewOrderModal(params) {

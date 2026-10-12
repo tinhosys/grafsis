@@ -497,10 +497,10 @@ window.productsModule = {
           preco_litro_manual: null,
           estoque: { C: 5.0, M: 4.5, Y: 6.0, K: 8.0 },
           historico: [
-            { id: 'ink-s1', cor: 'C', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 70.00 },
-            { id: 'ink-s2', cor: 'M', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 70.00 },
-            { id: 'ink-s3', cor: 'Y', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 75.00 },
-            { id: 'ink-s4', cor: 'K', fornecedor: 'InkTec Brasil', data: '2026-10-05', qtde: 4.0, preco_unitario: 80.00 }
+            { id: 'ink-s1', cor: 'C', marca: 'InkTec', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 70.00 },
+            { id: 'ink-s2', cor: 'M', marca: 'InkTec', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 70.00 },
+            { id: 'ink-s3', cor: 'Y', marca: 'InkTec', fornecedor: 'Global Tintas', data: '2026-10-01', qtde: 2.0, preco_unitario: 75.00 },
+            { id: 'ink-s4', cor: 'K', marca: 'Marabu', fornecedor: 'InkTec Brasil', data: '2026-10-05', qtde: 4.0, preco_unitario: 80.00 }
           ]
         },
         sublimacao: {
@@ -508,10 +508,10 @@ window.productsModule = {
           preco_litro_manual: null,
           estoque: { C: 3.0, M: 3.0, Y: 2.5, K: 4.0 },
           historico: [
-            { id: 'ink-sub1', cor: 'C', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 85.00 },
-            { id: 'ink-sub2', cor: 'M', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 85.00 },
-            { id: 'ink-sub3', cor: 'Y', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 90.00 },
-            { id: 'ink-sub4', cor: 'K', fornecedor: 'Sensient Subli', data: '2026-10-04', qtde: 2.0, preco_unitario: 95.00 }
+            { id: 'ink-sub1', cor: 'C', marca: 'Gênesis', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 85.00 },
+            { id: 'ink-sub2', cor: 'M', marca: 'Gênesis', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 85.00 },
+            { id: 'ink-sub3', cor: 'Y', marca: 'Gênesis', fornecedor: 'Gênesis Tintas', data: '2026-09-28', qtde: 1.0, preco_unitario: 90.00 },
+            { id: 'ink-sub4', cor: 'K', marca: 'Sensient', fornecedor: 'Sensient Subli', data: '2026-10-04', qtde: 2.0, preco_unitario: 95.00 }
           ]
         }
       };
@@ -536,31 +536,34 @@ window.productsModule = {
 
   addInkPurchase() {
     const cor = document.getElementById('new-ink-color').value;
-    const fornecedor = document.getElementById('new-ink-fornecedor').value.trim() || 'Fornecedor Padrão';
-    const data = document.getElementById('new-ink-date').value || new Date().toISOString().slice(0, 10);
-    const qtde = parseFloat(document.getElementById('new-ink-qtde').value) || 0;
-    const preco = parseFloat(document.getElementById('new-ink-preco').value) || 0;
+    const marca = (document.getElementById('new-ink-marca')?.value || '').trim() || 'Padrão';
+    const fornecedor = (document.getElementById('new-ink-fornecedor')?.value || '').trim() || 'Fornecedor Padrão';
+    const data = document.getElementById('new-ink-date')?.value || new Date().toISOString().slice(0, 10);
+    const qtde = parseFloat(document.getElementById('new-ink-qtde')?.value) || 0;
+    const preco = parseFloat(document.getElementById('new-ink-preco')?.value) || 0;
 
-    if (qtde <= 0) return alert('Informe a quantidade de litros (maior que 0).');
+    if (qtde <= 0) return alert('Informe a quantidade em litros (mínimo 0,250 L).');
     if (preco <= 0) return alert('Informe o preço unitário por litro.');
 
     const inkData = this.getInkData();
     const cat = inkData.activeTab || 'solvente';
     
-    // Adiciona ao histórico em linha simples
+    // Adiciona ao histórico em linha simples com Marca
     const newEntry = {
       id: 'ink-' + Date.now(),
       cor,
+      marca,
       fornecedor,
       data,
-      qtde,
+      qtde: parseFloat(qtde.toFixed(3)),
       preco_unitario: preco
     };
+    if (!inkData[cat].historico) inkData[cat].historico = [];
     inkData[cat].historico.unshift(newEntry);
 
     // REGRA: Entrada vai automaticamente para o controle de estoque de tinta!
     if (!inkData[cat].estoque) inkData[cat].estoque = { C: 0, M: 0, Y: 0, K: 0 };
-    inkData[cat].estoque[cor] = (parseFloat(inkData[cat].estoque[cor]) || 0) + qtde;
+    inkData[cat].estoque[cor] = parseFloat(((parseFloat(inkData[cat].estoque[cor]) || 0) + qtde).toFixed(3));
 
     // Reseta override manual para que a Regra de Ouro recalcule imediatamente com o maior preço
     inkData[cat].preco_litro_manual = null;
@@ -570,14 +573,14 @@ window.productsModule = {
   },
 
   deleteInkPurchase(id) {
-    if (!confirm('Deseja excluir esta entrada de compra do histórico?')) return;
+    if (!confirm('Atenção: Confirma a exclusão desta entrada de compra do histórico?\nO estoque será abatido automaticamente.')) return;
     const inkData = this.getInkData();
     const cat = inkData.activeTab || 'solvente';
-    const entry = inkData[cat].historico.find(h => h.id === id);
+    const entry = (inkData[cat].historico || []).find(h => h.id === id);
     if (entry) {
       // Abate do estoque correspondente
-      if (inkData[cat].estoque && inkData[cat].estoque[entry.cor]) {
-        inkData[cat].estoque[entry.cor] = Math.max(0, inkData[cat].estoque[entry.cor] - entry.qtde);
+      if (inkData[cat].estoque && inkData[cat].estoque[entry.cor] !== undefined) {
+        inkData[cat].estoque[entry.cor] = parseFloat(Math.max(0, (inkData[cat].estoque[entry.cor] - entry.qtde)).toFixed(3));
       }
       inkData[cat].historico = inkData[cat].historico.filter(h => h.id !== id);
       this.saveInkData(inkData);
@@ -589,8 +592,9 @@ window.productsModule = {
     const inkData = this.getInkData();
     const cat = inkData.activeTab || 'solvente';
     if (!inkData[cat].estoque) inkData[cat].estoque = {};
-    inkData[cat].estoque[cor] = Math.max(0, parseFloat(val) || 0);
+    inkData[cat].estoque[cor] = parseFloat(Math.max(0, parseFloat(val) || 0).toFixed(3));
     this.saveInkData(inkData);
+    this.renderInkModalContent();
   },
 
   updateInkCalc() {
@@ -621,7 +625,7 @@ window.productsModule = {
           <div class="p-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
             <div>
               <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
-                💧 Controle de Tintas & Insumos Gráficos
+                💧 Controle de Tintas
               </h2>
               <p class="text-xs text-slate-500 mt-0.5">Gestão por cor CMYK, histórico de compras, estoque automático e Regra de Ouro (Maior Preço)</p>
             </div>
@@ -655,10 +659,10 @@ window.productsModule = {
 
     // Cores CMYK e suas propriedades visuais
     const colors = [
-      { key: 'C', name: 'Ciano', hex: '#00AEEF', bg: 'bg-[#00AEEF]', text: 'text-white' },
-      { key: 'M', name: 'Magenta', hex: '#EC008C', bg: 'bg-[#EC008C]', text: 'text-white' },
-      { key: 'Y', name: 'Amarelo', hex: '#FFF200', bg: 'bg-[#FFF200]', text: 'text-slate-900 border border-amber-300' },
-      { key: 'K', name: 'Preto', hex: '#111827', bg: 'bg-[#111827]', text: 'text-white' }
+      { key: 'C', name: 'Ciano', hex: '#00AEEF', solidBg: '#00AEEF', solidText: '#ffffff', bg: 'bg-[#00AEEF]', text: 'text-white' },
+      { key: 'M', name: 'Magenta', hex: '#EC008C', solidBg: '#EC008C', solidText: '#ffffff', bg: 'bg-[#EC008C]', text: 'text-white' },
+      { key: 'Y', name: 'Amarelo', hex: '#FFF200', solidBg: '#FFF200', solidText: '#0f172a', bg: 'bg-[#FFF200]', text: 'text-slate-900 border border-amber-300' },
+      { key: 'K', name: 'Preto', hex: '#111827', solidBg: '#111827', solidText: '#ffffff', bg: 'bg-[#111827]', text: 'text-white' }
     ];
 
     // REGRA DE OURO: O MAIOR PREÇO registrado no histórico independe da data de compra!
@@ -673,24 +677,55 @@ window.productsModule = {
     const rendimentoM2 = catData.rendimento_m2 || (cat === 'solvente' ? 120 : 150);
     const custoM2 = rendimentoM2 > 0 ? (effectivePricePerL / rendimentoM2) : 0;
 
+    // CÁLCULO GERAL: QUANTIDADE TOTAL DE TINTA EM ESTOQUE E RENDIMENTO TOTAL EM M²
+    const totalStockL = colors.reduce((acc, col) => acc + (parseFloat(catData.estoque?.[col.key]) || 0), 0);
+    const totalYieldM2 = totalStockL * rendimentoM2;
+
     container.innerHTML = `
       <!-- ABAS DE NAVEGAÇÃO ENTRE AS 2 CATEGORIAS -->
       <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button 
-          type="button"
+          type="button" 
           onclick="productsModule.setInkTab('solvente')"
           class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition ${cat === 'solvente' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
           <span>🟨 Tinta Eco-Solvente (CMYK)</span>
         </button>
         <button 
-          type="button"
+          type="button" 
           onclick="productsModule.setInkTab('sublimacao')"
           class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition ${cat === 'sublimacao' ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
           <span>🟣 Tinta Sublimática (CMYK)</span>
         </button>
       </div>
 
-      <!-- CARDS DE CONTROLE POR COR CMYK (Estoque Atual, Última Compra e Maior Preço) -->
+      <!-- PAINEL DE RENDIMENTO GLOBAL E CAPACIDADE EM M² -->
+      <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-2xl shrink-0 border border-white/20">
+            📊
+          </div>
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-blue-200 font-bold">Rendimento Estimado da Categoria (${cat === 'solvente' ? 'Eco-Solvente' : 'Sublimação'})</div>
+            <div class="text-xl font-black flex items-center gap-2 mt-0.5">
+              <span>${totalYieldM2.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m²</span>
+              <span class="text-xs font-medium text-slate-300">de capacidade total de impressão</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-t-0 sm:border-l border-white/15 pt-2 sm:pt-0 sm:pl-4">
+          <div class="text-center sm:text-right">
+            <span class="text-[10px] text-blue-200 uppercase font-bold block">Estoque Total CMYK:</span>
+            <span class="text-lg font-black text-amber-300 font-mono">${totalStockL.toFixed(3)} L</span>
+          </div>
+          <div class="text-center sm:text-right pl-3 border-l border-white/15">
+            <span class="text-[10px] text-blue-200 uppercase font-bold block">Rendimento do Equipamento:</span>
+            <span class="text-lg font-black text-white font-mono">${rendimentoM2} m²/L</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARDS DE CONTROLE POR COR CMYK (Estoque Atual, Rendimento m², Última Compra e Maior Preço) -->
       <div>
         <div class="flex justify-between items-center mb-2.5">
           <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Estoque Atual & Dados por Cor (CMYK)</h3>
@@ -704,6 +739,7 @@ window.productsModule = {
             const corHist = (catData.historico || []).filter(h => h.cor === col.key);
             const lastBuy = corHist[0] || null;
             const maxCorPrice = corHist.length > 0 ? Math.max(...corHist.map(h => h.preco_unitario)) : 0;
+            const yieldCor = stock * rendimentoM2;
 
             return `
               <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -719,18 +755,25 @@ window.productsModule = {
                     <div class="flex items-center gap-1 mt-0.5">
                       <input 
                         type="number" 
-                        step="0.1" 
-                        value="${stock}" 
+                        step="0.250" 
+                        min="0"
+                        value="${Number(stock).toFixed(3)}" 
                         onchange="productsModule.updateInkStockManual('${col.key}', this.value)"
-                        class="w-20 font-black text-base text-blue-700 bg-blue-50/60 border border-blue-200 rounded px-2 py-0.5 focus:bg-white focus:outline-none">
+                        class="w-24 font-black text-sm text-blue-700 bg-blue-50/60 border border-blue-200 rounded px-2 py-0.5 focus:bg-white focus:outline-none"
+                        title="Altere em frações de 0,250L">
                       <span class="text-xs font-bold text-slate-500">L</span>
+                    </div>
+                    <div class="mt-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-block">
+                      Rendimento: ${yieldCor.toFixed(1)} m²
                     </div>
                   </div>
                 </div>
 
                 <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] space-y-0.5 text-slate-500">
                   <div><strong>Última compra:</strong> ${lastBuy ? new Date(lastBuy.data + 'T12:00:00').toLocaleDateString('pt-BR') : '--'}</div>
-                  <div class="truncate" title="${lastBuy ? lastBuy.fornecedor : ''}"><strong>Forn:</strong> ${lastBuy ? lastBuy.fornecedor : '--'}</div>
+                  <div class="truncate" title="${lastBuy ? ((lastBuy.marca ? lastBuy.marca + ' - ' : '') + lastBuy.fornecedor) : ''}">
+                    <strong>Marca/Forn:</strong> ${lastBuy ? ((lastBuy.marca ? lastBuy.marca + ' / ' : '') + lastBuy.fornecedor) : '--'}
+                  </div>
                   <div><strong>Preço Último:</strong> ${lastBuy ? 'R$ ' + Number(lastBuy.preco_unitario).toFixed(2) : '--'}</div>
                   <div class="text-amber-700 font-bold"><strong>Maior Preço:</strong> ${maxCorPrice > 0 ? 'R$ ' + maxCorPrice.toFixed(2) : '--'}</div>
                 </div>
@@ -786,7 +829,7 @@ window.productsModule = {
         </div>
       </div>
 
-      <!-- ENTRADA DE COMPRA DE TINTA EM LINHA SIMPLES (Atualiza estoque automaticamente) -->
+      <!-- ENTRADA DE COMPRA DE TINTA COM MARCA E FRAÇÃO 0.250L -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <h3 class="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
           <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -803,27 +846,39 @@ window.productsModule = {
             </select>
           </div>
 
-          <div class="sm:col-span-2">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Marca</label>
+            <input type="text" id="new-ink-marca" placeholder="Ex: InkTec / Marabu" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-medium">
+          </div>
+
+          <div>
             <label class="block text-[11px] font-bold text-slate-500 mb-1">Fornecedor</label>
-            <input type="text" id="new-ink-fornecedor" placeholder="Ex: Global Tintas" class="w-full p-2 border rounded-xl text-xs bg-slate-50">
+            <input type="text" id="new-ink-fornecedor" placeholder="Ex: Global Tintas" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-medium">
           </div>
 
           <div>
             <label class="block text-[11px] font-bold text-slate-500 mb-1">Data</label>
-            <input type="date" id="new-ink-date" value="${new Date().toISOString().slice(0, 10)}" class="w-full p-2 border rounded-xl text-xs bg-slate-50">
+            <input type="date" id="new-ink-date" value="${new Date().toISOString().slice(0, 10)}" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-medium">
           </div>
 
           <div>
-            <label class="block text-[11px] font-bold text-slate-500 mb-1">Qtde (Litros)</label>
-            <input type="number" step="0.1" id="new-ink-qtde" placeholder="Ex: 2.0" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-bold">
+            <label class="block text-[11px] font-bold text-slate-500 mb-1" title="Clique nas setas para frações de 0,250 Litros">Qtde (Litros) ↕ 0,25L</label>
+            <input 
+              type="number" 
+              step="0.250" 
+              min="0.250" 
+              id="new-ink-qtde" 
+              placeholder="Ex: 0.250" 
+              class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-black text-blue-700">
           </div>
 
           <div>
             <label class="block text-[11px] font-bold text-slate-500 mb-1">Preço/L (R$)</label>
-            <input type="number" step="0.01" id="new-ink-preco" placeholder="0.00" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-bold">
+            <input type="number" step="0.01" id="new-ink-preco" placeholder="0.00" class="w-full p-2 border rounded-xl text-xs bg-slate-50 font-black">
           </div>
         </div>
-        <div class="mt-3 flex justify-end">
+        <div class="mt-3 flex justify-between items-center">
+          <span class="text-[11px] text-slate-400">💡 Cada clique de seta ajusta <strong>0,250 L (250 ml)</strong> automaticamente.</span>
           <button 
             type="button" 
             onclick="productsModule.addInkPurchase()" 
@@ -833,40 +888,42 @@ window.productsModule = {
         </div>
       </div>
 
-      <!-- HISTÓRICO DAS TINTAS EM LINHA SIMPLES -->
+      <!-- HISTÓRICO DAS TINTAS: PRIMEIRA COLUNA COM A COR SÓLIDA INTEIRA DO QUADRO -->
       <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
           <h3 class="text-xs font-bold text-slate-700 uppercase">
-            Histórico de Compras - ${(cat === 'solvente' ? 'Tinta Eco-Solvente' : 'Tinta Sublimática')}
+            Histórico das Entradas - ${(cat === 'solvente' ? 'Tinta Eco-Solvente' : 'Tinta Sublimática')}
           </h3>
           <span class="text-[11px] text-slate-400 font-semibold">${(catData.historico || []).length} registro(s)</span>
         </div>
-        <div class="overflow-x-auto max-h-48 overflow-y-auto">
-          <table class="w-full text-left text-xs">
+        <div class="overflow-x-auto max-h-56 overflow-y-auto">
+          <table class="w-full text-left text-xs border-collapse">
             <thead class="bg-slate-100 text-slate-500 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200">
               <tr>
-                <th class="p-2.5">Cor</th>
+                <th class="p-2.5 text-center w-28">Cor (CMYK)</th>
+                <th class="p-2.5">Marca</th>
                 <th class="p-2.5">Fornecedor</th>
                 <th class="p-2.5">Data</th>
-                <th class="p-2.5 text-center">Qtde</th>
+                <th class="p-2.5 text-center">Qtde (Litros)</th>
                 <th class="p-2.5 text-right">Preço Unit. (R$/L)</th>
-                <th class="p-2.5 text-center">Ação</th>
+                <th class="p-2.5 text-center">Ações</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               ${(catData.historico && catData.historico.length > 0) ? catData.historico.map(h => {
-                const colInfo = colors.find(c => c.key === h.cor) || { bg: 'bg-slate-600', name: h.cor };
+                const colInfo = colors.find(c => c.key === h.cor) || { solidBg: '#334155', solidText: '#ffffff', name: h.cor };
                 const isMax = parseFloat(h.preco_unitario) === goldenRulePrice;
 
                 return `
-                  <tr class="hover:bg-slate-50 transition">
-                    <td class="p-2.5 flex items-center gap-2">
-                      <span class="w-3.5 h-3.5 rounded-full ${colInfo.bg} shadow-sm"></span>
-                      <span class="font-bold text-slate-800">${colInfo.name} (${h.cor})</span>
+                  <tr class="hover:bg-slate-50/80 transition">
+                    <!-- PRIMEIRA COLUNA: O QUADRO INTEIRO PREENCHIDO COM A COR SÓLIDA DA TINTA -->
+                    <td class="p-2.5 text-center font-black tracking-wider shadow-inner" style="background-color: ${colInfo.solidBg}; color: ${colInfo.solidText}; border-right: 1px solid rgba(0,0,0,0.06);">
+                      ${colInfo.name.toUpperCase()} (${h.cor})
                     </td>
+                    <td class="p-2.5 text-slate-800 font-bold">${h.marca || '--'}</td>
                     <td class="p-2.5 text-slate-700 font-medium">${h.fornecedor}</td>
                     <td class="p-2.5 text-slate-500">${new Date(h.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                    <td class="p-2.5 text-center font-bold text-slate-800">${h.qtde} L</td>
+                    <td class="p-2.5 text-center font-black text-slate-800">${Number(h.qtde).toFixed(3)} L</td>
                     <td class="p-2.5 text-right font-mono font-bold ${isMax ? 'text-amber-700 bg-amber-50/70 rounded' : 'text-slate-800'}">
                       R$ ${Number(h.preco_unitario).toFixed(2)}
                       ${isMax ? '<span class="text-[9px] text-amber-600 ml-1 font-sans" title="Maior preço da Regra de Ouro">⭐</span>' : ''}
@@ -875,16 +932,17 @@ window.productsModule = {
                       <button 
                         type="button" 
                         onclick="productsModule.deleteInkPurchase('${h.id}')" 
-                        class="text-slate-400 hover:text-rose-600 transition p-1" 
-                        title="Excluir entrada">
-                        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-[11px] font-bold border border-red-200 transition inline-flex items-center gap-1 shadow-sm" 
+                        title="Excluir esta entrada e abater do estoque">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <span>Excluir</span>
                       </button>
                     </td>
                   </tr>
                 `;
               }).join('') : `
                 <tr>
-                  <td colspan="6" class="p-6 text-center text-slate-400">Nenhuma compra registrada nesta categoria.</td>
+                  <td colspan="7" class="p-6 text-center text-slate-400">Nenhuma compra registrada nesta categoria.</td>
                 </tr>
               `}
             </tbody>

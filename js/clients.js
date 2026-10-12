@@ -190,7 +190,7 @@ window.clientsModule = {
     // Filtro de busca se houver
     const term = (this.searchTerm || '').trim().toLowerCase();
 
-    // Régua Alfabética Vertical A - Z
+    // Régua Alfabética Vertical A - Z (Azul Royal para letras com clientes, Azul bem claro para letras sem clientes)
     const alphabetRulerHtml = alphabet.map(l => {
       const hasClients = clients.some(c => (c.nome || '').trim().toUpperCase().startsWith(l));
       const isSelected = this.openLetters && this.openLetters[l];
@@ -200,8 +200,8 @@ window.clientsModule = {
           <button 
             type="button"
             onclick="clientsModule.scrollToLetter('${l}')" 
-            class="w-6 h-6 rounded-md ${isSelected ? 'bg-blue-600 text-white ring-2 ring-blue-300' : 'bg-blue-600 text-white'} font-black text-xs flex items-center justify-center shadow-sm my-0.5 hover:bg-blue-700 transition" 
-            title="Ir para letra ${l}">
+            class="w-6 h-6 rounded-md ${isSelected ? 'bg-[#0052cc] text-white ring-2 ring-blue-300' : 'bg-[#0052cc] text-white'} font-black text-xs flex items-center justify-center shadow-sm my-0.5 hover:bg-blue-700 transition" 
+            title="Ir para letra ${l} (Possui clientes)">
             ${l}
           </button>
         `;
@@ -210,8 +210,8 @@ window.clientsModule = {
           <button 
             type="button"
             onclick="clientsModule.scrollToLetter('${l}')" 
-            class="w-6 h-5 text-slate-400 hover:text-slate-800 font-semibold text-[11px] flex items-center justify-center my-0.5 transition" 
-            title="Letra ${l}">
+            class="w-6 h-5 rounded bg-blue-50/70 border border-blue-100 text-blue-400 hover:text-blue-700 hover:bg-blue-100 font-semibold text-[11px] flex items-center justify-center my-0.5 transition" 
+            title="Letra ${l} (0 clientes)">
             ${l}
           </button>
         `;
@@ -237,22 +237,20 @@ window.clientsModule = {
       const isOpen = term ? true : !!(this.openLetters && this.openLetters[letter]);
       const count = groupClients.length;
 
-      // Cores das barras de acordeão conforme a imagem de referência
-      let barBg = 'bg-[#475569]';
-      if (letter === 'A') barBg = 'bg-[#0066ff]';
-      else if (letter === 'C') barBg = 'bg-[#1e3a5f]';
-      else if (count > 0) barBg = 'bg-[#1e3a5f]';
-      else barBg = 'bg-[#64748b]';
+      // REGRA: AZUL ROYAL se tiver algum cliente na letra, AZUL BEM CLARO se cliente = 0
+      const isRoyal = count > 0;
+      const barBg = isRoyal ? 'bg-[#0052cc] text-white shadow-md shadow-blue-600/20' : 'bg-blue-50/90 text-blue-800 border border-blue-200/90 hover:bg-blue-100/90';
+      const arrowColor = isRoyal ? 'text-white' : 'text-blue-500';
 
       return `
         <div id="letter-group-${letter}" class="rounded-2xl overflow-hidden shadow-sm transition">
-          <!-- Barra de Cabeçalho do Acordeão da Letra -->
+          <!-- Barra de Cabeçalho do Acordeão da Letra (Azul Royal vs Azul Bem Claro) -->
           <div 
             onclick="clientsModule.toggleLetter('${letter}')"
-            class="${barBg} text-white px-4 py-3 rounded-2xl flex items-center justify-between font-bold text-sm shadow-sm cursor-pointer select-none hover:opacity-95 transition">
+            class="${barBg} px-4 py-3 rounded-2xl flex items-center justify-between font-bold text-sm shadow-sm cursor-pointer select-none hover:opacity-95 transition">
             <span class="tracking-wide">${letter} (${count} cliente${count !== 1 ? 's' : ''})</span>
             <div class="flex items-center gap-2">
-              <svg class="w-4 h-4 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${arrowColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="${isOpen ? 'M19 9l-7 7-7-7' : 'M9 5l7 7-7 7'}"></path>
               </svg>
             </div>
