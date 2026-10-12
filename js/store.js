@@ -927,11 +927,38 @@ class GrafsisStore {
           { nome: 'Ótica e Relojoaria Visão Clara', doc: '20.555.999/0001-10', fone: '(69) 99233-1199', email: 'contato@visaoclaranorte.com.br', cid: 'Ji-Paraná - RO', end: 'Av. Marechal Rondon, 800', perfil: 'Recorrente' }
         ];
 
+        const clientLogosAndPhotos = [
+          'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80', // Escola
+          'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?w=150&auto=format&fit=crop&q=80', // Posto
+          'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150&auto=format&fit=crop&q=80', // Academia
+          'https://images.unsplash.com/photo-1550547660-d9450f859349?w=150&auto=format&fit=crop&q=80', // Hamburgueria
+          'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=150&auto=format&fit=crop&q=80', // Clínica Odonto
+          'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&auto=format&fit=crop&q=80', // Boutique
+          'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150&auto=format&fit=crop&q=80', // Construtora
+          'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=150&auto=format&fit=crop&q=80', // OAB
+          'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=150&auto=format&fit=crop&q=80', // Prefeitura
+          'https://images.unsplash.com/photo-1519741497674-611481863552?w=150&auto=format&fit=crop&q=80', // Buffet
+          'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=150&auto=format&fit=crop&q=80', // Imobiliária Rondon
+          'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=150&auto=format&fit=crop&q=80', // Laboratório
+          'https://images.unsplash.com/photo-1544025162-d76694265947?w=150&auto=format&fit=crop&q=80', // Frigorífico
+          'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=150&auto=format&fit=crop&q=80', // Pizzaria
+          'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?w=150&auto=format&fit=crop&q=80', // Distribuidora
+          'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=150&auto=format&fit=crop&q=80', // Pet Shop
+          'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=150&auto=format&fit=crop&q=80', // Hotel
+          'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=150&auto=format&fit=crop&q=80', // Ótica
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', // PF Homem
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'  // PF Mulher
+        ];
+
         clients = mockClients.map((c, i) => {
           // Simula datas de último pedido para teste de clientes inativos (> 30 e > 60 dias)
           const daysAgo = c.perfil === 'Inativo' ? (45 + i * 10) : (i * 2 + 1);
           const lastDate = new Date();
           lastDate.setDate(lastDate.getDate() - daysAgo);
+
+          const cityName = c.cid.includes(' - ') ? c.cid.split(' - ')[0].trim() : c.cid;
+          const stateUf = c.cid.includes(' - ') ? c.cid.split(' - ')[1].trim().toUpperCase() : 'RO';
+          const assignedPhoto = clientLogosAndPhotos[i % clientLogosAndPhotos.length];
 
           return {
             id: `cli-${String(i + 1).padStart(3, '0')}`,
@@ -940,14 +967,29 @@ class GrafsisStore {
             tipo_pessoa: 'juridica',
             telefone_whatsapp: c.fone,
             email: c.email,
-            cidade: c.cid,
+            cidade: cityName,
+            uf: stateUf,
             endereco: c.end,
             perfil: c.perfil,
             data_ultimo_pedido: lastDate.toISOString().slice(0, 10),
             total_pedidos: c.perfil === 'VIP' ? 18 : (c.perfil === 'Recorrente' ? 8 : 2),
             valor_acumulado: c.perfil === 'VIP' ? 24500.00 : (c.perfil === 'Recorrente' ? 6800.00 : 1200.00),
             created_at: '2026-01-01T00:00:00Z',
-            foto_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.nome)}&background=0284c7&color=fff&size=128&rounded=true&bold=true`
+            foto_url: assignedPhoto,
+            anotacoes_crm: [
+              {
+                id: `note-${i}-1`,
+                data_hora: '10/10/2026 14:20',
+                usuario: 'João Silva (Gerente)',
+                texto: `Cliente ${c.nome} solicitou orçamento para renovação de fachada e material promocional.`
+              },
+              {
+                id: `note-${i}-2`,
+                data_hora: '11/10/2026 16:45',
+                usuario: 'Gabriel Souza (Vendas)',
+                texto: 'Proposta encaminhada via WhatsApp com condições especiais de entrega em 48h.'
+              }
+            ]
           };
         });
 
@@ -1554,14 +1596,23 @@ class GrafsisStore {
   }
 
   // Clientes
-  getClients() { return this.getLocal(STORAGE_KEYS.CLIENTS); }
+  getClients() {
+    const list = this.getLocal(STORAGE_KEYS.CLIENTS) || [];
+    return list.map(c => {
+      if (!c.uf) {
+        c.uf = (c.cidade && c.cidade.includes(' - ')) ? c.cidade.split(' - ')[1].trim().toUpperCase() : 'RO';
+      }
+      return c;
+    });
+  }
+
   async saveClient(client) {
-    const clients = this.getClients();
-    if (!client.id || !isValidUUID(client.id)) {
+    const clients = this.getLocal(STORAGE_KEYS.CLIENTS) || [];
+    if (!client.id) {
       client.id = grafsisUUID();
       clients.unshift(client);
     } else {
-      const index = clients.findIndex(c => c.id === client.id);
+      const index = clients.findIndex(c => String(c.id) === String(client.id));
       if (index >= 0) clients[index] = client;
       else clients.unshift(client);
     }

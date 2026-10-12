@@ -534,6 +534,32 @@ window.salesModule = {
     return yy + String(maxSeq + 1).padStart(4, '0');
   },
 
+  handleProdSelect(selectEl) {
+    if (!selectEl) return;
+    const prodId = selectEl.value;
+    if (!prodId) return;
+    const products = window.store.getProducts();
+    const prod = products.find(p => String(p.id) === String(prodId));
+    const opt = selectEl.options[selectEl.selectedIndex];
+    const price = prod ? (prod.preco_base ?? 0) : parseFloat(opt?.getAttribute('data-price') || 0);
+    const type = prod ? (prod.tipo_cobranca || 'm2') : (opt?.getAttribute('data-type') || 'm2');
+
+    const priceInput = document.getElementById('item-price');
+    if (priceInput) {
+      priceInput.value = parseFloat(price).toFixed(2);
+    }
+    const typeSelect = document.getElementById('item-type');
+    if (typeSelect) {
+      typeSelect.value = type;
+    }
+    const descInput = document.getElementById('item-desc');
+    if (descInput && (!descInput.value || descInput.value.trim() === '') && prod) {
+      descInput.value = prod.nome;
+    }
+    this.toggleDimensionInputs();
+    this.calcPiecePrice();
+  },
+
   editItem(idx) {
     const it = this.activeItems[idx];
     const prodSelect = document.getElementById('item-prod-select');
@@ -628,9 +654,16 @@ window.salesModule = {
               <h2 class="text-2xl font-black text-slate-800">${isEdit ? 'Editar Pedido' : 'Nova Venda / Orçamento'}</h2>
             </div>
             <div class="text-right">
-              <span class="block text-xs font-bold text-slate-500 uppercase">ID DA VENDA</span>
-              <span class="text-2xl font-black text-slate-900">#${displayId}</span>
-              <input type="hidden" id="current-display-id" value="${displayId}">
+              <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider">ID OPERAÇÃO</span>
+              ${isEdit ? `
+                <span class="text-2xl font-black text-slate-900 dark:text-cyan-400 font-mono">#${order.numero}</span>
+                <input type="hidden" id="current-display-id" value="${order.numero}">
+              ` : `
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-bold text-sm rounded-lg" title="A numeração sequencial automática será gerada automaticamente ao salvar e efetivar a operação.">
+                  <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Gerado ao Efetivar
+                </span>
+                <input type="hidden" id="current-display-id" value="">
+              `}
             </div>
           </div>
           
@@ -699,7 +732,7 @@ window.salesModule = {
                 
                 <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
                   <div class="grid grid-cols-12 gap-2">
-                    <div class="col-span-12 sm:col-span-6">
+                    <div class="col-span-12 sm:col-span-5">
                       <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
                       <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
                         <option value="">Selecione...</option>
@@ -714,12 +747,18 @@ window.salesModule = {
                         <option value="unidade">Unitario</option>
                       </select>
                     </div>
-                    <div class="col-span-6 sm:col-span-3">
+                    <div class="col-span-6 sm:col-span-2">
                       <label class="block font-semibold mb-1 text-slate-700 flex items-center justify-between">
                         <span>Base m² / un</span>
                         <span class="text-[9px] text-slate-400 font-normal">2x clique (4s)</span>
                       </label>
                       <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" onmouseenter="salesModule.handlePriceHover(this, true)" onmouseleave="salesModule.handlePriceHover(this, false)" ondblclick="salesModule.revealPrice4s(this)" style="color: transparent; text-shadow: none;" class="w-full p-2 border border-slate-300 rounded bg-white font-mono font-bold transition-all duration-200 cursor-pointer selection:text-transparent" title="Preço base - Passe o mouse ou dê duplo clique para visualizar por 4 segundos">
+                    </div>
+                    <div class="col-span-12 sm:col-span-2 flex items-end">
+                      <button type="button" onclick="salesModule.openQuickProductModal()" class="w-full h-[38px] bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition whitespace-nowrap cursor-pointer" title="Adicionar Novo Produto no Catálogo">
+                        <span class="text-sm font-black">+</span>
+                        <span>Novo Produto</span>
+                      </button>
                     </div>
                   </div>
 
@@ -1962,9 +2001,16 @@ window.salesModule = {
     const saldoRestante = Math.max(0, finalTotal - valorEntrada);
     const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
 
+    const finalNumber = (id && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
+
+    // Atualiza sequencial dos itens vinculados ao numero oficial da operacao
+    this.activeItems.forEach((it, idx) => {
+      it.item_id = finalNumber + String(idx + 1).padStart(2, '0');
+    });
+
     const orderData = {
       id: id || undefined,
-      numero: geradoNumero,
+      numero: finalNumber,
       cliente_id: form.cliente_id.value,
       tipo_operacao: op,
       tipo: op,
@@ -2438,7 +2484,7 @@ window.salesModule = {
             <div>
               <div class="flex items-center gap-2">
                 <span class="px-2.5 py-1 bg-purple-600 text-white rounded-lg text-xs font-black uppercase">ARP / CRM</span>
-                <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Inteligência de Clientes, Médias de Preços & Pós-Venda</h3>
+                <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Inteligência de Clientes, Médias de Preços e Pós-Venda</h3>
               </div>
               <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Reativação de clientes inativos, análise de margem e pesquisa de satisfação</p>
             </div>
@@ -2451,7 +2497,7 @@ window.salesModule = {
             <div>
               <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Médias de Preços & Margens do Catálogo
+                Médias de Preços e Margens do Catálogo
               </h4>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl">
@@ -2482,7 +2528,7 @@ window.salesModule = {
               <div class="flex justify-between items-center mb-3">
                 <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                  Clientes Inativos & Sem Pedidos Recentes (${inactiveClients.length})
+                  Clientes Inativos e Sem Pedidos Recentes (${inactiveClients.length})
                 </h4>
                 <span class="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded border border-rose-200">Requer Contato</span>
               </div>
@@ -2501,7 +2547,9 @@ window.salesModule = {
                     ${inactiveClients.slice(0, 8).map(cli => `
                       <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                         <td class="p-3">
-                          <strong class="text-slate-900 dark:text-white block">${cli.nome}</strong>
+                          <a href="javascript:void(0)" onclick="salesModule.openClientHistoryModal('${cli.id}')" class="text-blue-600 hover:text-blue-800 dark:text-cyan-400 dark:hover:text-cyan-300 font-bold hover:underline block cursor-pointer" title="Ver Histórico de Operações e Chat de Anotações CRM">
+                            ${cli.nome}
+                          </a>
                           <span class="text-[11px] text-slate-500">${cli.cidade || ''} • ${cli.telefone_whatsapp}</span>
                         </td>
                         <td class="p-3">
@@ -2642,6 +2690,246 @@ window.salesModule = {
       crmM.remove();
       this.openCrmModal();
     }
+  },
+
+  // =========================================================================
+  // HISTÓRICO 360º DO CLIENTE & REPOSITÓRIO TIPO CHAT DE ANOTAÇÕES CRM
+  // =========================================================================
+  openClientHistoryModal(clientId) {
+    const client = window.store.getClients().find(c => String(c.id) === String(clientId));
+    if (!client) {
+      alert('Cliente não encontrado.');
+      return;
+    }
+
+    const allOrders = window.store.getOrders();
+    const clientOrders = allOrders.filter(o => String(o.cliente_id) === String(clientId));
+    
+    // Métricas de Consumo
+    const totalGasto = clientOrders.reduce((acc, o) => acc + (parseFloat(o.valor_final || o.valor_total || 0)), 0);
+    const totalOperacoes = clientOrders.length;
+    const ticketMedio = totalOperacoes > 0 ? (totalGasto / totalOperacoes) : 0;
+    
+    // Última Operação
+    const lastOrder = clientOrders.slice().sort((a,b) => new Date(b.created_at || b.data_emissao || 0) - new Date(a.created_at || a.data_emissao || 0))[0];
+    const dataUltimaCompra = lastOrder ? (lastOrder.created_at ? new Date(lastOrder.created_at).toLocaleDateString('pt-BR') : (lastOrder.data_emissao || 'Recente')) : (client.data_ultimo_pedido || 'Sem registros');
+
+    const notas = client.anotacoes_crm || [];
+
+    const modalHtml = `
+      <div id="client-history-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-5xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 max-h-[94vh] flex flex-col">
+          
+          <!-- Cabeçalho do Perfil do Cliente -->
+          <div class="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex items-center gap-3.5">
+              <div class="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-blue-500/30 shrink-0 shadow-sm flex items-center justify-center">
+                ${client.foto_url ? `
+                  <img src="${client.foto_url}" class="w-full h-full object-cover" alt="${client.nome}">
+                ` : `
+                  <span class="font-black text-lg text-blue-600 uppercase">${(client.nome || 'CL').slice(0, 2)}</span>
+                `}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-xl font-black text-slate-900 dark:text-white">${client.nome}</h3>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${client.status === 'bloqueado' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}">
+                    ${client.status === 'bloqueado' ? 'Bloqueado' : 'Ativo'}
+                  </span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                    ${client.perfil || 'Recorrente'}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  ${client.cpf_cnpj ? `Doc: ${client.cpf_cnpj} • ` : ''} 📞 ${client.telefone_whatsapp} • ✉️ ${client.email || 'Sem e-mail'} • 📍 ${client.cidade || ''} - ${client.uf || 'RO'}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 self-end sm:self-center">
+              <a href="https://wa.me/55${(client.telefone_whatsapp || '').replace(/\D/g, '')}" target="_blank" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+                <span>💬 WhatsApp</span>
+              </a>
+              <button onclick="document.getElementById('client-history-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold px-2">&times;</button>
+            </div>
+          </div>
+
+          <!-- Métricas de Consumo (Cards KPI) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+            <div class="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl">
+              <span class="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase block">Faturamento Total</span>
+              <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">R$ ${totalGasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">Compras acumuladas</span>
+            </div>
+            <div class="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+              <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase block">Total de Operações</span>
+              <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">${totalOperacoes}</strong>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">Pedidos / Orçamentos</span>
+            </div>
+            <div class="p-3.5 bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl">
+              <span class="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase block">Ticket Médio</span>
+              <strong class="text-lg font-black text-slate-900 dark:text-white font-mono">R$ ${ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">Média por pedido</span>
+            </div>
+            <div class="p-3.5 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl">
+              <span class="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase block">Última Operação</span>
+              <strong class="text-sm font-black text-slate-900 dark:text-white font-mono block mt-1">${dataUltimaCompra}</strong>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">${clientOrders.length > 0 ? (clientOrders[0].status_fase || 'Registrado') : 'Sem pedidos'}</span>
+            </div>
+          </div>
+
+          <!-- Grid de Duas Colunas: Histórico de Vendas (Esq) + Chat de Anotações CRM (Dir) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 overflow-y-auto flex-1 pr-1">
+            
+            <!-- Coluna 1 (7 cols): Histórico de Operações -->
+            <div class="lg:col-span-7 flex flex-col space-y-3">
+              <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Histórico de Vendas / Operações (${clientOrders.length})</span>
+                <button type="button" onclick="salesModule.createOrderForClient('${client.id}'); document.getElementById('client-history-modal').remove();" class="text-blue-600 hover:text-blue-800 text-[11px] font-bold">
+                  + Nova Operação
+                </button>
+              </h4>
+              
+              <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex-1 max-h-[350px] overflow-y-auto">
+                ${clientOrders.length === 0 ? `
+                  <div class="p-8 text-center text-slate-400 text-xs italic">
+                    Nenhum pedido ou orçamento registrado para este cliente até o momento.
+                  </div>
+                ` : `
+                  <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase font-extrabold text-[10px] sticky top-0">
+                      <tr>
+                        <th class="p-2.5">O.S. / Nº</th>
+                        <th class="p-2.5">Data</th>
+                        <th class="p-2.5">Tipo</th>
+                        <th class="p-2.5">Status</th>
+                        <th class="p-2.5 text-right">Valor Final</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                      ${clientOrders.map(ord => `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                          <td class="p-2.5 font-mono font-bold text-blue-600 dark:text-cyan-400">#${ord.numero}</td>
+                          <td class="p-2.5 text-slate-500">${ord.created_at ? new Date(ord.created_at).toLocaleDateString('pt-BR') : (ord.data_emissao || '-')}</td>
+                          <td class="p-2.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              ${ord.tipo_operacao || ord.tipo || 'Venda'}
+                            </span>
+                          </td>
+                          <td class="p-2.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${ord.status_fase === 'entregue' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                              ${ord.status_fase || 'Fila'}
+                            </span>
+                          </td>
+                          <td class="p-2.5 text-right font-mono font-black text-slate-900 dark:text-white">
+                            R$ ${(parseFloat(ord.valor_final || ord.valor_total || 0)).toFixed(2)}
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                `}
+              </div>
+            </div>
+
+            <!-- Coluna 2 (5 cols): Repositório Tipo Chat de Anotações CRM -->
+            <div class="lg:col-span-5 flex flex-col space-y-3 bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span>💬 Repositório de Anotações CRM</span>
+                </h4>
+                <span class="text-[10px] font-bold text-slate-400" id="crm-notes-count">${notas.length} notas</span>
+              </div>
+
+              <!-- Timeline estilo Chat -->
+              <div id="crm-notes-timeline" class="space-y-3 overflow-y-auto flex-1 max-h-[260px] p-1">
+                ${notas.length === 0 ? `
+                  <div class="p-6 text-center text-slate-400 text-xs italic">
+                    Nenhuma anotação registrada ainda. Digite uma mensagem abaixo para iniciar o histórico do cliente.
+                  </div>
+                ` : notas.map(n => `
+                  <div class="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+                    <div class="flex items-center justify-between text-[11px]">
+                      <strong class="text-blue-600 dark:text-cyan-400 font-bold">${n.usuario || 'Operador'}</strong>
+                      <span class="text-slate-400 text-[10px]">${n.data_hora}</span>
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-200 leading-relaxed break-words">${n.texto}</p>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Input estilo chat para adicionar nova anotação -->
+              <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+                <textarea id="new-crm-note-text" rows="2" placeholder="Digite uma anotação sobre o cliente (ex: ligou pedindo desconto, prefere entrega às terças...)" class="w-full p-2.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"></textarea>
+                <div class="flex justify-end">
+                  <button type="button" onclick="salesModule.saveClientCrmNote('${client.id}')" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    <span>Salvar Anotação</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Rodapé do Modal -->
+          <div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-4 flex justify-end">
+            <button type="button" onclick="document.getElementById('client-history-modal').remove()" class="px-5 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold hover:bg-slate-300 transition cursor-pointer">
+              Fechar Histórico
+            </button>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  saveClientCrmNote(clientId) {
+    const textarea = document.getElementById('new-crm-note-text');
+    if (!textarea) return;
+    const text = textarea.value.trim();
+    if (!text) {
+      alert('Digite uma anotação para salvar.');
+      return;
+    }
+
+    const client = window.store.getClients().find(c => String(c.id) === String(clientId));
+    if (!client) return;
+
+    if (!client.anotacoes_crm) client.anotacoes_crm = [];
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const userNome = window.app?.currentUser?.nome || 'Operador Grafsis';
+
+    const newNote = {
+      id: 'note-' + Date.now(),
+      data_hora: formattedDate,
+      usuario: userNome,
+      texto: text
+    };
+
+    client.anotacoes_crm.unshift(newNote);
+    window.store.saveClient(client);
+
+    textarea.value = '';
+
+    // Atualiza a timeline na tela
+    const timeline = document.getElementById('crm-notes-timeline');
+    if (timeline) {
+      timeline.innerHTML = client.anotacoes_crm.map(n => `
+        <div class="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <div class="flex items-center justify-between text-[11px]">
+            <strong class="text-blue-600 dark:text-cyan-400 font-bold">${n.usuario || 'Operador'}</strong>
+            <span class="text-slate-400 text-[10px]">${n.data_hora}</span>
+          </div>
+          <p class="text-xs text-slate-700 dark:text-slate-200 leading-relaxed break-words">${n.texto}</p>
+        </div>
+      `).join('');
+    }
+    const countSpan = document.getElementById('crm-notes-count');
+    if (countSpan) countSpan.innerText = `${client.anotacoes_crm.length} notas`;
   }
 
 };

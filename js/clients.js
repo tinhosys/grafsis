@@ -323,6 +323,10 @@ window.clientsModule = {
 
   openModal(client = null) {
     const isEdit = !!client;
+    this.currentEditingClientId = client ? client.id : null;
+    const clientUf = client ? (client.uf || (client.cidade && client.cidade.includes(' - ') ? client.cidade.split(' - ')[1].trim().toUpperCase() : 'RO')) : '';
+    const clientCidade = client ? (client.cidade ? (client.cidade.includes(' - ') ? client.cidade.split(' - ')[0].trim() : client.cidade) : '') : '';
+
     const modalHtml = `
       <div id="client-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -330,10 +334,10 @@ window.clientsModule = {
             <div class="flex justify-between items-center">
               <div class="flex items-center gap-4">
                 <h2 class="text-lg font-bold text-slate-800">${isEdit ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-                <!-- Chave Ativo/Bloqueado (Rosa) -->
-                <label class="flex items-center cursor-pointer">
+                <!-- Chave Ativo/Bloqueado (Rosa/Azul) - Travada em Edição até acionar botão Editar -->
+                <label id="client-status-label" class="flex items-center ${isEdit ? 'opacity-60 pointer-events-none cursor-not-allowed' : 'cursor-pointer'}" title="${isEdit ? 'Clique em Editar abaixo para alterar o status' : 'Status do Cliente'}">
                   <div class="relative">
-                    <input type="checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full'); this.parentElement.nextElementSibling.innerText = this.checked ? 'Ativo' : 'Bloqueado';">
+                    <input type="checkbox" id="client-status-checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} ${isEdit ? 'disabled' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full'); this.parentElement.nextElementSibling.innerText = this.checked ? 'Ativo' : 'Bloqueado';">
                     <div class="block w-10 h-6 rounded-full transition-colors ${!client || client.status !== 'bloqueado' ? 'bg-blue-600' : 'bg-slate-300'}">
                       <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${!client || client.status !== 'bloqueado' ? 'translate-x-full' : ''}"></div>
                     </div>
@@ -361,6 +365,7 @@ window.clientsModule = {
           </div>
 
           <form id="client-form" onsubmit="clientsModule.save(event, '${client ? client.id : ''}')" class="mt-4 space-y-4">
+            <input type="hidden" name="client_id" id="client-id-field" value="${client ? client.id : ''}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="md:col-span-2 flex justify-end gap-4 mb-2">
                 <label class="flex items-center gap-1 text-sm font-semibold text-slate-700 cursor-pointer">
@@ -480,11 +485,11 @@ window.clientsModule = {
               <div class="grid grid-cols-4 gap-2">
                 <div class="col-span-3">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Cidade *</label>
-                  <input type="text" name="cidade" id="client-cidade" required value="${client ? (client.cidade || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onblur="clientsModule.syncUF(this.value)">
+                  <input type="text" name="cidade" id="client-cidade" required value="${clientCidade}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onblur="clientsModule.syncUF(this.value)">
                 </div>
                 <div class="col-span-1">
                   <label class="block text-xs font-semibold text-slate-600 mb-1">UF *</label>
-                  <input type="text" name="uf" id="client-uf" maxlength="2" required value="${client ? (client.uf || '') : ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <input type="text" name="uf" id="client-uf" maxlength="2" required value="${clientUf}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
               </div>
 
@@ -578,6 +583,10 @@ window.clientsModule = {
         if(!form) return;
         const elements = form.querySelectorAll('input, select, textarea, button[type="button"]:not([onclick*="remove"]):not([onclick*="deleteClient"]):not(#btn-editar-cliente):not([onclick*="getLocation"])');
         elements.forEach(el => el.disabled = true);
+        const statusCb = document.getElementById('client-status-checkbox');
+        if (statusCb) statusCb.disabled = true;
+        const statusLbl = document.getElementById('client-status-label');
+        if (statusLbl) statusLbl.classList.add('opacity-60', 'pointer-events-none', 'cursor-not-allowed');
       }, 50);
     }
   },
@@ -628,10 +637,22 @@ window.clientsModule = {
 
   enableEditMode() {
     const form = document.getElementById('client-form');
-    const elements = form.querySelectorAll('input, select, textarea, button[type="button"]:not(#btn-editar-cliente):not([onclick*="remove"]):not([onclick*="deleteClient"]):not([onclick*="getLocation"])');
-    elements.forEach(el => el.disabled = false);
-    document.getElementById('btn-editar-cliente').classList.add('hidden');
-    document.getElementById('btn-salvar-cliente').classList.remove('hidden');
+    if (form) {
+      const elements = form.querySelectorAll('input, select, textarea, button[type="button"]:not(#btn-editar-cliente):not([onclick*="remove"]):not([onclick*="deleteClient"]):not([onclick*="getLocation"])');
+      elements.forEach(el => el.disabled = false);
+    }
+    const statusCb = document.getElementById('client-status-checkbox');
+    if (statusCb) statusCb.disabled = false;
+    const statusLbl = document.getElementById('client-status-label');
+    if (statusLbl) {
+      statusLbl.classList.remove('opacity-60', 'pointer-events-none', 'cursor-not-allowed');
+      statusLbl.classList.add('cursor-pointer');
+      statusLbl.title = 'Status do Cliente (Ativo / Bloqueado)';
+    }
+    const btnEditar = document.getElementById('btn-editar-cliente');
+    if (btnEditar) btnEditar.classList.add('hidden');
+    const btnSalvar = document.getElementById('btn-salvar-cliente');
+    if (btnSalvar) btnSalvar.classList.remove('hidden');
   },
 
   deleteClient(id) {
@@ -881,8 +902,12 @@ window.clientsModule = {
     const form = e.target;
     const statusCheckbox = document.querySelector('input[name="status"]');
     
+    // Identifica com precisão se é uma edição
+    const formIdVal = (form.client_id && form.client_id.value) ? form.client_id.value.trim() : '';
+    const targetId = id || formIdVal || this.currentEditingClientId || undefined;
+
     const clientData = {
-      id: id || undefined,
+      id: targetId,
       status: statusCheckbox && statusCheckbox.checked ? 'ativo' : 'bloqueado',
       nome: form.nome.value.trim(),
       apelido: form.apelido.value.trim(),
@@ -909,28 +934,29 @@ window.clientsModule = {
     };
 
     const allClients = window.store.getClients();
-    // 1. Validação de Telefone WhatsApp: OBRIGATÓRIO SEMPRE e Chave Única (sem conflito com outros)
+    // 1. Validação de Telefone WhatsApp: OBRIGATÓRIO SEMPRE e Chave Única (sem conflito com outros clientes)
     const cleanPhone = (clientData.telefone_whatsapp || '').replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
       alert("Operação negada: O número de Telefone WhatsApp é OBRIGATÓRIO SEMPRE e deve conter DDD válido.");
       return;
     }
-    const duplicatePhone = allClients.find(c => 
-      c.id !== clientData.id && 
-      (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone
-    );
+    const duplicatePhone = allClients.find(c => {
+      // Se é edição, o próprio cliente é o mesmo e não deve ser considerado
+      if (targetId && String(c.id) === String(targetId)) return false;
+      return (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone;
+    });
     if (duplicatePhone) {
       alert(`Operação negada: O número de telefone informado já está cadastrado para outro cliente (${duplicatePhone.nome}). O telefone é chave de identificação e não pode duplicar.`);
       return;
     }
 
-    // 2. Validação de CPF/CNPJ: Chave Única (não obrigatório, mas se preenchido não pode conflitar com outro cliente)
+    // 2. Validação de CPF/CNPJ: Chave Única (se for edição do próprio cliente, não considera duplicado)
     const cleanCpfCnpj = (clientData.cpf_cnpj || '').replace(/\D/g, '');
     if (cleanCpfCnpj) {
-      const duplicateCpf = allClients.find(c => 
-        c.id !== clientData.id && 
-        (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj
-      );
+      const duplicateCpf = allClients.find(c => {
+        if (targetId && String(c.id) === String(targetId)) return false;
+        return (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj;
+      });
       if (duplicateCpf) {
         alert(`Operação negada: O CPF/CNPJ informado já está cadastrado para outro cliente (${duplicateCpf.nome}). Não é permitido duplicar o documento.`);
         return;
@@ -957,12 +983,13 @@ window.clientsModule = {
     }
 
     // 5. Alerta de Homônimo / Nome Popular (pode repetir, mas alerta com orientação e consentimento)
-    const homonimo = allClients.find(c => 
-      c.id !== clientData.id && (
+    const homonimo = allClients.find(c => {
+      if (targetId && String(c.id) === String(targetId)) return false;
+      return (
         (c.nome && c.nome.toLowerCase().trim() === clientData.nome.toLowerCase().trim()) ||
         (clientData.apelido && c.apelido && c.apelido.toLowerCase().trim() === clientData.apelido.toLowerCase().trim())
-      )
-    );
+      );
+    });
 
     if (homonimo) {
       const msgAlerta = `⚠️ ALERTA: CLIENTE COM NOME OU NOME POPULAR SIMILAR ENCONTRADO!\n\n` +

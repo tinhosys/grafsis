@@ -1506,7 +1506,7 @@ window.app = {
               </span>
             </div>
             <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              Configurações & Painel Master GRAFSIS
+              Configurações / Painel Master GRAFSIS
             </h1>
             <p class="text-slate-300 text-xs mt-1">
               Monitoramento de infraestrutura, integridade de microsserviços, conexões multi-tenant, usuários online e relatórios globais.
@@ -2114,7 +2114,7 @@ window.app = {
             <div class="flex items-center gap-2.5">
               <span class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">🔔</span>
               <div>
-                <h3 class="text-base font-bold text-slate-800">Central de Notificações & Prazos</h3>
+                <h3 class="text-base font-bold text-slate-800">Central de Notificações e Prazos</h3>
                 <p class="text-[11px] text-slate-500">Monitoramento operacional de licenças e entregas da gráfica</p>
               </div>
             </div>

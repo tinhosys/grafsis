@@ -13,8 +13,8 @@ window.productsModule = {
         <!-- Top Bar -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 class="text-2xl font-bold text-slate-800">Produtos, Insumos & Serviços</h1>
-            <p class="text-slate-500 text-sm">Venda fracionada por m² (Largura X x Comprimento Y), metro linear e peças unitárias</p>
+            <h1 class="text-2xl font-bold text-slate-800">Catálogo (Produtos/Serviços)</h1>
+            <p class="text-slate-500 text-sm">Catálogo de produtos, insumos e serviços com venda fracionada por m² (Largura X x Comprimento Y), metro linear e peças unitárias</p>
           </div>
           <div class="flex gap-2">
             <button onclick="productsModule.openCalculatorModal()" class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg shadow-sm transition">
