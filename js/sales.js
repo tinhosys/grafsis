@@ -1293,7 +1293,57 @@ window.salesModule = {
       summaryEl.classList.add('hidden');
     }
   },
-    printItemPDF(idx) {
+
+  openPrintDocument(htmlContent) {
+    if (!htmlContent) return;
+    try {
+      const printWin = window.open('', '_blank');
+      if (printWin && !printWin.closed && typeof printWin.document !== 'undefined') {
+        printWin.document.open();
+        printWin.document.write(htmlContent);
+        printWin.document.close();
+        return;
+      }
+    } catch (e) {
+      console.warn('[GRAFSIS Print] Pop-up bloqueado, utilizando fallback de iframe:', e);
+    }
+
+    // Fallback à prova de bloqueador de pop-ups: usa iframe oculto na mesma página
+    try {
+      let printFrame = document.getElementById('grafsis-print-frame');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'grafsis-print-frame';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        printFrame.style.visibility = 'hidden';
+        document.body.appendChild(printFrame);
+      }
+      const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(htmlContent);
+        frameDoc.close();
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+          } catch (err) {
+            console.warn('[GRAFSIS Print] Erro no print via iframe:', err);
+          }
+        }, 500);
+      }
+    } catch (err) {
+      console.error('[GRAFSIS Print] Falha em todos os canais de impressão:', err);
+      alert('Aviso: O navegador bloqueou a abertura da impressão. Por favor, permita pop-ups para este site.');
+    }
+  },
+
+  printItemPDF(idx) {
     const it = this.activeItems[idx];
     if(!it) return;
     const conf = window.store?.getSettings ? window.store.getSettings() : {};
@@ -1323,7 +1373,7 @@ window.salesModule = {
       </head><body>
         <div class="header">
           ${logoHtml}
-          <div class="title">Relat\u00F3rio de Item #${it.item_id || '----'}</div>
+          <div class="title">Relatório de Item #${it.item_id || '----'}</div>
         </div>
         <div style="margin-bottom: 20px; font-size: 18px;">
           <strong>Pedido:</strong> ${orderIdStr} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Cliente:</strong> ${clientName}
@@ -1335,20 +1385,18 @@ window.salesModule = {
           <div class="col-details">
             <div class="row"><span class="label">Produto:</span><span class="val">${it.produto_nome}</span></div>
             <div class="row"><span class="label">Detalhes:</span><span class="val">${it.descricao}</span></div>
-            <div class="row"><span class="label">C\u00E1lculo:</span><span class="val uppercase">${it.tipo_calculo}</span></div>
-            <div class="row"><span class="label">Dimens\u00F5es:</span><span class="val">${it.largura_x}m x ${it.comprimento_y}m</span></div>
+            <div class="row"><span class="label">Cálculo:</span><span class="val uppercase">${it.tipo_calculo}</span></div>
+            <div class="row"><span class="label">Dimensões:</span><span class="val">${it.largura_x}m x ${it.comprimento_y}m</span></div>
             <div class="row"><span class="label">Quantidade:</span><span class="val">${it.quantidade}</span></div>
-            <div class="row"><span class="label">\u00C1rea Total:</span><span class="val">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + (it.tipo_calculo === 'm2' ? ' m\u00B2' : ' m') : '-'}</span></div>
-            <div class="row"><span class="label">Valor Unit\u00E1rio:</span><span class="val">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+            <div class="row"><span class="label">Área Total:</span><span class="val">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + (it.tipo_calculo === 'm2' ? ' m²' : ' m') : '-'}</span></div>
+            <div class="row"><span class="label">Valor Unitário:</span><span class="val">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
             <div class="total">Subtotal do Item: R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
           </div>
         </div>
         <script>window.print();</script>
       </body></html>
     `;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(pdfHtml);
-    printWindow.document.close();
+    this.openPrintDocument(pdfHtml);
   },
   printReceipt() {
     const orderIdStr = document.getElementById('current-display-id')?.value;
@@ -1481,9 +1529,7 @@ window.salesModule = {
       <script>window.print();</script>
       </body></html>
     `;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(receiptHtml);
-    printWindow.document.close();
+    this.openPrintDocument(receiptHtml);
   },
   printOrder(type) {
     const orderIdStr = document.getElementById('current-display-id')?.value;
@@ -1767,9 +1813,7 @@ window.salesModule = {
       </body>
       </html>
     `;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(pdfHtml);
-    printWindow.document.close();
+    this.openPrintDocument(pdfHtml);
   },
   calcPiecePriceOLD() {
     const type = document.getElementById('item-type').value;
@@ -2228,12 +2272,17 @@ window.salesModule = {
       }
 
       if (options && options.autoPrintAfter) {
-        if (options.autoPrintAfter === 'os') {
-          this.printTechnicalWorkOrder(saved.id, { includeImages: true });
-        } else if (options.autoPrintAfter === 'recibo') {
-          this.printReceipt();
-        } else {
-          this.printOrder(options.autoPrintAfter);
+        try {
+          if (options.autoPrintAfter === 'os') {
+            this.printTechnicalWorkOrder(saved.id, { includeImages: true });
+          } else if (options.autoPrintAfter === 'recibo') {
+            this.printReceipt();
+          } else {
+            this.printOrder(options.autoPrintAfter);
+          }
+        } catch (printErr) {
+          console.warn('[GRAFSIS] Falha ao disparar impressão automática:', printErr);
+          alert(`Pedido #${saved.numero} registrado e gravado com sucesso no sistema!\n\n(Aviso: permita pop-ups no navegador para abrir a impressão automaticamente).`);
         }
       } else {
         alert(`Pedido #${saved.numero} registrado e gravado com sucesso no sistema!`);
@@ -3100,9 +3149,7 @@ window.salesModule = {
       </html>
     `;
 
-    const printWin = window.open('', '_blank');
-    printWin.document.write(html);
-    printWin.document.close();
+    this.openPrintDocument(html);
   },
 
   // =========================================================================
