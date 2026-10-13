@@ -240,9 +240,16 @@ class GrafsisAuth {
             u.operador = u.nome ? u.nome.split(' ')[0] : (u.login || 'Operador');
             updated = true;
           }
-          if (u.tentativas_senha_padrao === undefined) {
-            u.tentativas_senha_padrao = (u.senha === '0000' || u.pin === '0000') ? 10 : 999;
-            updated = true;
+          if (u.senha === '0000' || u.pin === '0000') {
+            if (u.tentativas_senha_padrao === undefined || u.tentativas_senha_padrao > 10) {
+              u.tentativas_senha_padrao = 10;
+              updated = true;
+            }
+          } else {
+            if (u.tentativas_senha_padrao === undefined) {
+              u.tentativas_senha_padrao = 999;
+              updated = true;
+            }
           }
           if (!u.empresa_id) {
             u.empresa_id = '001';
@@ -402,7 +409,9 @@ class GrafsisAuth {
     let remainingAttempts = null;
 
     if (pass === '0000') {
-      if (found.tentativas_senha_padrao === undefined) found.tentativas_senha_padrao = 10;
+      if (found.tentativas_senha_padrao === undefined || found.tentativas_senha_padrao > 10) {
+        found.tentativas_senha_padrao = 10;
+      }
       
       if (found.tentativas_senha_padrao <= 0) {
         return {
@@ -412,7 +421,7 @@ class GrafsisAuth {
       }
 
       found.tentativas_senha_padrao -= 1;
-      remainingAttempts = found.tentativas_senha_padrao;
+      remainingAttempts = Math.max(0, found.tentativas_senha_padrao);
       warningDefaultPass = true;
     }
 
@@ -480,7 +489,7 @@ class GrafsisAuth {
 
     // 4. Tratamento de senha padrão '0000'
     if (user.senha === '0000') {
-      if (user.tentativas_senha_padrao === undefined) {
+      if (user.tentativas_senha_padrao === undefined || user.tentativas_senha_padrao > 10) {
         user.tentativas_senha_padrao = 10;
       }
     } else {
@@ -831,7 +840,7 @@ class GrafsisAuth {
 
         // Se estiver usando senha padrão '0000', alerta com urgência
         if (result.warningDefaultPass) {
-          alert(`⚠️ ATENÇÃO: Você entrou com a senha padrão temporária ("0000").\nEsta senha deve ser trocada urgentemente!\nVocê tem ${result.remainingAttempts} entrada(s) restante(s) antes do bloqueio definitivo.\n\nAcesse a engrenagem no topo para cadastrar sua senha pessoal.`);
+          alert(`⚠️ ATENÇÃO: Você entrou com a senha temporária ("0000").\n\nEsta senha deve ser trocada urgentemente!\nVocê tem ${result.remainingAttempts} reentrada(s) restante(s) antes do bloqueio definitivo do seu acesso.\n\nAcesse a engrenagem no topo para cadastrar sua senha pessoal definitiva.`);
         }
       }
     } else {

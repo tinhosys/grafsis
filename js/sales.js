@@ -2415,13 +2415,20 @@ window.salesModule = {
     }
 
     try {
+      const orders = window.store.getOrders();
       const activeDisplayId = document.getElementById('current-display-id')?.value;
-      const currentId = (id && typeof isValidUUID === 'function' && isValidUUID(id)) 
-        ? id 
-        : (this.currentEditingOrderId && typeof isValidUUID === 'function' && isValidUUID(this.currentEditingOrderId) && this.currentEditingOrderId === id 
-            ? this.currentEditingOrderId 
-            : null);
-      const isExistingOrder = !!currentId;
+      const targetOrderId = id || this.currentEditingOrderId;
+
+      let oldOrder = null;
+      if (targetOrderId) {
+        oldOrder = orders.find(o => String(o.id) === String(targetOrderId) || String(o.numero) === String(targetOrderId));
+      }
+      if (!oldOrder && activeDisplayId) {
+        oldOrder = orders.find(o => String(o.numero) === String(activeDisplayId));
+      }
+
+      const isExistingOrder = !!oldOrder;
+      const currentId = oldOrder ? oldOrder.id : (targetOrderId || null);
       if (isExistingOrder) {
         const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
         const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
@@ -2430,7 +2437,6 @@ window.salesModule = {
           return;
         }
       }
-      const oldOrder = isExistingOrder ? window.store.getOrders().find(o => o.id === currentId) : null;
       const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : (activeDisplayId || geradoNumero || this.getNextOrderId());
 
       // Se não houver itens adicionados, cria um item provisório de orçamento
@@ -2576,13 +2582,20 @@ window.salesModule = {
       }
 
       let historico = [];
-      const currentId = (id && typeof isValidUUID === 'function' && isValidUUID(id)) 
-        ? id 
-        : (this.currentEditingOrderId && typeof isValidUUID === 'function' && isValidUUID(this.currentEditingOrderId) && this.currentEditingOrderId === id 
-            ? this.currentEditingOrderId 
-            : null);
-      const isExistingOrder = !!currentId;
-      const oldOrder = isExistingOrder ? window.store.getOrders().find(o => o.id === currentId) : null;
+      const orders = window.store.getOrders();
+      const activeDisplayId = document.getElementById('current-display-id')?.value;
+      const targetOrderId = id || this.currentEditingOrderId;
+
+      let oldOrder = null;
+      if (targetOrderId) {
+        oldOrder = orders.find(o => String(o.id) === String(targetOrderId) || String(o.numero) === String(targetOrderId));
+      }
+      if (!oldOrder && activeDisplayId) {
+        oldOrder = orders.find(o => String(o.numero) === String(activeDisplayId));
+      }
+
+      const isExistingOrder = !!oldOrder;
+      const currentId = oldOrder ? oldOrder.id : (targetOrderId || null);
       if (oldOrder && oldOrder.historico) {
         historico = JSON.parse(JSON.stringify(oldOrder.historico));
       }

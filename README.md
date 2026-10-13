@@ -98,7 +98,9 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
-## 🔄 Reconciliação e Sincronização entre Múltiplos Computadores (v4.9.1)
-- **Sincronização Bidirecional Robusta**: Envio de registros locais antes da recepção, garantindo que produtos e clientes cadastrados em um computador sejam imediatamente propagados para todos os outros computadores conectados ao Supabase.
-- **Resiliência e Fallbacks**: Mapeamento seguro de colunas e compressão automática de fotos enviadas, evitando estouro de cota de armazenamento local e incompatibilidades de schema.
-- **Deduplicação Inteligente**: Unificação automática de catálogo por ID e nome para evitar itens duplicados.
+## 🔄 Retaguarda Offline Resiliente & Sincronização Multidispositivo (v4.9.2)
+- **Contador Estrito de Reentradas (Senha "0000")**: Inicia rigorosamente em 10 entradas e decrementa exatamente 1 a cada login até a troca por senha pessoal definitiva.
+- **Desbloqueio de Edição de Clientes & Chave Primária Inteligente**: Remoção de bloqueios artificiais em formulários e validação de unicidade de telefone/CPF excluindo expressamente o próprio registro em edição.
+- **Edição In-Place de Pedidos e Produtos**: Localização precisa de registros existentes por ID ou número/nome, evitando duplicidade e preservando sequenciais.
+- **Retaguarda Offline com IDs Dinâmicos**: UUIDs dinâmicos de alta entropia para prevenir colisões entre múltiplos usuários offline e reconciliação automática de chaves estrangeiras (cliente_id, pedido_id) ao sincronizar com o Supabase.
+- **Tratamento Amigável de Supabase Offline**: Alerta informativo e transparente de que o Modo Retaguarda Local está 100% ativo e seguro em caso de indisponibilidade temporária da nuvem.

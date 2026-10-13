@@ -353,10 +353,10 @@ window.clientsModule = {
             <div class="flex justify-between items-center">
               <div class="flex items-center gap-4">
                 <h2 class="text-lg font-bold text-slate-800">${isEdit ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-                <!-- Chave Ativo/Bloqueado (Rosa/Azul) - Travada em Edição até acionar botão Editar -->
-                <label id="client-status-label" class="flex items-center ${isEdit ? 'opacity-60 pointer-events-none cursor-not-allowed' : 'cursor-pointer'}" title="${isEdit ? 'Clique em Editar abaixo para alterar o status' : 'Status do Cliente'}">
+                <!-- Chave Ativo/Bloqueado -->
+                <label id="client-status-label" class="flex items-center cursor-pointer" title="Status do Cliente (Ativo / Bloqueado)">
                   <div class="relative">
-                    <input type="checkbox" id="client-status-checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} ${isEdit ? 'disabled' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full'); this.parentElement.nextElementSibling.innerText = this.checked ? 'Ativo' : 'Bloqueado';">
+                    <input type="checkbox" id="client-status-checkbox" name="status" value="ativo" class="sr-only" ${!client || client.status !== 'bloqueado' ? 'checked' : ''} onchange="this.nextElementSibling.classList.toggle('bg-blue-600'); this.nextElementSibling.classList.toggle('bg-slate-300'); this.nextElementSibling.firstElementChild.classList.toggle('translate-x-full'); this.parentElement.nextElementSibling.innerText = this.checked ? 'Ativo' : 'Bloqueado';">
                     <div class="block w-10 h-6 rounded-full transition-colors ${!client || client.status !== 'bloqueado' ? 'bg-blue-600' : 'bg-slate-300'}">
                       <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${!client || client.status !== 'bloqueado' ? 'translate-x-full' : ''}"></div>
                     </div>
@@ -539,8 +539,7 @@ window.clientsModule = {
               </div>
               <div class="flex gap-2">
                 <button type="button" onclick="document.getElementById('client-modal').remove()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                ${isEdit ? `<button type="button" id="btn-editar-cliente" onclick="clientsModule.enableEditMode()" class="px-5 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium shadow-sm">Editar</button>` : ''}
-                <button type="submit" id="btn-salvar-cliente" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm ${isEdit ? 'hidden' : ''}">Salvar Cliente</button>
+                <button type="submit" id="btn-salvar-cliente" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm">${isEdit ? 'Salvar Alterações' : 'Salvar Cliente'}</button>
               </div>
             </div>
           </form>
@@ -597,16 +596,6 @@ window.clientsModule = {
     const client = window.store.getClients().find(c => c.id === id);
     if (client) {
       this.openModal(client);
-      setTimeout(() => {
-        const form = document.getElementById('client-form');
-        if(!form) return;
-        const elements = form.querySelectorAll('input, select, textarea, button[type="button"]:not([onclick*="remove"]):not([onclick*="deleteClient"]):not(#btn-editar-cliente):not([onclick*="getLocation"])');
-        elements.forEach(el => el.disabled = true);
-        const statusCb = document.getElementById('client-status-checkbox');
-        if (statusCb) statusCb.disabled = true;
-        const statusLbl = document.getElementById('client-status-label');
-        if (statusLbl) statusLbl.classList.add('opacity-60', 'pointer-events-none', 'cursor-not-allowed');
-      }, 50);
     }
   },
 
@@ -953,10 +942,6 @@ window.clientsModule = {
     };
 
     const allClients = window.store.getClients();
-    if (!targetId && clientData.nome) {
-      const existingByName = allClients.find(c => c.nome && c.nome.toLowerCase().trim() === clientData.nome.toLowerCase().trim());
-      if (existingByName) targetId = existingByName.id;
-    }
     const isEdit = !!targetId;
     clientData.id = targetId;
 
@@ -969,22 +954,25 @@ window.clientsModule = {
 
     const cleanCpfCnpj = (clientData.cpf_cnpj || '').replace(/\D/g, '');
 
-    // REGRA DE CHAVE PRIMÁRIA: Se é uma EDIÇÃO, o sistema desconsidera a validação de chave primária,
-    // pois o cliente e sua chave já estão gravados no sistema. Edição de endereço, nome, etc., não pode ser travada.
-    // Apenas quando for cadastro de NOVO cliente (!isEdit), valida unicidade contra outros clientes.
-    if (!isEdit) {
-      const duplicatePhone = allClients.find(c => (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone);
-      if (duplicatePhone) {
-        alert(`Operação negada: O número de telefone informado já está cadastrado para outro cliente (${duplicatePhone.nome}). O telefone é chave de identificação e não pode duplicar.`);
-        return;
-      }
+    // REGRA DE CHAVE PRIMÁRIA & UNICIDADE:
+    // Na edição, exclui o próprio cliente sendo editado para permitir alteração de qualquer campo sem acusar duplicata contra si mesmo.
+    const duplicatePhone = allClients.find(c => 
+      (targetId ? String(c.id) !== String(targetId) : true) && 
+      (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone
+    );
+    if (duplicatePhone) {
+      alert(`Operação negada: O número de telefone informado já está cadastrado para outro cliente (${duplicatePhone.nome}). O telefone é chave de identificação e não pode duplicar.`);
+      return;
+    }
 
-      if (cleanCpfCnpj) {
-        const duplicateCpf = allClients.find(c => (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj);
-        if (duplicateCpf) {
-          alert(`Operação negada: O CPF/CNPJ informado já está cadastrado para outro cliente (${duplicateCpf.nome}). Não é permitido duplicar o documento.`);
-          return;
-        }
+    if (cleanCpfCnpj) {
+      const duplicateCpf = allClients.find(c => 
+        (targetId ? String(c.id) !== String(targetId) : true) && 
+        (c.cpf_cnpj || '').replace(/\D/g, '') === cleanCpfCnpj
+      );
+      if (duplicateCpf) {
+        alert(`Operação negada: O CPF/CNPJ informado já está cadastrado para outro cliente (${duplicateCpf.nome}). Não é permitido duplicar o documento.`);
+        return;
       }
     }
 

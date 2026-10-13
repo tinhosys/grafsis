@@ -756,6 +756,9 @@ class GrafsisStore {
     // População rica e realista de 20 Gráficas, 600+ Usuários reais com foto, Clientes e Pedidos
     this.seedRealisticDataset();
 
+    // Reconciliação imediata de chaves primárias e relacionamentos (Retaguarda Offline Resiliente)
+    this.reconcileLegacyIdsAndForeignKeys();
+
     this.initSupabase();
   }
 
@@ -1418,8 +1421,106 @@ class GrafsisStore {
     }
   }
 
+  // Reconciliação e refatoração dinâmica de IDs legados e chaves estrangeiras (Retaguarda Offline Resiliente)
+  reconcileLegacyIdsAndForeignKeys() {
+    try {
+      let clientsChanged = false;
+      let ordersChanged = false;
+      let financeChanged = false;
+      let productsChanged = false;
+      let suppliersChanged = false;
+
+      const clients = this.getLocal(STORAGE_KEYS.CLIENTS) || [];
+      const orders = this.getLocal(STORAGE_KEYS.ORDERS) || [];
+      const finance = this.getLocal(STORAGE_KEYS.FINANCE) || [];
+      const products = this.getLocal(STORAGE_KEYS.PRODUCTS) || [];
+      const suppliers = this.getLocal(STORAGE_KEYS.SUPPLIERS) || [];
+
+      const clientOldToNewMap = new Map();
+      const clientNameToIdMap = new Map();
+
+      // 1. Reconcilia clientes com UUIDs dinâmicos
+      clients.forEach(c => {
+        if (!c) return;
+        if (c.nome) clientNameToIdMap.set(c.nome.trim().toLowerCase(), c.id);
+        if (!c.id || !isValidUUID(c.id)) {
+          const oldId = c.id;
+          c.id = grafsisUUID();
+          if (oldId) clientOldToNewMap.set(String(oldId), c.id);
+          if (c.nome) clientNameToIdMap.set(c.nome.trim().toLowerCase(), c.id);
+          clientsChanged = true;
+        }
+      });
+
+      // 2. Reconcilia produtos com UUIDs dinâmicos
+      products.forEach(p => {
+        if (!p) return;
+        if (!p.id || !isValidUUID(p.id)) {
+          p.id = grafsisUUID();
+          productsChanged = true;
+        }
+      });
+
+      // 3. Reconcilia fornecedores com UUIDs dinâmicos
+      suppliers.forEach(s => {
+        if (!s) return;
+        if (!s.id || !isValidUUID(s.id)) {
+          s.id = grafsisUUID();
+          suppliersChanged = true;
+        }
+      });
+
+      const orderOldToNewMap = new Map();
+
+      // 4. Reconcilia pedidos com UUIDs dinâmicos e atualiza FK cliente_id
+      orders.forEach(o => {
+        if (!o) return;
+        if (!o.id || !isValidUUID(o.id)) {
+          const oldOrderId = o.id;
+          o.id = grafsisUUID();
+          if (oldOrderId) orderOldToNewMap.set(String(oldOrderId), o.id);
+          ordersChanged = true;
+        }
+
+        // Reconcilia cliente_id do pedido
+        if (o.cliente_id && clientOldToNewMap.has(String(o.cliente_id))) {
+          o.cliente_id = clientOldToNewMap.get(String(o.cliente_id));
+          ordersChanged = true;
+        } else if (!o.cliente_id || !isValidUUID(o.cliente_id)) {
+          if (o.cliente_nome && clientNameToIdMap.has(o.cliente_nome.trim().toLowerCase())) {
+            o.cliente_id = clientNameToIdMap.get(o.cliente_nome.trim().toLowerCase());
+            ordersChanged = true;
+          }
+        }
+      });
+
+      // 5. Reconcilia financeiro com UUIDs dinâmicos e FK pedido_id
+      finance.forEach(f => {
+        if (!f) return;
+        if (!f.id || !isValidUUID(f.id)) {
+          f.id = grafsisUUID();
+          financeChanged = true;
+        }
+        if (f.pedido_id && orderOldToNewMap.has(String(f.pedido_id))) {
+          f.pedido_id = orderOldToNewMap.get(String(f.pedido_id));
+          financeChanged = true;
+        }
+      });
+
+      if (clientsChanged) this.saveLocal(STORAGE_KEYS.CLIENTS, clients);
+      if (productsChanged) this.saveLocal(STORAGE_KEYS.PRODUCTS, products);
+      if (suppliersChanged) this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
+      if (ordersChanged) this.saveLocal(STORAGE_KEYS.ORDERS, orders);
+      if (financeChanged) this.saveLocal(STORAGE_KEYS.FINANCE, finance);
+    } catch (err) {
+      console.warn('[GRAFSIS Store] Aviso na reconciliação de IDs locais:', err);
+    }
+  }
+
   async pushAllLocalRecords() {
     try {
+      this.reconcileLegacyIdsAndForeignKeys();
+
       const clients = this.getClients();
       await Promise.allSettled(clients.map(c => {
         if (!isValidUUID(c.id)) c.id = grafsisUUID();
@@ -1765,15 +1866,35 @@ class GrafsisStore {
 
   async saveClient(client) {
     const clients = this.getLocal(STORAGE_KEYS.CLIENTS) || [];
-    if (!client.id) {
-      client.id = grafsisUUID();
-      clients.unshift(client);
-    } else {
-      const index = clients.findIndex(c => String(c.id) === String(client.id) || (c.nome && client.nome && c.nome.toLowerCase().trim() === client.nome.toLowerCase().trim()));
-      if (index >= 0) clients[index] = client;
-      else clients.unshift(client);
+    let index = -1;
+    if (client.id) {
+      index = clients.findIndex(c => String(c.id) === String(client.id));
     }
-    // Remove qualquer duplicata residual com o mesmo ID ou mesmo nome
+    if (index < 0 && client.nome && client.telefone_whatsapp) {
+      const cleanPhone = (client.telefone_whatsapp || '').replace(/\D/g, '');
+      index = clients.findIndex(c => c.nome && c.nome.toLowerCase().trim() === client.nome.toLowerCase().trim() && (c.telefone_whatsapp || '').replace(/\D/g, '') === cleanPhone);
+    }
+
+    if (index >= 0) {
+      // Edição in-place do cliente existente
+      const existing = clients[index];
+      if (!client.id || !isValidUUID(client.id)) {
+        client.id = (existing.id && isValidUUID(existing.id)) ? existing.id : grafsisUUID();
+      }
+      client.created_at = existing.created_at || client.created_at || new Date().toISOString();
+      client.updated_at = new Date().toISOString();
+      clients[index] = { ...existing, ...client };
+    } else {
+      // Novo cliente
+      if (!client.id || !isValidUUID(client.id)) {
+        client.id = grafsisUUID();
+      }
+      client.created_at = client.created_at || new Date().toISOString();
+      client.updated_at = new Date().toISOString();
+      clients.unshift(client);
+    }
+
+    // Remove qualquer duplicata residual com o mesmo ID
     const cleaned = [];
     const seenIds = new Set();
     for (const c of clients) {
@@ -1784,8 +1905,8 @@ class GrafsisStore {
       }
     }
     this.saveLocal(STORAGE_KEYS.CLIENTS, cleaned);
-    await this.pushRecord('clientes', client);
-    return client;
+    await this.pushRecord('clientes', clients[index >= 0 ? index : 0]);
+    return clients[index >= 0 ? index : 0];
   }
   async deleteClient(id) {
     const clients = this.getClients().filter(c => c.id !== id);
@@ -1797,17 +1918,39 @@ class GrafsisStore {
   getSuppliers() { return this.getLocal(STORAGE_KEYS.SUPPLIERS); }
   async saveSupplier(supplier) {
     const suppliers = this.getSuppliers();
-    if (!supplier.id || !isValidUUID(supplier.id)) {
-      supplier.id = grafsisUUID();
-      suppliers.unshift(supplier);
+    let index = -1;
+    if (supplier.id) {
+      index = suppliers.findIndex(s => String(s.id) === String(supplier.id));
+    }
+    if (index < 0 && (supplier.nome_fantasia || supplier.razao_social)) {
+      const name = (supplier.nome_fantasia || supplier.razao_social).toLowerCase().trim();
+      index = suppliers.findIndex(s => 
+        (s.nome_fantasia && s.nome_fantasia.toLowerCase().trim() === name) || 
+        (s.razao_social && s.razao_social.toLowerCase().trim() === name)
+      );
+    }
+
+    if (index >= 0) {
+      // Edição in-place do fornecedor existente
+      const existing = suppliers[index];
+      if (!supplier.id || !isValidUUID(supplier.id)) {
+        supplier.id = (existing.id && isValidUUID(existing.id)) ? existing.id : grafsisUUID();
+      }
+      supplier.created_at = existing.created_at || supplier.created_at || new Date().toISOString();
+      supplier.updated_at = new Date().toISOString();
+      suppliers[index] = { ...existing, ...supplier };
     } else {
-      const index = suppliers.findIndex(s => s.id === supplier.id);
-      if (index >= 0) suppliers[index] = supplier;
-      else suppliers.unshift(supplier);
+      // Novo fornecedor
+      if (!supplier.id || !isValidUUID(supplier.id)) {
+        supplier.id = grafsisUUID();
+      }
+      supplier.created_at = supplier.created_at || new Date().toISOString();
+      supplier.updated_at = new Date().toISOString();
+      suppliers.unshift(supplier);
     }
     this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
-    await this.pushRecord('fornecedores', supplier);
-    return supplier;
+    await this.pushRecord('fornecedores', suppliers[index >= 0 ? index : 0]);
+    return suppliers[index >= 0 ? index : 0];
   }
   async deleteSupplier(id) {
     const suppliers = this.getSuppliers().filter(s => s.id !== id);
@@ -1840,17 +1983,35 @@ class GrafsisStore {
   }
   async saveProduct(prod) {
     const prods = this.getProducts();
-    if (!prod.id || !isValidUUID(prod.id)) {
-      prod.id = grafsisUUID();
-      prods.unshift(prod);
+    let index = -1;
+    if (prod.id) {
+      index = prods.findIndex(p => String(p.id) === String(prod.id));
+    }
+    if (index < 0 && prod.nome) {
+      index = prods.findIndex(p => p.nome && p.nome.toLowerCase().trim() === prod.nome.toLowerCase().trim());
+    }
+
+    if (index >= 0) {
+      // Edição in-place do produto existente
+      const existing = prods[index];
+      if (!prod.id || !isValidUUID(prod.id)) {
+        prod.id = (existing.id && isValidUUID(existing.id)) ? existing.id : grafsisUUID();
+      }
+      prod.created_at = existing.created_at || prod.created_at || new Date().toISOString();
+      prod.updated_at = new Date().toISOString();
+      prods[index] = { ...existing, ...prod };
     } else {
-      const index = prods.findIndex(p => String(p.id) === String(prod.id) || (p.nome && prod.nome && p.nome.toLowerCase().trim() === prod.nome.toLowerCase().trim()));
-      if (index >= 0) prods[index] = prod;
-      else prods.unshift(prod);
+      // Novo produto
+      if (!prod.id || !isValidUUID(prod.id)) {
+        prod.id = grafsisUUID();
+      }
+      prod.created_at = prod.created_at || new Date().toISOString();
+      prod.updated_at = new Date().toISOString();
+      prods.unshift(prod);
     }
     this.saveLocal(STORAGE_KEYS.PRODUCTS, prods);
-    await this.pushRecord('produtos', prod);
-    return prod;
+    await this.pushRecord('produtos', prods[index >= 0 ? index : 0]);
+    return prods[index >= 0 ? index : 0];
   }
   async deleteProduct(id) {
     const prods = this.getProducts().filter(p => p.id !== id);
@@ -1913,35 +2074,54 @@ class GrafsisStore {
   }
 
   async saveOrder(order) {
-    const isNew = !order.id || !isValidUUID(order.id);
     const orders = this.getOrders();
-    // Preserva o número sequencial enviado se já for válido e não colidir com outro pedido de ID diferente
-    if (!order.numero) {
-      order.numero = this.getNextOrderNumber(orders);
-    } else if (orders.some(o => o.id !== order.id && String(o.numero) === String(order.numero))) {
-      console.warn(`[GRAFSIS] Colisão detectada no pedido #${order.numero}. Gerando próximo número sequencial...`);
-      order.numero = this.getNextOrderNumber(orders);
+    let existingIndex = -1;
+    if (order.id) {
+      existingIndex = orders.findIndex(o => String(o.id) === String(order.id));
     }
-    if (isNew) {
-      order.id = grafsisUUID();
-      order.created_at = new Date().toISOString();
-      if (!order.data_criacao) order.data_criacao = order.created_at;
-      orders.unshift(order);
+    if (existingIndex < 0 && order.numero) {
+      existingIndex = orders.findIndex(o => String(o.numero) === String(order.numero));
+    }
+
+    if (existingIndex >= 0) {
+      // Edição in-place do pedido existente
+      const existing = orders[existingIndex];
+      if (!order.id || !isValidUUID(order.id)) {
+        order.id = (existing.id && isValidUUID(existing.id)) ? existing.id : grafsisUUID();
+      }
+      order.numero = existing.numero || order.numero;
+      order.created_at = existing.created_at || order.created_at || new Date().toISOString();
+      order.data_criacao = existing.data_criacao || order.data_criacao || order.created_at;
+      order.updated_at = new Date().toISOString();
+      orders[existingIndex] = { ...existing, ...order };
     } else {
-      const index = orders.findIndex(o => o.id === order.id);
-      if (index >= 0) orders[index] = order;
-      else orders.unshift(order);
+      // Novo pedido
+      if (!order.id || !isValidUUID(order.id)) {
+        order.id = grafsisUUID();
+      }
+      if (!order.numero) {
+        order.numero = this.getNextOrderNumber(orders);
+      } else if (orders.some(o => String(o.numero) === String(order.numero))) {
+        order.numero = this.getNextOrderNumber(orders);
+      }
+      order.created_at = order.created_at || new Date().toISOString();
+      order.data_criacao = order.data_criacao || order.created_at;
+      order.updated_at = new Date().toISOString();
+      orders.unshift(order);
     }
+
     // Gravação local imediata (Local-First): garante que os dados nunca sejam perdidos e resposta seja instantânea (< 5ms)
     this.saveLocal(STORAGE_KEYS.ORDERS, orders);
 
+    const savedOrder = orders[existingIndex >= 0 ? existingIndex : 0];
+
     // Sincronização remota em segundo plano (não bloqueia a interface nem atrasa a operação do usuário)
     if (this.supabaseClient) {
-      this.pushRecord('pedidos', order).catch(err => {
+      this.pushRecord('pedidos', savedOrder).catch(err => {
         console.warn('[GRAFSIS] Pedido salvo localmente, sincronização remota em segundo plano:', err.message || err);
       });
     }
-    return order;
+    return savedOrder;
   }
   async updateOrderStatus(orderId, newStatus) {
     const orders = this.getOrders();
@@ -1979,22 +2159,37 @@ class GrafsisStore {
   getFinance() { return this.getLocal(STORAGE_KEYS.FINANCE); }
   async saveFinanceEntry(entry) {
     const entries = this.getFinance();
-    if (!entry.id || !isValidUUID(entry.id)) {
-      entry.id = grafsisUUID();
-      entry.created_at = new Date().toISOString();
-      entries.unshift(entry);
+    let index = -1;
+    if (entry.id) {
+      index = entries.findIndex(e => String(e.id) === String(entry.id));
+    }
+
+    if (index >= 0) {
+      // Edição in-place
+      const existing = entries[index];
+      if (!entry.id || !isValidUUID(entry.id)) {
+        entry.id = (existing.id && isValidUUID(existing.id)) ? existing.id : grafsisUUID();
+      }
+      entry.created_at = existing.created_at || entry.created_at || new Date().toISOString();
+      entry.updated_at = new Date().toISOString();
+      entries[index] = { ...existing, ...entry };
     } else {
-      const index = entries.findIndex(e => e.id === entry.id);
-      if (index >= 0) entries[index] = entry;
-      else entries.unshift(entry);
+      // Novo lançamento
+      if (!entry.id || !isValidUUID(entry.id)) {
+        entry.id = grafsisUUID();
+      }
+      entry.created_at = entry.created_at || new Date().toISOString();
+      entry.updated_at = new Date().toISOString();
+      entries.unshift(entry);
     }
     this.saveLocal(STORAGE_KEYS.FINANCE, entries);
+    const savedEntry = entries[index >= 0 ? index : 0];
     if (this.supabaseClient) {
-      this.pushRecord('financeiro_lancamentos', entry).catch(err => {
+      this.pushRecord('financeiro_lancamentos', savedEntry).catch(err => {
         console.warn('[GRAFSIS] Lançamento financeiro salvo localmente, sincronização remota em segundo plano:', err.message || err);
       });
     }
-    return entry;
+    return savedEntry;
   }
   async deleteFinanceEntry(id) {
     const entries = this.getFinance().filter(e => e.id !== id);

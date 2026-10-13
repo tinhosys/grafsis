@@ -2022,14 +2022,25 @@ window.app = {
       return;
     }
     try {
-      const { data, error } = await window.store.supabaseClient.from('clientes').select('count', { count: 'exact', head: true });
-      if (error) {
-        alert('Erro ao conectar ao Supabase: ' + error.message);
+      const selectPromise = window.store.supabaseClient.from('clientes').select('count', { count: 'exact', head: true });
+      const res = await (window.store.runWithTimeout ? window.store.runWithTimeout(selectPromise, 4000) : selectPromise);
+      if (res && res.error) {
+        const errMsg = String(res.error.message || res.error);
+        if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Timeout') || errMsg.includes('522') || errMsg.includes('500')) {
+          alert('⚠️ Servidor Supabase temporariamente inacessível (conexão ou projeto na nuvem pausado).\n\n🛡️ MODO RETAGUARDA LOCAL DO GRAFSIS ESTÁ 100% ATIVO:\nVocê pode continuar cadastrando clientes, criando pedidos e usando o sistema normalmente. Todas as suas operações ficam salvas com segurança no computador e serão enviadas para a nuvem automaticamente assim que ela restabelecer conexão.');
+        } else {
+          alert('Informação de Conexão Supabase:\n' + errMsg + '\n\nO Modo Retaguarda Local continua ativo e seguro.');
+        }
       } else {
-        alert('Conexão com o Supabase efetuada com SUCESSO! A nuvem está pronta para sincronizar PC e Celular.');
+        alert('✅ Conexão com o Supabase efetuada com SUCESSO!\nA nuvem está pronta e sincronizada para uso entre múltiplos computadores.');
       }
     } catch (e) {
-      alert('Falha no teste: ' + e.message);
+      const errMsg = String(e.message || e);
+      if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Timeout') || errMsg.includes('522')) {
+        alert('⚠️ Servidor Supabase temporariamente inacessível (conexão ou projeto na nuvem pausado).\n\n🛡️ MODO RETAGUARDA LOCAL DO GRAFSIS ESTÁ 100% ATIVO:\nVocê pode continuar cadastrando clientes, criando pedidos e usando o sistema normalmente. Todas as suas operações ficam salvas com segurança no computador e serão sincronizadas automaticamente assim que a nuvem restabelecer.');
+      } else {
+        alert('Aviso do Servidor: ' + errMsg + '\n\nO Modo Retaguarda Local continua ativo.');
+      }
     }
   },
 
