@@ -276,7 +276,30 @@ window.productsModule = {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        document.getElementById('product-foto-url').value = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 500;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          const inputEl = document.getElementById('product-foto-url');
+          if (inputEl) inputEl.value = compressedDataUrl;
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }

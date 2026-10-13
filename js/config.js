@@ -3,7 +3,7 @@
    ============================================================================== */
 
 window.GRAFSIS_CONFIG = {
-  VERSION: '4.8.0',
+  VERSION: '4.9.1',
   DEFAULT_SUPABASE_URL: 'https://mirhgxsiwjuondnpekru.supabase.co',
   DEFAULT_SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pcmhneHNpd2p1b25kbnBla3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5ODcyNzAsImV4cCI6MjEwNjU2MzI3MH0.DaHF9NQiUyYB8GpT-8pCmEWSX321zd3AMYMWKlWOTos',
 
@@ -14,9 +14,14 @@ window.GRAFSIS_CONFIG = {
     } catch (e) {
       saved = {};
     }
+    const url = (saved.supabaseUrl && typeof saved.supabaseUrl === 'string') ? saved.supabaseUrl.trim() : '';
+    const key = (saved.supabaseKey && typeof saved.supabaseKey === 'string') ? saved.supabaseKey.trim() : '';
+    const isValidUrl = url.startsWith('https://') && url.includes('.supabase.co');
+    const isValidKey = key.length > 50;
+
     return {
-      url: (saved.supabaseUrl && saved.supabaseUrl.trim()) ? saved.supabaseUrl.trim() : this.DEFAULT_SUPABASE_URL,
-      key: (saved.supabaseKey && saved.supabaseKey.trim()) ? saved.supabaseKey.trim() : this.DEFAULT_SUPABASE_KEY
+      url: isValidUrl ? url : this.DEFAULT_SUPABASE_URL,
+      key: isValidKey ? key : this.DEFAULT_SUPABASE_KEY
     };
   },
 

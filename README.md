@@ -95,3 +95,10 @@ git push -u origin main
 
 ## 💻 Como Rodar Imediatamente no Computador
 Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente o `index.html`!
+
+---
+
+## 🔄 Reconciliação e Sincronização entre Múltiplos Computadores (v4.9.1)
+- **Sincronização Bidirecional Robusta**: Envio de registros locais antes da recepção, garantindo que produtos e clientes cadastrados em um computador sejam imediatamente propagados para todos os outros computadores conectados ao Supabase.
+- **Resiliência e Fallbacks**: Mapeamento seguro de colunas e compressão automática de fotos enviadas, evitando estouro de cota de armazenamento local e incompatibilidades de schema.
+- **Deduplicação Inteligente**: Unificação automática de catálogo por ID e nome para evitar itens duplicados.

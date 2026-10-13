@@ -1207,7 +1207,7 @@ class GrafsisStore {
       badge.innerHTML = `
         <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-600 text-white border border-blue-700 shadow-md transition-all scale-95" disabled>
           <svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          Sincronizando Nuvem...
+          Sincronizando Bancos...
         </button>
       `;
     }
@@ -1217,6 +1217,10 @@ class GrafsisStore {
         await this.initSupabase();
       }
       await this.syncAllWithCloud(true);
+
+      const prodCount = (this.getProducts() || []).length;
+      const clientCount = (this.getClients() || []).length;
+      const orderCount = (this.getOrders() || []).length;
 
       // Reorganiza e recarrega a página ativa imediatamente
       if (window.app && window.app.currentTab) {
@@ -1235,7 +1239,7 @@ class GrafsisStore {
         badge.innerHTML = `
           <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white border border-emerald-700 shadow-md transition-all">
             <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            Nuvem Atualizada! ✓
+            Nuvem Sincronizada! ✓ (${prodCount} produtos)
           </button>
         `;
       }
@@ -1252,7 +1256,7 @@ class GrafsisStore {
 
     setTimeout(() => {
       this.updateSyncBadge(!!this.supabaseClient);
-    }, 2500);
+    }, 3000);
   }
 
   updateSyncBadge(connected) {
@@ -1346,13 +1350,17 @@ class GrafsisStore {
   }
 
   // Sincronizacao Bidirecional Completa com o Supabase
-  async syncAllWithCloud() {
+  async syncAllWithCloud(force = false) {
     if (!this.supabaseClient || this.isSyncing) return;
     this.isSyncing = true;
     console.log('[Supabase Sync] Iniciando sincronizacao bidirecional...');
 
     try {
-      // 1. Puxar todos os registros da nuvem IMEDIATAMENTE (Prioridade maxima: atualizar a tela)
+      // 1. Enviar registros locais em lote para a nuvem ANTES ou EM PARALELO
+      // (Garante que novos produtos/clientes criados neste computador subam para a nuvem imediatamente)
+      await this.pushAllLocalRecords();
+
+      // 2. Puxar todos os registros da nuvem (Unifica e converge a base com os outros computadores)
       await Promise.all([
         this.pullTable('clientes', STORAGE_KEYS.CLIENTS),
         this.pullTable('fornecedores', STORAGE_KEYS.SUPPLIERS),
@@ -1361,6 +1369,14 @@ class GrafsisStore {
         this.pullTable('financeiro_lancamentos', STORAGE_KEYS.FINANCE),
         window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
       ]);
+
+      // 3. Se for sincronização forçada ou manual, re-executa push para garantir convergência de IDs gerados
+      if (force) {
+        await this.pushAllLocalRecords();
+      }
+
+      // 4. Corrigir pedidos com o mesmo numero (ID de venda duplicado)
+      await this.fixDuplicateOrderNumbers();
 
       // Auditoria & Proteção: Se houver qualquer formulário aberto ou foco ativo de digitação,
       // NUNCA recarrega nem altera o DOM para não fechar formulários do usuário (ex: Nova Venda / Orçamento)
@@ -1386,17 +1402,13 @@ class GrafsisStore {
             window.suppliersModule.render();
           } else if (window.app.currentTab === 'products' && window.productsModule) {
             window.productsModule.render();
+          } else if (window.app.currentTab === 'settings' && typeof window.app.renderSettings === 'function') {
+            window.app.renderSettings();
           }
         } catch (uiErr) {
           console.warn('[Sync UI] Erro não impeditivo ao atualizar dados:', uiErr);
         }
       }
-
-      // 2. Enviar registros locais em lote para a nuvem
-      await this.pushAllLocalRecords();
-
-      // 3. Corrigir pedidos com o mesmo numero (ID de venda duplicado)
-      await this.fixDuplicateOrderNumbers();
 
       console.log('[Supabase Sync] Sincronizacao concluida com sucesso!');
     } catch (e) {
@@ -1409,35 +1421,35 @@ class GrafsisStore {
   async pushAllLocalRecords() {
     try {
       const clients = this.getClients();
-      await Promise.all(clients.map(c => {
+      await Promise.allSettled(clients.map(c => {
         if (!isValidUUID(c.id)) c.id = grafsisUUID();
         return this.pushRecord('clientes', c);
       }));
       this.saveLocal(STORAGE_KEYS.CLIENTS, clients);
 
       const products = this.getProducts();
-      await Promise.all(products.map(p => {
+      await Promise.allSettled(products.map(p => {
         if (!isValidUUID(p.id)) p.id = grafsisUUID();
         return this.pushRecord('produtos', p);
       }));
       this.saveLocal(STORAGE_KEYS.PRODUCTS, products);
 
       const suppliers = this.getSuppliers();
-      await Promise.all(suppliers.map(s => {
+      await Promise.allSettled(suppliers.map(s => {
         if (!isValidUUID(s.id)) s.id = grafsisUUID();
         return this.pushRecord('fornecedores', s);
       }));
       this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
 
       const orders = this.getOrders();
-      await Promise.all(orders.map(o => {
+      await Promise.allSettled(orders.map(o => {
         if (!isValidUUID(o.id)) o.id = grafsisUUID();
         return this.pushRecord('pedidos', o);
       }));
       this.saveLocal(STORAGE_KEYS.ORDERS, orders);
 
       const finance = this.getFinance();
-      await Promise.all(finance.map(f => {
+      await Promise.allSettled(finance.map(f => {
         if (!isValidUUID(f.id)) f.id = grafsisUUID();
         return this.pushRecord('financeiro_lancamentos', f);
       }));
@@ -1498,8 +1510,27 @@ class GrafsisStore {
 
         const local = this.getLocal(storageKey);
         const map = new Map();
-        local.forEach(item => map.set(item.id, item));
-        data.forEach(item => map.set(item.id, item));
+        const nameMap = new Map();
+
+        local.forEach(item => {
+          if (item && item.id) map.set(item.id, item);
+          if (tableName === 'produtos' && item && item.nome) {
+            nameMap.set(item.nome.trim().toLowerCase(), item.id);
+          }
+        });
+
+        data.forEach(item => {
+          if (!item || !item.id) return;
+          // Unifica produtos com o mesmo nome para evitar duplicação caso tenham tido IDs temporários
+          if (tableName === 'produtos' && item.nome) {
+            const normName = item.nome.trim().toLowerCase();
+            if (nameMap.has(normName) && nameMap.get(normName) !== item.id) {
+              map.delete(nameMap.get(normName));
+            }
+          }
+          map.set(item.id, item);
+        });
+
         const merged = Array.from(map.values());
         this.saveLocal(storageKey, merged);
       }
@@ -1522,6 +1553,28 @@ class GrafsisStore {
       if (clean.fornecedor_id && !isValidUUID(clean.fornecedor_id)) clean.fornecedor_id = null;
       if (clean.pedido_id && !isValidUUID(clean.pedido_id)) clean.pedido_id = null;
 
+      // Sanitização específica para Produtos: mapeia colunas estritas do banco
+      if (tableName === 'produtos') {
+        let desc = clean.descricao || '';
+        if (clean.larguras_bobinas && !desc.includes('Bobinas:')) {
+          desc = desc ? `${desc} | Bobinas: ${clean.larguras_bobinas}` : `Bobinas: ${clean.larguras_bobinas}`;
+        }
+        clean = {
+          id: clean.id,
+          nome: clean.nome || 'Produto',
+          categoria: clean.categoria || 'Geral',
+          tipo_cobranca: clean.tipo_cobranca || 'unidade',
+          preco_base: parseFloat(clean.preco_base) || 0,
+          custo_base: parseFloat(clean.custo_base) || 0,
+          estoque_atual: parseFloat(clean.estoque_atual) || 0,
+          estoque_minimo: parseFloat(clean.estoque_minimo) || 0,
+          unidade_medida: clean.unidade_medida || 'un',
+          foto_url: (clean.foto_url && clean.foto_url.length < 250000) ? clean.foto_url : null,
+          descricao: desc || null,
+          created_at: clean.created_at || new Date().toISOString()
+        };
+      }
+
       // Converte strings vazias em null para colunas com restrições SQL
       for (const k in clean) {
         if (clean[k] === '') {
@@ -1534,8 +1587,54 @@ class GrafsisStore {
       if (error) {
         console.warn(`[Supabase] Erro ao enviar para ${tableName}:`, error.message);
 
-        // Fallback 1: PEDIDOS (Garante que nunca falhe no celular ou PC mesmo em schema antigo)
-        if (tableName === 'pedidos') {
+        // Fallback 1: PRODUTOS
+        if (tableName === 'produtos') {
+          console.warn('[Supabase Fallback] Sincronizando produto com colunas mínimas essenciais...');
+          const baseProd = {
+            id: clean.id,
+            nome: clean.nome || 'Produto',
+            categoria: clean.categoria || 'Geral',
+            tipo_cobranca: clean.tipo_cobranca || 'unidade',
+            preco_base: parseFloat(clean.preco_base) || 0,
+            custo_base: parseFloat(clean.custo_base) || 0,
+            estoque_atual: parseFloat(clean.estoque_atual) || 0,
+            estoque_minimo: parseFloat(clean.estoque_minimo) || 0,
+            unidade_medida: clean.unidade_medida || 'un',
+            descricao: clean.descricao || null
+          };
+          const fallbackPromise = this.supabaseClient.from('produtos').upsert(baseProd);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          if (fallbackRes && fallbackRes.error) {
+            console.error('[Supabase Fallback] Falha no fallback de produtos:', fallbackRes.error.message);
+          } else {
+            console.log('[Supabase Fallback] Sucesso! Produto sincronizado com a nuvem (colunas essenciais).');
+          }
+        }
+        // Fallback 2: FORNECEDORES
+        else if (tableName === 'fornecedores') {
+          console.warn('[Supabase Fallback] Sincronizando fornecedor com colunas essenciais...');
+          const baseFornec = {
+            id: clean.id,
+            nome_fantasia: clean.nome_fantasia || 'Fornecedor',
+            razao_social: clean.razao_social || null,
+            cnpj: clean.cnpj || null,
+            cidade: clean.cidade || null,
+            uf: clean.uf || null,
+            telefone: clean.telefone || null,
+            celular_whatsapp: clean.celular_whatsapp || null,
+            email: clean.email || null,
+            categoria_produtos: clean.categoria_produtos || null
+          };
+          const fallbackPromise = this.supabaseClient.from('fornecedores').upsert(baseFornec);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          if (fallbackRes && fallbackRes.error) {
+            console.error('[Supabase Fallback] Falha no fallback de fornecedores:', fallbackRes.error.message);
+          } else {
+            console.log('[Supabase Fallback] Sucesso! Fornecedor sincronizado com a nuvem.');
+          }
+        }
+        // Fallback 3: PEDIDOS (Garante que nunca falhe no celular ou PC mesmo em schema antigo)
+        else if (tableName === 'pedidos') {
           console.warn('[Supabase Fallback] Sincronizando pedido com proteção de colunas e metadados JSON...');
           const metaPayload = {
             numero: clean.numero || null,
@@ -1578,7 +1677,7 @@ class GrafsisStore {
             console.log('[Supabase Fallback] Sucesso! Pedido gravado e sincronizado com a nuvem Supabase!');
           }
         }
-        // Fallback 2: CLIENTES
+        // Fallback 4: CLIENTES
         else if (tableName === 'clientes' && (error.message.includes('column') || error.message.includes('schema cache'))) {
           console.warn('[Supabase Fallback] Tentando sincronizar cliente com colunas fundamentais...');
           const baseClient = {
@@ -1606,7 +1705,7 @@ class GrafsisStore {
             console.log('[Supabase Fallback] Sucesso! Cliente sincronizado com a nuvem (colunas básicas).');
           }
         }
-        // Fallback 3: FINANCEIRO
+        // Fallback 5: FINANCEIRO
         else if (tableName === 'financeiro_lancamentos') {
           console.warn('[Supabase Fallback] Sincronizando lançamento financeiro sem FKs restritas...');
           const baseFin = {
@@ -1717,14 +1816,35 @@ class GrafsisStore {
   }
 
   // Produtos
-  getProducts() { return this.getLocal(STORAGE_KEYS.PRODUCTS); }
+  getProducts() {
+    const list = this.getLocal(STORAGE_KEYS.PRODUCTS) || [];
+    const seen = new Set();
+    const deduped = [];
+    let needsSave = false;
+    for (const p of list) {
+      if (!p) continue;
+      const key = String(p.id || p.nome || '').trim().toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        if (!p.id || !isValidUUID(p.id)) {
+          p.id = grafsisUUID();
+          needsSave = true;
+        }
+        deduped.push(p);
+      }
+    }
+    if (needsSave && deduped.length) {
+      this.saveLocal(STORAGE_KEYS.PRODUCTS, deduped);
+    }
+    return deduped;
+  }
   async saveProduct(prod) {
     const prods = this.getProducts();
     if (!prod.id || !isValidUUID(prod.id)) {
       prod.id = grafsisUUID();
       prods.unshift(prod);
     } else {
-      const index = prods.findIndex(p => p.id === prod.id);
+      const index = prods.findIndex(p => String(p.id) === String(prod.id) || (p.nome && prod.nome && p.nome.toLowerCase().trim() === prod.nome.toLowerCase().trim()));
       if (index >= 0) prods[index] = prod;
       else prods.unshift(prod);
     }

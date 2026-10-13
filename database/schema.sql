@@ -216,3 +216,7 @@ CREATE TABLE IF NOT EXISTS empresas_feed_noticias (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Atualizações v4.9.1 (Reconciliação e Compatibilidade Multidispositivo)
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS larguras_bobinas TEXT;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+

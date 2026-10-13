@@ -2004,10 +2004,16 @@ window.app = {
     }
     const settings = window.store.getSettings();
     window.store.saveSettings({ ...settings, supabaseUrl: url, supabaseKey: key });
+    
+    // Reinicializa o cliente Supabase imediatamente com as novas credenciais
+    if (window.store && typeof window.store.initSupabase === 'function') {
+      window.store.initSupabase();
+    }
+    
     this.updateUserHeader();
     this.renderSettings();
     alert('Configurações salvas! Sincronizando com o Supabase...');
-    window.store.syncAllWithCloud();
+    window.store.syncAllWithCloud(true);
   },
 
   async testSupabaseConnection() {
