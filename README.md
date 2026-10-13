@@ -98,6 +98,23 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Fluxo Relacional, Envio WhatsApp & Tarja Verde de Aceite (v4.9.4)
+- **Fluxo Relacional Resiliente (1 Cliente -> N Pedidos -> N Itens)**: Resolução relacional completa e tolerante a falhas na vinculação do cliente ao abrir e editar pedidos existentes (`#ID`), eliminando campos em branco e bloqueios indevidos na edição.
+- **Governança Estrita de Edição vs Reabertura**:
+  - Vendedores podem editar livremente orçamentos, pré-vendas e campos operacionais/prazos de entrega de vendas em andamento.
+  - Vendas finalizadas com produção liberada têm seus itens e valores financeiros protegidos; reabertura de itens e valores é restrita a usuários com perfil **Gerente** ou **Proprietário**.
+- **Folha de Envio de Link pelo WhatsApp com Registro em Histórico**:
+  - Modal tipo folha de encaminhamento/impressão para envio direto do link de aprovação virtual sem senha via WhatsApp.
+  - Registro auditável no pedido contendo: número de telefone destinatário, data, hora e usuário responsável pelo envio.
+- **Portal de Aprovação com Resumo Comercial & Condições Discricionárias**:
+  - Apresentação completa de valores, opções de pagamento (Pix / Cartão / Dinheiro) e saldo devedor para validação prévia pelo cliente.
+- **Tarja Verde Vibrante de Aceite**:
+  - Destaque visual em verde no topo do pedido e no portal online certificando arte conferida, valores e prazos aprovados, com carimbo digital de identificação do aprovador.
+- **O.S. Técnica Fabril sem Valores Financeiros**:
+  - Ordem de Serviço de Chão de Fábrica permanece focada estritamente em dados técnicos, dimensões, arquivos de arte e acabamentos, sem valores monetários.
+
+---
+
 ## 🔄 Restauração de Catálogo, Abertura de Formulários & IDs ao Salvar (v4.9.3)
 - **Restauração Resiliente do Catálogo**: Garantia de carregamento e persistência imediata dos produtos padrão (`INITIAL_PRODUCTS`), eliminando a exibição de catálogo vazio.
 - **Numeração Sequencial Exclusiva no Salvamento**: O número sequencial de novos pedidos (#ID) é calculado e consolidado estritamente no instante de salvar a operação, exibindo `#NOVO` durante o preenchimento e evitando conflito ou desperdício de IDs.

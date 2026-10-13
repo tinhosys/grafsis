@@ -234,6 +234,9 @@ window.salesModule = {
           </td>
           <td class="p-4">${this.getPhaseBadge(o.status_fase)}</td>
           <td class="p-4 text-right space-x-1 opacity-80 group-hover:opacity-100 transition">
+            <button onclick="salesModule.openApprovalShareModal('${o.id}')" class="text-teal-600 font-bold hover:text-teal-800 px-2 py-1 rounded hover:bg-teal-50 transition" title="Encaminhar Prova / WhatsApp com Registro">
+              <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            </button>
             <button onclick="salesModule.quickView('${o.id}')" class="text-slate-600 font-bold hover:text-blue-600 px-2 py-1 rounded hover:bg-slate-100 transition" title="Visualizar Detalhes">
               <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
             </button>
@@ -752,15 +755,16 @@ window.salesModule = {
     const clients = window.store.getClients();
     const products = window.store.getProducts();
     const isEdit = params.orderId ? true : false;
-    const order = isEdit ? window.store.getOrders().find(o => o.id === params.orderId) : null;
+    const order = isEdit ? window.store.getOrders().find(o => String(o.id) === String(params.orderId) || String(o.numero) === String(params.orderId)) : null;
     
+    this.isReadOnlyFinancial = false;
     if (isEdit && order) {
       const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
       const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
-      if (!isManagerOrOwner) {
-        alert('Acesso Restrito: Pedidos já registrados só podem ser alterados por usuários com perfil Gerente ou Proprietário.\n\nExibindo pedido no modo de visualização técnica.');
-        this.quickView(params.orderId);
-        return;
+      const op = (order.tipo_operacao || order.tipo || 'venda').toLowerCase();
+      const isAdvancedSale = op === 'venda' && ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'].includes(order.status_fase);
+      if (isAdvancedSale && !isManagerOrOwner) {
+        this.isReadOnlyFinancial = true;
       }
     }
 
@@ -784,15 +788,35 @@ window.salesModule = {
     const canPermutaPatrocinio = this.canManagePermutaPatrocinio();
     
     const defValidadeDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const initialClientId = (order && order.cliente_id) || params.clientId || '';
+    
+    // Resolução Relacional Ultra-Resiliente do Cliente (1 Cliente -> Muitos Pedidos)
+    let foundClient = null;
+    if (order) {
+      if (order.cliente_id) {
+        foundClient = clients.find(c => String(c.id) === String(order.cliente_id));
+      }
+      if (!foundClient && order.cliente_nome) {
+        foundClient = clients.find(c => c.nome && c.nome.toLowerCase().trim() === String(order.cliente_nome).toLowerCase().trim());
+      }
+      if (!foundClient && order.cliente_cpf) {
+        foundClient = clients.find(c => c.cpf_cnpj && String(c.cpf_cnpj).replace(/\D/g, '') === String(order.cliente_cpf).replace(/\D/g, ''));
+      }
+      if (!foundClient && order.cliente_telefone) {
+        foundClient = clients.find(c => c.telefone_whatsapp && String(c.telefone_whatsapp).replace(/\D/g, '') === String(order.cliente_telefone).replace(/\D/g, ''));
+      }
+    }
+    const initialClientId = foundClient ? foundClient.id : (params.clientId || (order && order.cliente_id) || '');
+    const hasKnownClientInList = clients.some(c => String(c.id) === String(initialClientId));
+    
     const initialOp = (order && (order.tipo_operacao || order.tipo)) || 'venda';
     const isBudgetOrPre = (initialOp === 'orcamento' || initialOp === 'pre-venda');
     const isPermutaPatrocinio = (initialOp === 'permuta' || initialOp === 'patrocinio');
+    const hasClientAcceptance = order && (order.data_aceite || order.aprovado_cliente);
 
     const formHtml = `
       <div class="space-y-4 max-w-6xl mx-auto pb-10">
         <div class="sticky top-0 z-40 bg-white/95 backdrop-blur rounded-xl w-full p-4 mb-4 shadow-sm border border-slate-200">
-          <div class="flex justify-between items-center mb-4">
+          <div class="flex justify-between items-center mb-3">
             <div>
               <button type="button" onclick="salesModule.render()" class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1 mb-1">
                 &larr; Voltar para Lista
@@ -804,12 +828,37 @@ window.salesModule = {
               <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">${isEdit ? '#' + displayId : '#NOVO (Gerado ao salvar)'}</span>
               <input type="hidden" id="current-display-id" value="${displayId}">
               ${order ? `
-                <button type="button" onclick="salesModule.copyClientApprovalLink('${order.id}')" class="mt-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Copiar link público para aprovação do cliente sem login">
-                  🔗 Link de Aprovação do Cliente
+                <button type="button" onclick="salesModule.openApprovalShareModal('${order.id}')" class="mt-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Visualizar proposta e encaminhar link de liberação via WhatsApp">
+                  <span>📱 Link de Liberação / WhatsApp</span>
                 </button>
               ` : ''}
             </div>
           </div>
+
+          <!-- TARJA VERDE OFICIAL DE ACEITE (Quando Cliente Aprovou o Pedido) -->
+          ${hasClientAcceptance ? `
+            <div class="p-3.5 bg-emerald-600 text-white rounded-xl shadow-md border-2 border-emerald-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2 animate-fadeIn">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-white text-emerald-700 flex items-center justify-center font-black text-xl shrink-0 shadow-inner">✓</div>
+                <div>
+                  <h4 class="font-black text-sm uppercase tracking-wide">ARTE E PROPOSTA APROVADA PELO CLIENTE</h4>
+                  <p class="text-xs text-emerald-100">Layout conferido, valores financeiros de acordo, prazo confirmado e liberação de produção autorizada.</p>
+                </div>
+              </div>
+              <div class="text-right text-xs font-mono bg-emerald-700/80 px-3 py-1.5 rounded-lg border border-emerald-500 text-emerald-100 shrink-0">
+                <strong>${order.aprovado_cliente?.aprovador || order.cliente_nome || 'Cliente'}</strong>
+                <span class="block text-[11px] opacity-90">${order.aprovado_cliente?.data ? new Date(order.aprovado_cliente.data).toLocaleString('pt-BR') : (order.data_aceite ? new Date(order.data_aceite).toLocaleDateString('pt-BR') : 'Aceite Confirmado')}</span>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- AVISO DE VENDA FINALIZADA (QUANDO VENDEDOR EDITA DETALHES) -->
+          ${this.isReadOnlyFinancial ? `
+            <div class="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold mb-2 flex items-center gap-2">
+              <span class="text-base">🔒</span>
+              <span><strong>Venda Finalizada:</strong> Valores financeiros e itens estão protegidos contra alteração (Reabertura restrita a Gerente/Proprietário). Detalhes de entrega, prazos e observações liberados para edição.</span>
+            </div>
+          ` : ''}
           
           <form id="order-form" onsubmit="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="space-y-4">
             
@@ -818,13 +867,18 @@ window.salesModule = {
               <div class="md:col-span-2">
                 <div class="flex items-center justify-between mb-1">
                   <label class="block text-xs font-semibold text-slate-800">Cliente *</label>
-                  <button type="button" onclick="clientsModule.openModal()" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer" title="Cadastrar cliente rápido sem sair">
-                    + Novo Cliente
-                  </button>
+                  ${!this.isReadOnlyFinancial ? `
+                    <button type="button" onclick="clientsModule.openModal()" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer" title="Cadastrar cliente rápido sem sair">
+                      + Novo Cliente
+                    </button>
+                  ` : ''}
                 </div>
-                <select name="cliente_id" id="order-cliente-select" required class="w-full p-2.5 border-2 border-blue-400 rounded-lg text-sm bg-white font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" onchange="salesModule.checkClientStatusAndAge(this)">
+                <select name="cliente_id" id="order-cliente-select" required class="w-full p-2.5 border-2 border-blue-400 rounded-lg text-sm bg-white font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" onchange="salesModule.checkClientStatusAndAge(this)" ${this.isReadOnlyFinancial ? 'disabled' : ''}>
                   <option value="">Selecione o Cliente...</option>
-                  ${clients.map(c => `<option value="${c.id}" ${initialClientId === c.id ? 'selected' : ''}>${c.nome} ${c.cpf_cnpj ? '('+c.cpf_cnpj+')' : ''}</option>`).join('')}
+                  ${(!hasKnownClientInList && order && (order.cliente_nome || initialClientId)) ? `
+                    <option value="${initialClientId || 'vinculado'}" selected>${order.cliente_nome || 'Cliente do Pedido'} (Vinculado)</option>
+                  ` : ''}
+                  ${clients.map(c => `<option value="${c.id}" ${String(initialClientId) === String(c.id) ? 'selected' : ''}>${c.nome} ${c.cpf_cnpj ? '('+c.cpf_cnpj+')' : ''}</option>`).join('')}
                 </select>
               </div>
 
@@ -2437,12 +2491,19 @@ window.salesModule = {
       if (isExistingOrder) {
         const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
         const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
-        if (!isManagerOrOwner) {
-          alert('Acesso Restrito: Pedidos já registrados só podem ser alterados por usuários com perfil Gerente ou Proprietário.');
+        const isAdvancedSale = oldOrder.tipo_operacao === 'venda' && (oldOrder.status_fase !== 'orcamento' && oldOrder.status_fase !== 'prevenda');
+        if (isAdvancedSale && !isManagerOrOwner) {
+          alert('Acesso Restrito: Vendas finalizadas com produção liberada só podem ter valores ou itens alterados por Gerente ou Proprietário.');
           return;
         }
       }
       const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
+
+      // Identifica dados cadastrais completos do cliente para integridade relacional
+      const clientObj = clients.find(c => c.id === clienteId || String(c.id) === String(clienteId)) || {};
+      const clienteNomeFinal = clientObj.nome || (oldOrder && oldOrder.cliente_nome) || 'Cliente';
+      const clienteTelFinal = clientObj.telefone_whatsapp || clientObj.telefone || (oldOrder && oldOrder.cliente_telefone) || '';
+      const clienteCpfFinal = clientObj.cpf_cnpj || clientObj.cpf || (oldOrder && oldOrder.cliente_cpf) || '';
 
       // Se não houver itens adicionados, cria um item provisório de orçamento
       if (!this.activeItems || this.activeItems.length === 0) {
@@ -2495,6 +2556,9 @@ window.salesModule = {
         id: currentId || undefined,
         numero: finalNumber,
         cliente_id: clienteId,
+        cliente_nome: clienteNomeFinal,
+        cliente_telefone: clienteTelFinal,
+        cliente_cpf: clienteCpfFinal,
         tipo_operacao: op,
         tipo: op,
         vendedor: window.app?.currentUser?.nome || "Vendedor",
@@ -2513,10 +2577,10 @@ window.salesModule = {
         valor_entrada: valorEntrada,
         valor_recebido: valorEntrada,
         status_pagamento: statusPagto,
-        valor_total: subtotal,
-        desconto: discount,
-        valor_final: finalTotal,
-        itens: this.activeItems,
+        valor_total: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_total : subtotal,
+        desconto: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.desconto : discount,
+        valor_final: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_final : finalTotal,
+        itens: (this.isReadOnlyFinancial && oldOrder && oldOrder.itens) ? oldOrder.itens : this.activeItems,
         historico: historico
       };
 
@@ -2549,12 +2613,25 @@ window.salesModule = {
       return;
     }
 
-    const isExistingOrder = !!(id || this.currentEditingOrderId);
+    const orders = window.store.getOrders();
+    const activeDisplayId = document.getElementById('current-display-id')?.value;
+    const targetOrderId = id || this.currentEditingOrderId;
+
+    let oldOrder = null;
+    if (targetOrderId) {
+      oldOrder = orders.find(o => String(o.id) === String(targetOrderId) || String(o.numero) === String(targetOrderId));
+    }
+    if (!oldOrder && activeDisplayId) {
+      oldOrder = orders.find(o => String(o.numero) === String(activeDisplayId));
+    }
+
+    const isExistingOrder = !!oldOrder;
     if (isExistingOrder) {
       const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
       const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
-      if (!isManagerOrOwner) {
-        alert('Acesso Restrito: Pedidos já registrados só podem ser alterados por usuários com perfil Gerente ou Proprietário.');
+      const isAdvancedSale = oldOrder.tipo_operacao === 'venda' && (oldOrder.status_fase !== 'orcamento' && oldOrder.status_fase !== 'prevenda');
+      if (isAdvancedSale && !isManagerOrOwner) {
+        alert('Acesso Restrito: Vendas finalizadas com produção liberada só podem ter valores ou itens alterados por Gerente ou Proprietário.');
         return;
       }
     }
@@ -2587,19 +2664,6 @@ window.salesModule = {
       }
 
       let historico = [];
-      const orders = window.store.getOrders();
-      const activeDisplayId = document.getElementById('current-display-id')?.value;
-      const targetOrderId = id || this.currentEditingOrderId;
-
-      let oldOrder = null;
-      if (targetOrderId) {
-        oldOrder = orders.find(o => String(o.id) === String(targetOrderId) || String(o.numero) === String(targetOrderId));
-      }
-      if (!oldOrder && activeDisplayId) {
-        oldOrder = orders.find(o => String(o.numero) === String(activeDisplayId));
-      }
-
-      const isExistingOrder = !!oldOrder;
       const currentId = oldOrder ? oldOrder.id : (targetOrderId || null);
       if (oldOrder && oldOrder.historico) {
         historico = JSON.parse(JSON.stringify(oldOrder.historico));
@@ -2627,6 +2691,13 @@ window.salesModule = {
 
       const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
 
+      // Identifica dados cadastrais completos do cliente para integridade relacional
+      const allClients = window.store.getClients();
+      const clientObj = allClients.find(c => c.id === clienteId || String(c.id) === String(clienteId)) || {};
+      const clienteNomeFinal = clientObj.nome || (oldOrder && oldOrder.cliente_nome) || 'Cliente';
+      const clienteTelFinal = clientObj.telefone_whatsapp || clientObj.telefone || (oldOrder && oldOrder.cliente_telefone) || '';
+      const clienteCpfFinal = clientObj.cpf_cnpj || clientObj.cpf || (oldOrder && oldOrder.cliente_cpf) || '';
+
       // Atualiza sequencial dos itens vinculados ao numero oficial da operacao
       this.activeItems.forEach((it, idx) => {
         it.item_id = finalNumber + String(idx + 1).padStart(2, '0');
@@ -2645,11 +2716,14 @@ window.salesModule = {
         id: currentId || undefined,
         numero: finalNumber,
         cliente_id: clienteId,
+        cliente_nome: clienteNomeFinal,
+        cliente_telefone: clienteTelFinal,
+        cliente_cpf: clienteCpfFinal,
         tipo_operacao: op,
         tipo: op,
         vendedor: window.app?.currentUser?.nome || "Vendedor",
         status_fase: newPhase,
-        previsao_entrega: (op === 'orcamento' || op === 'pre-venda') ? (form.previsao_entrega?.value || null) : (form.previsao_entrega?.value || null),
+        previsao_entrega: form.previsao_entrega?.value || null,
         validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : null,
         data_validade: form.data_validade ? form.data_validade.value : null,
         percentual_operacao: form.percentual_operacao ? (parseFloat(form.percentual_operacao.value) || 100) : 100,
@@ -2663,10 +2737,10 @@ window.salesModule = {
         valor_entrada: valorEntrada,
         valor_recebido: valorEntrada,
         status_pagamento: statusPagto,
-        valor_total: subtotal,
-        desconto: discount,
-        valor_final: finalTotal,
-        itens: this.activeItems,
+        valor_total: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_total : subtotal,
+        desconto: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.desconto : discount,
+        valor_final: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_final : finalTotal,
+        itens: (this.isReadOnlyFinancial && oldOrder && oldOrder.itens) ? oldOrder.itens : this.activeItems,
         historico: historico
       };
 
@@ -3509,6 +3583,184 @@ window.salesModule = {
     } else {
       prompt('Copie o link abaixo para enviar ao cliente:', link);
     }
+  },
+
+  openApprovalShareModal(orderId) {
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
+    if (!order) {
+      alert('Pedido não encontrado.');
+      return;
+    }
+
+    const clients = window.store.getClients();
+    const client = clients.find(c => c.id === order.cliente_id) || {};
+    const clientName = client.nome || order.cliente_nome || 'Cliente';
+    const clientPhone = client.telefone_whatsapp || client.telefone || order.cliente_telefone || '';
+    const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const empresaNome = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS Comunicação Visual';
+
+    const modalId = 'modal-approval-share-wrap';
+    document.getElementById(modalId)?.remove();
+
+    const wrap = document.createElement('div');
+    wrap.id = modalId;
+    wrap.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fade-in';
+    wrap.innerHTML = `
+      <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        
+        <!-- Topo Estilo Folha de Encaminhamento -->
+        <div class="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-2xl font-black">
+              📱
+            </div>
+            <div>
+              <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Envio de Prova & Liberação</span>
+              <h2 class="text-lg font-black text-slate-900 dark:text-white">Encaminhar Pedido #${order.numero}</h2>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('${modalId}').remove()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            ✕
+          </button>
+        </div>
+
+        <!-- Corpo do Modal -->
+        <div class="p-6 overflow-y-auto space-y-5 text-xs text-slate-700 dark:text-slate-300">
+          
+          <!-- Folha de Resumo Tipo Impressão -->
+          <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 font-sans">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700 text-slate-500 text-[11px]">
+              <span class="font-bold uppercase tracking-wider">${empresaNome}</span>
+              <span class="font-mono">${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Cliente Destinatário:</span>
+                <strong class="text-slate-900 dark:text-white text-sm">${clientName}</strong>
+              </div>
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Valor Total do Pedido:</span>
+                <strong class="text-emerald-600 font-black text-sm">R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-[10px] uppercase font-bold text-slate-400 block">Itens da Operação:</span>
+              <ul class="mt-1 space-y-1 list-disc list-inside text-slate-600 dark:text-slate-300 text-[11px]">
+                ${(order.itens || []).map(it => `<li><strong>${it.quantidade}x</strong> ${it.produto_nome || it.descricao || 'Item'}</li>`).join('')}
+              </ul>
+            </div>
+
+            <!-- Registro de Envios Anteriores -->
+            ${order.link_enviado ? `
+              <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-[11px]">
+                <strong>Último envio registrado:</strong> ${new Date(order.link_enviado.data).toLocaleString('pt-BR')} para <strong>${order.link_enviado.telefone}</strong> (por ${order.link_enviado.usuario || 'Operador'})
+              </div>
+            ` : `
+              <div class="text-[11px] text-slate-400 italic">
+                Nenhum envio de link registrado anteriormente para este pedido.
+              </div>
+            `}
+          </div>
+
+          <!-- Campos de Configuração do Envio -->
+          <div class="space-y-4">
+            <div>
+              <label class="block font-bold text-slate-800 dark:text-white mb-1">Telefone / WhatsApp do Destinatário *</label>
+              <input type="text" id="share-target-phone" value="${clientPhone}" placeholder="Ex: (69) 99999-9999" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+              <span class="text-[10px] text-slate-400 mt-1 block">O número deve conter o DDD. O sistema formatará automaticamente para o link do WhatsApp.</span>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 dark:text-white mb-1">Link de Aprovação Online e Sem Senha</label>
+              <div class="flex gap-2">
+                <input type="text" readonly id="share-target-link" value="${link}" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 font-mono text-[11px] text-slate-600 dark:text-slate-300 select-all">
+                <button type="button" onclick="navigator.clipboard.writeText('${link}'); alert('Link copiado!');" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 font-bold rounded-xl text-xs transition">
+                  Copiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ações do Modal -->
+        <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col sm:flex-row gap-3">
+          <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}')" class="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>💬 Abrir WhatsApp e Registrar Envio</span>
+          </button>
+          <button type="button" onclick="document.getElementById('${modalId}').remove()" class="py-3 px-5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition">
+            Fechar
+          </button>
+        </div>
+
+      </div>
+    `;
+
+    document.body.appendChild(wrap);
+  },
+
+  async sendApprovalViaWhatsApp(orderId) {
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
+    if (!order) return;
+
+    const phoneInput = document.getElementById('share-target-phone');
+    const rawPhone = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
+    if (!rawPhone || rawPhone.length < 10) {
+      alert('Informe um número de telefone com DDD válido para encaminhar o WhatsApp.');
+      return;
+    }
+
+    const fullPhone = rawPhone.length === 10 || rawPhone.length === 11 ? '55' + rawPhone : rawPhone;
+    const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    const clientName = order.cliente_nome || 'Cliente';
+    const currentUser = window.app?.currentUser?.nome || 'Operador';
+    const nowIso = new Date().toISOString();
+
+    // Mensagem amigável com fechamento financeiro discricionário
+    const valorStr = Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    const msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
+      `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
+      `*Valor Total:* R$ ${valorStr}\n\n` +
+      `Por favor, acesse o link abaixo para visualizar a arte em alta resolução, conferir as medidas e autorizar a produção:\n` +
+      `👉 ${link}\n\n` +
+      `Você também poderá escolher a melhor opção de pagamento (Pix, Cartão de Crédito/Débito).\n` +
+      `Qualquer dúvida estamos à disposição!`;
+
+    // Registra o envio no pedido
+    order.link_enviado = {
+      telefone: rawPhone,
+      data: nowIso,
+      usuario: currentUser
+    };
+
+    order.historico = order.historico || [];
+    order.historico.push({
+      fase: order.status_fase || 'orcamento',
+      data: nowIso,
+      usuario: `Link de liberação enviado via WhatsApp para ${rawPhone} por ${currentUser}`
+    });
+
+    // Salva no banco local e nuvem
+    if (typeof window.store.saveOrder === 'function') {
+      await window.store.saveOrder(order);
+    } else {
+      window.store.save('grafsis_orders', orders);
+    }
+    if (typeof window.store.pushRecord === 'function' && window.store.supabaseClient) {
+      window.store.pushRecord('pedidos', order).catch(() => {});
+    }
+
+    // Abre o WhatsApp
+    const waUrl = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+
+    alert(`✅ Envio do link registrado com sucesso!\n\nNúmero: ${rawPhone}\nData/Hora: ${new Date(nowIso).toLocaleString('pt-BR')}`);
+    document.getElementById('modal-approval-share-wrap')?.remove();
+    this.render();
   },
 
   // =========================================================================

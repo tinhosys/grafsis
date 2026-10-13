@@ -2620,23 +2620,54 @@ window.app = {
             </div>
           </div>
 
+            <!-- Resumo Comercial e Condições de Pagamento -->
+            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300">💰 Resumo Financeiro & Condição</span>
+                <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Opção de Pagamento:</span>
+                  <strong class="text-slate-800 dark:text-slate-200">${order.forma_pagamento || 'Pix / Cartão / Dinheiro'}</strong>
+                </div>
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Entrada Registrada:</span>
+                  <span class="font-bold text-slate-700 dark:text-slate-300">R$ ${Number(order.valor_entrada || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-slate-400">Saldo a Pagar:</span>
+                  <strong class="text-rose-600 dark:text-rose-400 font-black">R$ ${Number(Math.max(0, (order.valor_final || 0) - (order.valor_entrada || 0))).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
           <!-- Área de Decisão e Aprovação do Cliente -->
           <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
             ${isApproved ? `
-              <div class="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-center space-y-3">
-                <div class="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
+              <!-- Tarja Verde Vibrante de Aceite Concluído -->
+              <div class="p-6 rounded-2xl bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 text-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-white/20 text-white flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
                   ✓
                 </div>
-                <h3 class="text-lg font-black text-emerald-800 dark:text-emerald-300">Produção Aprovada pelo Cliente!</h3>
-                <p class="text-xs text-emerald-700 dark:text-emerald-400 max-w-md mx-auto leading-relaxed">
-                  Este pedido foi verificado e liberado para a fila de produção e impressão.
-                  ${order.aprovado_cliente ? `<br><span class="font-mono text-[11px] opacity-80 mt-1.5 block">Aprovado em ${new Date(order.aprovado_cliente.data).toLocaleString('pt-BR')} por ${order.aprovado_cliente.aprovador || client.nome}</span>` : ''}
-                </p>
+                <div class="space-y-1">
+                  <h3 class="text-xl font-black uppercase tracking-wide">Aceite do Pedido & Arte Confirmado</h3>
+                  <p class="text-xs text-emerald-100 max-w-lg mx-auto leading-relaxed">
+                    Arte conferida com sucesso, valores e prazo de acordo. Pedido liberado e autorizado para início imediato da produção gráfica.
+                  </p>
+                </div>
+                <div class="inline-block bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl font-mono text-[11px] text-emerald-50">
+                  Carimbo de Aceite: ${order.aprovado_cliente ? `${new Date(order.aprovado_cliente.data).toLocaleString('pt-BR')} por ${order.aprovado_cliente.aprovador || client.nome}` : `Aprovado em ${new Date().toLocaleDateString('pt-BR')}`}
+                </div>
                 <div class="pt-2">
-                  <a href="https://api.whatsapp.com/send?phone=55${empresaWhats.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá, sobre o Pedido #${order.numero} que já foi aprovado: `)}"
+                  <a href="https://api.whatsapp.com/send?phone=55${empresaWhats.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá, confirmei a aprovação do Pedido #${order.numero}!`)}"
                      target="_blank"
-                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
-                    💬 Enviar Mensagem no WhatsApp da Gráfica
+                     class="inline-flex items-center gap-2 px-6 py-3 bg-white text-emerald-800 hover:bg-emerald-50 rounded-xl text-xs font-black transition shadow-md">
+                    💬 Conversar com a Gráfica no WhatsApp
                   </a>
                 </div>
               </div>
@@ -2644,13 +2675,13 @@ window.app = {
               <div class="space-y-4">
                 <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
                   <div class="font-black flex items-center gap-1.5 text-sm text-amber-800 dark:text-amber-300">
-                    ⚠️ Conferência Obrigatória antes de aprovar:
+                    ⚠️ Termo de Aceite & Conferência de Produção:
                   </div>
                   <p>
-                    Por favor, verifique atentamente todos os textos, telefones, números, imagens, proporções, medidas e acabamentos da arte acima.
+                    Ao clicar em <strong>"Concordo e Aprovo a Produção"</strong>, você declara estar de pleno acordo com as dimensões, arte visual, acabamentos, valores contratados e prazo de entrega estipulados acima.
                   </p>
                   <p class="font-bold">
-                    Ao aprovar, o arquivo seguirá diretamente para corte, impressão e acabamento.
+                    O pedido será imediatamente encaminhado para a esteira fabril e impressão gráfica.
                   </p>
                 </div>
 
@@ -2720,19 +2751,25 @@ window.app = {
     }
 
     const finalizeApproval = async (geoCoords = null) => {
+      const nowIso = new Date().toISOString();
+      const todayStr = nowIso.split('T')[0];
+      order.data_aceite = todayStr;
+      order.autorizo_producao = `Sim (Aprovado Digitalmente por ${approverName} em ${new Date().toLocaleDateString('pt-BR')})`;
+      order.conferencia_arte = `Conferido e De Acordo (Portal Online - ${approverName})`;
       order.aprovado_cliente = {
-        data: new Date().toISOString(),
+        data: nowIso,
         aprovador: approverName,
         telefone: approverPhone,
         userAgent: navigator.userAgent,
-        geo: geoCoords
+        geo: geoCoords,
+        termos_aceitos: true
       };
       order.status_fase = 'aprovacao';
       order.historico = order.historico || [];
       order.historico.push({
         fase: 'aprovacao',
-        data: new Date().toISOString(),
-        usuario: `Cliente (${approverName}) via Portal Público de Aprovação`
+        data: nowIso,
+        usuario: `Cliente (${approverName}) via Portal Público de Aprovação com aceite financeiro e de arte`
       });
 
       // 1. Grava no cache / banco local
