@@ -29,12 +29,19 @@ window.productsModule = {
         </div>
 
         <!-- Filtro de Busca -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3">
-          <div class="relative flex-1">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 items-center">
+          <div class="relative flex-1 w-full">
             <input type="text" id="product-search" oninput="productsModule.search(this.value)" placeholder="Buscar por Nome do Produto, Categoria..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
-          <select id="product-category-filter" onchange="productsModule.filterCategory(this.value)" class="border border-slate-300 rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <button 
+            type="button" 
+            onclick="productsModule.clearSearch()" 
+            title="Limpar busca"
+            class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-200 shadow-sm cursor-pointer shrink-0">
+            ✕ Limpar
+          </button>
+          <select id="product-category-filter" onchange="productsModule.filterCategory(this.value)" class="border border-slate-300 rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full sm:w-auto">
             <option value="">Todas as Categorias</option>
             <option value="Lonas">Lonas</option>
             <option value="Adesivos">Adesivos</option>
@@ -146,6 +153,16 @@ window.productsModule = {
     }
     const filtered = products.filter(p => p.categoria === cat);
     document.getElementById('products-list').innerHTML = this.renderCards(filtered);
+  },
+
+  clearSearch() {
+    const input = document.getElementById('product-search');
+    if (input) input.value = '';
+    const catSelect = document.getElementById('product-category-filter');
+    if (catSelect) catSelect.value = '';
+    const products = window.store.getProducts();
+    const list = document.getElementById('products-list');
+    if (list) list.innerHTML = this.renderCards(products);
   },
 
   openModal(product = null) {

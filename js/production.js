@@ -1,19 +1,24 @@
 window.productionModule = {
   phases: [
-    { id: 'orcamento', name: '1. ORÇAMENTO', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { id: 'prevenda', name: '2. PRÉ-VENDA', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
-    { id: 'aprovacao', name: '3. APROVAÇÃO', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { id: 'liberado', name: '4. LIBERADO', icon: 'M5 13l4 4L19 7' },
-    { id: 'producao', name: '5. PRODUÇÃO', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
-    { id: 'acabamento', name: '6. ACABAMENTO', icon: 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z' },
-    { id: 'embalagem', name: '7. EMBALAGEM', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-    { id: 'entregue', name: '8. ENTREGA', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' }
+    { id: 'orcamento', name: 'Orçamento', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    { id: 'prevenda', name: 'Pré-Venda', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'aprovacao', name: 'Aprovação', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { id: 'liberado', name: 'Liberação', icon: 'M5 13l4 4L19 7' },
+    { id: 'producao', name: 'Produção', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+    { id: 'acabamento', name: 'Acabamento', icon: 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z' },
+    { id: 'embalagem', name: 'Expedição', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+    { id: 'entregue', name: 'Entrega', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' }
   ],
   searchTerm: '',
   filterUrgency: 'all',
 
   setSearchTerm(term) {
     this.searchTerm = term.toLowerCase();
+    this.render();
+  },
+
+  clearSearch() {
+    this.searchTerm = '';
     this.render();
   },
 
@@ -237,17 +242,26 @@ window.productionModule = {
         <!-- 2. Barra de Busca, Filtros Rápidos & Ações da Fábrica -->
         <div class="bg-white dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           
-          <!-- Campo de Busca em Tempo Real -->
-          <div class="relative flex-1 max-w-md">
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <!-- Campo de Busca em Tempo Real e Botão Limpar -->
+          <div class="flex items-center gap-2 flex-1 max-w-md">
+            <div class="relative flex-1">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+              <input 
+                type="text" 
+                placeholder="Buscar por O.S., Cliente ou Material..." 
+                value="${this.searchTerm}" 
+                oninput="productionModule.setSearchTerm(this.value)" 
+                class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
             </div>
-            <input 
-              type="text" 
-              placeholder="Buscar por O.S., Cliente ou Material..." 
-              value="${this.searchTerm}" 
-              oninput="productionModule.setSearchTerm(this.value)" 
-              class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            <button 
+              type="button" 
+              onclick="productionModule.clearSearch()" 
+              title="Limpar busca"
+              class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer shrink-0">
+              ✕ Limpar
+            </button>
           </div>
 
           <!-- Filtros de Urgência -->
@@ -352,6 +366,24 @@ window.productionModule = {
           ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">Orçamento</span>'
           : '<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-cyan-300">Venda</span>'));
 
+    let lastMovText = 'Recente';
+    if (order.historico && order.historico.length > 0) {
+      const lastH = order.historico[order.historico.length - 1];
+      const d = new Date(lastH.data);
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const hor = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      lastMovText = `🕒 ${dia}/${mes} ${hor}:${min} • ${lastH.usuario || 'Operador'}`;
+    } else {
+      const d = order.data_venda ? new Date(order.data_venda) : new Date();
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const hor = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      lastMovText = `🕒 ${dia}/${mes} ${hor}:${min} • ${order.operador || 'Operador'}`;
+    }
+
     return `
       <div 
         id="kanban-card-${order.id}" 
@@ -362,6 +394,11 @@ window.productionModule = {
         title="Duplo clique para abrir a Ordem de Serviço de Produção (Sem Valores Financeiros)"
         style="cursor: pointer;">
         
+        <!-- Carimbo de Última Movimentação (Marcação Amarela Imagem 1) -->
+        <div class="flex items-center justify-between text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2 py-1 rounded-lg border border-amber-200/80 dark:border-amber-800/60 mb-2 truncate" title="Última movimentação registrada">
+          <span class="truncate">${lastMovText}</span>
+        </div>
+
         <!-- Topo do Card: Número do Pedido + Badges de Urgência & Operação -->
         <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
           <div class="flex items-center gap-1.5">
@@ -423,10 +460,10 @@ window.productionModule = {
         <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
           <button 
             type="button" 
-            onclick="event.stopPropagation(); salesModule.openProductionWorkOrder('${order.id}')" 
-            class="text-[11px] font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1" 
-            title="Abrir Ordem de Serviço de Produção">
-            <span>📋 Abrir O.S.</span>
+            onclick="event.stopPropagation(); ${order.status_fase === 'entregue' ? `salesModule.openProtocolModal('${order.id}')` : `salesModule.openProductionWorkOrder('${order.id}')`}" 
+            class="text-[11px] font-black ${order.status_fase === 'entregue' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-cyan-400'} hover:underline flex items-center gap-1" 
+            title="${order.status_fase === 'entregue' ? 'Emitir Protocolo de Entrega' : 'Abrir Ordem de Serviço de Produção'}">
+            <span>${order.status_fase === 'entregue' ? '📦 Emitir Protocolo de Entrega' : '📋 Abrir O.S.'}</span>
           </button>
           
           <div class="flex gap-1.5 items-center">
@@ -465,6 +502,28 @@ window.productionModule = {
     const oldPhaseObj = this.phases.find(p => p.id === order.status_fase);
     const newPhaseObj = this.phases.find(p => p.id === newPhaseId);
     
+    // Regra de Negócio: Orçamento e Pré-Venda só tramitam até Aprovação
+    const advancedPhases = ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'];
+    const currentOp = (order.tipo_operacao || order.tipo || 'venda').toLowerCase();
+    if (advancedPhases.includes(newPhaseId) && (currentOp === 'orcamento' || currentOp === 'prevenda')) {
+      const opLabel = currentOp === 'orcamento' ? 'ORÇAMENTO' : 'PRÉ-VENDA';
+      const shouldConvert = confirm(
+        `⚠️ REGRA DE TRAMITAÇÃO:\n\nPropostas registradas como ${opLabel} só podem tramitar até a fase de Aprovação.\n\nPara avançar para "${newPhaseObj.name}" e liberar a O.S. na fábrica, esta proposta precisa ser convertida em VENDA.\n\nDeseja converter este pedido em VENDA agora para autorizar a liberação?`
+      );
+      if (!shouldConvert) {
+        return;
+      }
+      order.tipo_operacao = 'venda';
+      if (typeof window.store.saveOrder === 'function') {
+        await window.store.saveOrder(order);
+      } else {
+        const allO = window.store.getOrders();
+        const idx = allO.findIndex(o => o.id === order.id);
+        if (idx !== -1) allO[idx].tipo_operacao = 'venda';
+        window.store.save('grafsis_orders', allO);
+      }
+    }
+
     const dataPedido = order.data_venda ? new Date(order.data_venda).toLocaleDateString('pt-BR') : 'Sem data';
     const prazo = order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'Sem prazo';
 

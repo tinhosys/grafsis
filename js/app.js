@@ -71,6 +71,21 @@ window.app = {
 
   init() {
     this.initTheme();
+
+    // Verificação de rota pública: Portal de Aprovação de Cliente (Sem Senha)
+    const currentHash = window.location.hash || '';
+    if (currentHash.startsWith('#aprovacao') || currentHash.startsWith('#portal')) {
+      this.renderPublicClientApprovalPortal(currentHash);
+      return;
+    }
+
+    window.addEventListener('hashchange', () => {
+      const h = window.location.hash || '';
+      if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
+        this.renderPublicClientApprovalPortal(h);
+      }
+    });
+
     this.updateUserHeader();
 
     // Primeiro de tudo: tela de login. Só entra se tiver acesso autenticado.
@@ -2148,46 +2163,15 @@ window.app = {
               </div>
             ` : ''}
 
-            <!-- 2. ALERTA DE PEDIDOS COM PRAZO DE ENTREGA VENCIDO (AMARELO) -->
-            ${(overdueOrders.length > 0) ? `
-              <div class="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 shadow-sm space-y-3">
-                <div class="flex items-center gap-2">
-                  <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0">⏱️</span>
-                  <span class="font-bold text-sm text-amber-900">
-                    ${overdueOrders.length} Pedido(s) com Prazo de Entrega Vencido!
-                  </span>
-                </div>
-                <p class="text-xs text-amber-800">
-                  Os seguintes pedidos ainda estão pendentes e já ultrapassaram a previsão de entrega prometida ao cliente:
-                </p>
-                <div class="divide-y divide-amber-200 bg-white/80 rounded-xl border border-amber-200 overflow-hidden">
-                  ${overdueOrders.slice(0, 5).map(o => `
-                    <div class="p-2.5 flex items-center justify-between gap-3 text-xs">
-                      <div>
-                        <div class="font-black text-slate-800">#${o.id || o.numero_pedido || '---'} • ${o.cliente_nome || 'Cliente'}</div>
-                        <div class="text-[11px] text-red-600 font-bold">Entrega prevista: ${new Date((o.previsao_entrega || o.data_entrega) + 'T12:00:00').toLocaleDateString('pt-BR')} (Atrasado)</div>
-                      </div>
-                      <button 
-                        onclick="document.getElementById('notifications-modal').remove(); window.salesModule.openModal({ id: '${o.id}' });" 
-                        class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded text-[11px] shrink-0 transition">
-                        Ver Pedido
-                      </button>
-                    </div>
-                  `).join('')}
-                </div>
-                ${overdueOrders.length > 5 ? `<div class="text-[11px] text-amber-700 font-semibold text-center">+ ${overdueOrders.length - 5} pedidos atrasados adicionais</div>` : ''}
-              </div>
-            ` : ''}
-
-            <!-- 3. STATUS REGULAR SE NÃO HOUVER PENDÊNCIAS -->
-            ${(!expStatus?.expiringSoon && overdueOrders.length === 0) ? `
+            <!-- STATUS REGULAR SE NÃO HOUVER PENDÊNCIAS -->
+            ${(!expStatus?.expiringSoon) ? `
               <div class="p-6 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-center space-y-2">
                 <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold">
                   ✓
                 </div>
                 <div class="font-black text-base text-emerald-800">Tudo em Dia!</div>
                 <p class="text-xs text-emerald-700 max-w-sm mx-auto">
-                  Sua empresa está com a licença ativa e não possui nenhum pedido com prazo de entrega vencido no momento.
+                  Sua empresa está com a licença ativa e regularizada. Alertas operacionais e prazos de pedidos são gerenciados diretamente nas colunas do Kanban de Produção.
                 </p>
               </div>
             ` : ''}
@@ -2281,6 +2265,287 @@ window.app = {
   openNewOrderModal(params) {
     if (window.salesModule && typeof window.salesModule.openModal === 'function') {
       window.salesModule.openModal(params);
+    }
+  },
+
+  renderPublicClientApprovalPortal(hash) {
+    let orderId = '';
+    if (hash.includes('id=')) {
+      orderId = hash.split('id=')[1].split('&')[0];
+    } else if (hash.includes('?')) {
+      orderId = hash.split('?')[1].split('&')[0];
+    } else {
+      orderId = hash.replace('#aprovacao', '').replace('#portal', '').replace('/', '');
+    }
+    orderId = decodeURIComponent(orderId).trim();
+
+    // Oculta barras de navegação internas para portal público limpo
+    const aside = document.querySelector('aside');
+    const header = document.querySelector('header');
+    const footer = document.querySelector('footer');
+    if (aside) aside.classList.add('hidden');
+    if (header) header.classList.add('hidden');
+    if (footer) footer.classList.add('hidden');
+
+    if (window.authModule && typeof window.authModule.closeLoginModal === 'function') {
+      window.authModule.closeLoginModal();
+    }
+
+    const container = document.getElementById('view-container') || document.body;
+    const orders = (window.store && window.store.getOrders()) || [];
+    const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+
+    if (!order) {
+      container.innerHTML = `
+        <div class="min-h-[80vh] flex items-center justify-center p-4">
+          <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-2xl text-center space-y-4">
+            <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-500 mx-auto flex items-center justify-center text-3xl font-black">
+              🔍
+            </div>
+            <h2 class="text-xl font-black text-slate-900 dark:text-white">Pedido Não Localizado</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              O link de aprovação acessado pode ter expirado ou o número do pedido não foi encontrado em nosso sistema.
+            </p>
+            <div class="pt-4">
+              <a href="index.html" class="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition">
+                Acessar Início
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const tenant = (window.store && window.store.getActiveTenant) ? window.store.getActiveTenant() : {};
+    const clients = (window.store && window.store.getClients()) || [];
+    const client = clients.find(c => c.id === order.cliente_id) || { nome: order.cliente_nome || 'Cliente' };
+    const empresaNome = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS Comunicação Visual';
+    const empresaWhats = tenant.celular_whatsapp || tenant.telefone || '(69) 99922-1336';
+    const isApproved = !!order.aprovado_cliente || order.status_fase === 'aprovacao' || ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'].includes(order.status_fase);
+
+    container.innerHTML = `
+      <div class="max-w-3xl mx-auto py-6 px-4 sm:px-6 space-y-6">
+        <!-- Topo com Logo e Identificação da Empresa -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-4 text-center sm:text-left">
+            <div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-cyan-400 font-black text-2xl shadow-inner shrink-0">
+              ${tenant.logo_url ? `<img src="${tenant.logo_url}" class="w-full h-full object-contain rounded-2xl" alt="Logo">` : '🖨️'}
+            </div>
+            <div>
+              <span class="text-[10px] font-black uppercase text-blue-600 dark:text-cyan-400 tracking-wider">Portal de Aprovação Online</span>
+              <h1 class="text-xl font-black text-slate-900 dark:text-white leading-tight">${empresaNome}</h1>
+              <p class="text-xs text-slate-400 mt-0.5">Confirmação e liberação técnica de produção</p>
+            </div>
+          </div>
+          <div class="text-center sm:text-right">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase font-mono tracking-wider ${isApproved ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}">
+              ${isApproved ? '✅ ARTE APROVADA' : '🟡 AGUARDANDO SUA APROVAÇÃO'}
+            </span>
+            <div class="text-xs font-mono font-bold text-slate-500 mt-1">Pedido #${order.numero}</div>
+          </div>
+        </div>
+
+        <!-- Dados do Pedido & Cliente -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase block">Cliente:</span>
+              <strong class="text-sm text-slate-900 dark:text-white">${client.nome}</strong>
+              <span class="block text-slate-500 mt-0.5">${client.telefone_whatsapp || ''}</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase block">Data de Emissão:</span>
+              <strong class="text-slate-800 dark:text-slate-200">${new Date(order.data_venda || order.data_criacao || Date.now()).toLocaleDateString('pt-BR')}</strong>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase block">Previsão de Entrega:</span>
+              <strong class="text-rose-600 dark:text-rose-400 font-bold">${order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'A combinar'}</strong>
+            </div>
+          </div>
+
+          <!-- Layout / Arte Aprovada em Alta Definição -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                🖼️ Layout / Prova Virtual da Arte
+              </h3>
+              ${order.foto_arte_url ? `
+                <a href="${order.foto_arte_url}" target="_blank" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                  🔍 Ver em Tamanho Real
+                </a>
+              ` : ''}
+            </div>
+
+            <div class="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center flex items-center justify-center min-h-[220px]">
+              ${order.foto_arte_url ? `
+                <img src="${order.foto_arte_url}" class="max-h-[380px] w-auto max-w-full rounded-xl shadow-md object-contain" alt="Arte do Pedido">
+              ` : `
+                <div class="text-slate-400 py-8">
+                  <p class="text-sm font-bold">Nenhum anexo de layout vinculado a este pedido.</p>
+                  <p class="text-xs mt-1">Consulte os itens e medidas descritos abaixo.</p>
+                </div>
+              `}
+            </div>
+          </div>
+
+          <!-- Tabela com Especificações dos Itens -->
+          <div>
+            <h3 class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 mb-2">
+              📋 Itens, Dimensões e Acabamentos
+            </h3>
+            <div class="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl-none">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase text-[10px]">
+                  <tr>
+                    <th class="p-3">Item</th>
+                    <th class="p-3">Medidas / Formato</th>
+                    <th class="p-3 text-center">Qtd</th>
+                    <th class="p-3">Acabamento</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                  ${(order.itens || []).map((it, idx) => `
+                    <tr>
+                      <td class="p-3 font-semibold text-slate-900 dark:text-white">
+                        #${it.item_id || (String(order.numero) + String(idx + 1).padStart(2, '0'))} • ${it.produto_nome || it.descricao}
+                      </td>
+                      <td class="p-3 font-mono text-slate-600 dark:text-slate-300">
+                        ${it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` : 'Unidade')}
+                      </td>
+                      <td class="p-3 text-center font-bold text-slate-900 dark:text-white">${it.quantidade}x</td>
+                      <td class="p-3 text-amber-700 dark:text-amber-300 text-[11px]">${it.acabamento || 'Padrão'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Decisão e Aprovação -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          ${isApproved ? `
+            <div class="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-center space-y-2">
+              <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mx-auto text-2xl font-black">
+                ✓
+              </div>
+              <h3 class="text-base font-black text-emerald-800 dark:text-emerald-300">Produção Aprovada pelo Cliente!</h3>
+              <p class="text-xs text-emerald-700 dark:text-emerald-400 max-w-md mx-auto">
+                Este pedido já foi validado e liberado para a fila de produção.
+                ${order.aprovado_cliente ? `<br><span class="font-mono text-[11px] opacity-80 mt-1 block">Aprovado em ${new Date(order.aprovado_cliente.data).toLocaleString('pt-BR')} por ${order.aprovado_cliente.aprovador || client.nome}</span>` : ''}
+              </p>
+            </div>
+          ` : `
+            <div class="space-y-4">
+              <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
+                <div class="font-black flex items-center gap-1.5 text-sm text-amber-800 dark:text-amber-300">
+                  ⚠️ Importante antes de aprovar:
+                </div>
+                <p>
+                  Por favor, confira atentamente todos os textos, telefones, números, imagens, proporções e dimensões do layout.
+                </p>
+                <p class="font-semibold">
+                  Ao aprovar, o arquivo segue diretamente para a linha de produção, corte e gravação.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nome do Responsável pela Aprovação *</label>
+                  <input type="text" id="client-approver-name" value="${client.nome}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Telefone / WhatsApp para Contato</label>
+                  <input type="text" id="client-approver-phone" value="${client.telefone_whatsapp || ''}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
+
+              <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                <button 
+                  type="button" 
+                  id="btn-confirm-approval"
+                  onclick="app.submitClientApproval('${order.id}')" 
+                  class="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                  <span>✅ Concordo e Aprovo a Produção</span>
+                </button>
+                <a 
+                  href="https://api.whatsapp.com/send?phone=55${empresaWhats.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá, gostaria de solicitar uma alteração no layout do Pedido #${order.numero}.`)}" 
+                  target="_blank" 
+                  class="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+                  <span>💬 Solicitar Ajuste no WhatsApp</span>
+                </a>
+              </div>
+            </div>
+          `}
+        </div>
+
+        <div class="text-center text-xs text-slate-400 py-4">
+          ${empresaNome} &bull; Sistema GRAFSIS Cloud
+        </div>
+      </div>
+    `;
+  },
+
+  async submitClientApproval(orderId) {
+    const orders = (window.store && window.store.getOrders()) || [];
+    const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+    if (!order) return;
+
+    const approverName = document.getElementById('client-approver-name')?.value || 'Cliente';
+    const approverPhone = document.getElementById('client-approver-phone')?.value || '';
+
+    const btn = document.getElementById('btn-confirm-approval');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Registrando aprovação...</span>';
+    }
+
+    const finalizeApproval = async (geoCoords = null) => {
+      order.aprovado_cliente = {
+        data: new Date().toISOString(),
+        aprovador: approverName,
+        telefone: approverPhone,
+        userAgent: navigator.userAgent,
+        geo: geoCoords
+      };
+      order.status_fase = 'aprovacao';
+      order.historico = order.historico || [];
+      order.historico.push({
+        fase: 'aprovacao',
+        data: new Date().toISOString(),
+        usuario: `Cliente (${approverName}) via Portal Público`
+      });
+
+      if (typeof window.store.saveOrder === 'function') {
+        await window.store.saveOrder(order);
+      } else {
+        const allO = window.store.getOrders();
+        const idx = allO.findIndex(o => o.id === order.id);
+        if (idx !== -1) allO[idx] = order;
+        window.store.save('grafsis_orders', allO);
+      }
+
+      alert('🎉 Parabéns! Sua aprovação foi confirmada com sucesso.\n\nO pedido agora está liberado para nossa equipe de produção.');
+      this.renderPublicClientApprovalPortal(window.location.hash);
+    };
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          finalizeApproval({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          });
+        },
+        (err) => {
+          finalizeApproval(null);
+        },
+        { timeout: 4000 }
+      );
+    } else {
+      finalizeApproval(null);
     }
   }
 };

@@ -165,12 +165,20 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 /* Layout Geral & Fundo */
-html.dark #app-layout {
-  background-color: #080e1a !important;
-}
-html.dark #view-container {
+html.dark #app-layout,
+html.dark #main-content-scroll,
+html.dark main,
+html.dark #view-container,
+html.dark footer,
+html.dark .bg-\[\#f8fafc\],
+html.dark .bg-\[\#f3f6f9\],
+html.dark .bg-\[\#eef3f9\] {
   background-color: #080e1a !important;
   color: #f8fafc !important;
+}
+
+html.dark footer {
+  border-color: #1e293b !important;
 }
 
 /* Header Superior */

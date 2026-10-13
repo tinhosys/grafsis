@@ -1,4 +1,4 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Módulo de Fornecedores
    Cadastro Completo: Razão Social, CNPJ, Inscrição Estadual, Vendedor, Contato
    ============================================================================== */
@@ -26,9 +26,18 @@ window.suppliersModule = {
 
         <!-- Filtro de Busca -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-          <div class="relative">
-            <input type="text" id="supplier-search" oninput="suppliersModule.search(this.value)" placeholder="Buscar por Nome Fantasia, Razão Social, CNPJ, Vendedor ou Insumo..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <input type="text" id="supplier-search" oninput="suppliersModule.search(this.value)" placeholder="Buscar por Nome Fantasia, Razão Social, CNPJ, Vendedor ou Insumo..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <button 
+              type="button" 
+              onclick="suppliersModule.clearSearch()" 
+              title="Limpar busca"
+              class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-200 shadow-sm cursor-pointer shrink-0">
+              ✕ Limpar
+            </button>
           </div>
         </div>
 
@@ -133,6 +142,14 @@ window.suppliersModule = {
       (f.categoria_produtos && f.categoria_produtos.toLowerCase().includes(t))
     );
     document.getElementById('suppliers-list').innerHTML = this.renderCards(filtered);
+  },
+
+  clearSearch() {
+    const input = document.getElementById('supplier-search');
+    if (input) input.value = '';
+    const suppliers = window.store.getSuppliers();
+    const list = document.getElementById('suppliers-list');
+    if (list) list.innerHTML = this.renderCards(suppliers);
   },
 
   openModal(supplier = null) {

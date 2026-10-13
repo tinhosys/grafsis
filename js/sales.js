@@ -679,6 +679,17 @@ window.salesModule = {
     const products = window.store.getProducts();
     const isEdit = params.orderId ? true : false;
     const order = isEdit ? window.store.getOrders().find(o => o.id === params.orderId) : null;
+    
+    if (isEdit && order) {
+      const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
+      const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+      if (!isManagerOrOwner) {
+        alert('Acesso Restrito: Pedidos já registrados só podem ser alterados por usuários com perfil Gerente ou Proprietário.\n\nExibindo pedido no modo de visualização técnica.');
+        this.quickView(params.orderId);
+        return;
+      }
+    }
+
     this.activeItems = order ? JSON.parse(JSON.stringify(order.itens || [])).map(it => ({
       ...it,
       liberado_os: it.liberado_os !== undefined ? it.liberado_os : true
@@ -714,10 +725,15 @@ window.salesModule = {
               </button>
               <h2 class="text-2xl font-black text-slate-800">${isEdit ? 'Editar Pedido' : 'Nova Venda / Orçamento'}</h2>
             </div>
-            <div class="text-right">
+            <div class="text-right flex flex-col items-end">
               <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider">ID OPERAÇÃO</span>
               <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">#${displayId}</span>
               <input type="hidden" id="current-display-id" value="${displayId}">
+              ${order ? `
+                <button type="button" onclick="salesModule.copyClientApprovalLink('${order.id}')" class="mt-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Copiar link público para aprovação do cliente sem login">
+                  🔗 Link de Aprovação do Cliente
+                </button>
+              ` : ''}
             </div>
           </div>
           
@@ -2295,6 +2311,14 @@ window.salesModule = {
             ? this.currentEditingOrderId 
             : null);
       const isExistingOrder = !!currentId;
+      if (isExistingOrder) {
+        const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
+        const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+        if (!isManagerOrOwner) {
+          alert('Acesso Restrito: Pedidos já registrados só podem ser alterados por usuários com perfil Gerente ou Proprietário.');
+          return;
+        }
+      }
       const oldOrder = isExistingOrder ? window.store.getOrders().find(o => o.id === currentId) : null;
       const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : (activeDisplayId || geradoNumero || this.getNextOrderId());
 
@@ -2401,6 +2425,16 @@ window.salesModule = {
     if (!form) {
       alert('Erro: Formulário do pedido não localizado na tela.');
       return;
+    }
+
+    const isExistingOrder = !!(id || this.currentEditingOrderId);
+    if (isExistingOrder) {
+      const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
+      const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+      if (!isManagerOrOwner) {
+        alert('Acesso Restrito: Pedidos já registrados só podem ser alterados por usuários com perfil Gerente ou Proprietário.');
+        return;
+      }
     }
 
     const clienteId = form.cliente_id ? form.cliente_id.value : document.getElementById('order-cliente-select')?.value;
@@ -2670,6 +2704,12 @@ window.salesModule = {
 
   handleEditAction(orderId) {
     if (orderId) {
+      const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
+      const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+      if (!isManagerOrOwner) {
+        alert('Acesso Restrito: Pedidos já registrados só podem ser editados por usuários com perfil Gerente ou Proprietário.');
+        return;
+      }
       this.currentEditingOrderId = orderId;
     }
     const clientSel = document.getElementById('order-cliente-select') || document.querySelector('select[name="cliente_id"]');
@@ -2691,14 +2731,14 @@ window.salesModule = {
     const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Desconhecido' };
     
     const phaseNames = {
-      'orcamento': '1. ORCAMENTO / PEDIDO',
-      'prevenda': '2. PRE-VENDA',
-      'aprovacao': '3. APROVACAO DO CLIENTE',
-      'liberado': '4. LIBERADO ORDEM DE SERVICO',
-      'producao': '5. EM PRODUCAO',
-      'acabamento': '6. ACABAMENTO',
-      'embalagem': '7. EMBALAGEM',
-      'entregue': '8. EXPEDICAO / ENTREGA'
+      'orcamento': 'Orçamento',
+      'prevenda': 'Pré-Venda',
+      'aprovacao': 'Aprovação',
+      'liberado': 'Liberação',
+      'producao': 'Produção',
+      'acabamento': 'Acabamento',
+      'embalagem': 'Expedição',
+      'entregue': 'Entrega'
     };
 
     const histHtml = (order.historico || []).map(h => `
@@ -2748,6 +2788,12 @@ window.salesModule = {
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },  delete(id) {
+    const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
+    const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+    if (!isManagerOrOwner) {
+      alert('Acesso Negado: Apenas usuários com perfil Gerente ou Proprietário têm permissão para excluir pedidos registrados.');
+      return;
+    }
     if (confirm('Excluir este pedido?')) { window.store.deleteOrder(id); this.render(); }
   },
   sendWhatsAppOrder(orderId, customType = 'geral') {
@@ -2829,77 +2875,506 @@ window.salesModule = {
 
     window.location.href = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   },
+  generateLocalizador() {
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const digits = '23456789';
+    // Regra: exatamente 5 caracteres com (3 letras + 2 números) OU (2 letras + 3 números) em qualquer posição
+    const numLetters = Math.random() < 0.5 ? 3 : 2;
+    const numDigits = 5 - numLetters;
+    const pool = [];
+    for (let i = 0; i < numLetters; i++) {
+      pool.push(letters.charAt(Math.floor(Math.random() * letters.length)));
+    }
+    for (let i = 0; i < numDigits; i++) {
+      pool.push(digits.charAt(Math.floor(Math.random() * digits.length)));
+    }
+    // Embaralha as posições aleatoriamente
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.join('');
+  },
+
   openProtocolModal(orderId) {
     const order = window.store.getOrders().find(o => o.id === orderId);
     if (!order) return;
-    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Consumidor' };
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: order.cliente_nome || 'Consumidor', telefone_whatsapp: '' };
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const localizador = this.generateLocalizador();
+    const currentUser = window.authModule ? (window.authModule.getCurrentUser().nome || window.authModule.getCurrentUser().login) : 'Expedição';
+    const nowStr = new Date().toLocaleString('pt-BR');
 
     const modalHtml = `
-      <div id="protocol-modal-wrap" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl" id="modal-protocolo">
-          <div class="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
+      <div id="protocol-modal-wrap" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 max-h-[94vh] flex flex-col" id="modal-protocolo">
+          
+          <!-- Cabeçalho do Protocolo -->
+          <div class="border-b-2 border-slate-900 dark:border-slate-700 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h1 class="text-2xl font-black text-slate-900">GRAFSIS</h1>
-              <p class="text-xs uppercase text-slate-500 font-bold">Protocolo de Entrega de Materiais</p>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-black tracking-wider uppercase">EXPEDIÇÃO & ENTREGA</span>
+                <span class="font-mono text-xl sm:text-2xl font-black text-blue-600 dark:text-cyan-400">#${order.numero}</span>
+              </div>
+              <h1 class="text-base font-black text-slate-900 dark:text-white mt-1">Protocolo Oficial de Entrega de Materiais</h1>
+              <p class="text-xs text-slate-500 dark:text-slate-400">${tenant.razao_social || tenant.nome_fantasia || 'GRAFSIS'} &bull; Gestão de Retiradas e Balcão</p>
             </div>
-            <div class="text-right">
-              <span class="bg-slate-900 text-white font-mono text-sm px-3 py-1 rounded font-bold">PROTOCOLO #${order.numero}</span>
-              <p class="text-xs text-slate-400 mt-1">Data: ${new Date().toLocaleDateString()}</p>
+            <div class="text-left sm:text-right flex flex-col sm:items-end">
+              <span class="px-3.5 py-1.5 bg-slate-900 text-yellow-300 dark:bg-yellow-400 dark:text-slate-950 font-mono text-sm rounded-xl font-black tracking-widest shadow-md">
+                LOCALIZADOR: ${localizador}
+              </span>
+              <p class="text-[11px] text-slate-400 font-mono mt-1">Data/Hora: ${nowStr}</p>
             </div>
           </div>
-          <div class="mt-4 bg-slate-50 p-3 rounded-lg border text-xs grid grid-cols-2 gap-2">
+
+          <!-- Corpo Rolável -->
+          <div class="overflow-y-auto flex-1 py-4 space-y-4">
+            
+            <!-- Dados do Cliente e Retirada -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs">
+              <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Cliente / Empresa:</span>
+                <strong class="text-sm text-slate-900 dark:text-white">${client.nome}</strong>
+                <p class="text-slate-500 mt-0.5">${client.telefone_whatsapp || 'Sem telefone registrado'}</p>
+                <p class="text-slate-500">${client.endereco || 'Retirada no Balcão'}</p>
+              </div>
+              <div class="space-y-1.5">
+                <div>
+                  <label class="block text-[10px] font-black uppercase text-slate-500">Nome de quem está retirando *</label>
+                  <input type="text" id="prot-nome-rec" value="${order.protocolo_recebedor_nome || client.nome || ''}" placeholder="Nome legível do portador" class="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] font-black uppercase text-slate-500">Telefone / Contato</label>
+                    <input type="text" id="prot-tel-rec" value="${order.protocolo_recebedor_tel || client.telefone_whatsapp || ''}" placeholder="(XX) XXXXX-XXXX" class="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-black uppercase text-slate-500">Quem autorizou</label>
+                    <input type="text" id="prot-autorizador" value="${currentUser}" placeholder="Responsável" class="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Imagem e Layout Aprovado -->
+            ${order.foto_arte_url ? `
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-4">
+                <div class="w-28 h-24 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 border border-slate-300 dark:border-slate-700">
+                  <img src="${order.foto_arte_url}" class="w-full h-full object-cover" alt="Layout">
+                </div>
+                <div class="text-xs">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Layout Aprovado</span>
+                  <p class="font-bold text-slate-800 dark:text-slate-200 mt-1">Conferência Visual da Arte e Especificação</p>
+                  <p class="text-slate-500 text-[11px] mt-0.5">Certifique-se de que os materiais físicos conferem exatamente com a prova virtual acima aprovada.</p>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Tabela de Controle de Entregas Parciais / Totais -->
             <div>
-              <strong class="text-slate-500">CLIENTE:</strong>
-              <p class="font-bold text-slate-800">${client.nome}</p>
-              <p>${client.telefone_whatsapp || ''}</p>
+              <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  📦 Itens do Pedido & Quantidades para Liberação
+                </h3>
+                <span class="text-[11px] text-slate-500">Digite a quantidade sendo entregue no momento</span>
+              </div>
+              <div class="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-extrabold uppercase text-[10px]">
+                    <tr>
+                      <th class="p-2.5"># Item</th>
+                      <th class="p-2.5">Descrição</th>
+                      <th class="p-2.5 text-center">Total Pedido</th>
+                      <th class="p-2.5 text-center">Já Entregue</th>
+                      <th class="p-2.5 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Entregando Agora</th>
+                      <th class="p-2.5 text-center">Saldo Faltante</th>
+                      <th class="p-2.5 text-center">Gestão</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    ${(order.itens || []).map((it, idx) => {
+                      const totalQtd = Number(it.quantidade || 1);
+                      const jaEntregue = Number(it.qtd_entregue || 0);
+                      const cancelada = Number(it.qtd_cancelada || 0);
+                      const saldo = Math.max(0, totalQtd - jaEntregue - cancelada);
+                      const itemCode = it.item_id || (String(order.numero) + String(idx + 1).padStart(2, '0'));
+
+                      return `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                          <td class="p-2.5 font-mono font-black text-blue-600 dark:text-cyan-400">#${itemCode}</td>
+                          <td class="p-2.5">
+                            <strong class="text-slate-900 dark:text-white block">${it.produto_nome || it.descricao}</strong>
+                            <span class="text-[11px] text-slate-500">${it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : ''} ${it.acabamento ? '• ' + it.acabamento : ''}</span>
+                            ${cancelada > 0 ? `<span class="block text-[10px] text-red-600 font-bold mt-0.5">⚠️ ${cancelada} item(ns) cancelado(s) por gestão: ${it.motivo_cancelamento_saldo || 'Encerramento'}</span>` : ''}
+                          </td>
+                          <td class="p-2.5 text-center font-bold font-mono text-slate-800 dark:text-slate-200">${totalQtd}</td>
+                          <td class="p-2.5 text-center font-bold font-mono text-slate-500">${jaEntregue}</td>
+                          <td class="p-2.5 text-center bg-emerald-50/50 dark:bg-emerald-950/20">
+                            <input 
+                              type="number" 
+                              id="prot-item-qtd-${idx}" 
+                              min="0" 
+                              max="${saldo}" 
+                              value="${saldo}" 
+                              oninput="salesModule.updateDeliveryBalance(${idx}, ${totalQtd}, ${jaEntregue}, ${cancelada})" 
+                              class="w-16 px-2 py-1 text-center font-black text-sm border-2 border-emerald-400 dark:border-emerald-600 rounded-xl bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                          </td>
+                          <td class="p-2.5 text-center">
+                            <span id="prot-saldo-span-${idx}" class="font-black font-mono text-xs text-emerald-600">0</span>
+                          </td>
+                          <td class="p-2.5 text-center">
+                            ${saldo > 0 ? `
+                              <button 
+                                type="button" 
+                                onclick="salesModule.cancelPendingItemBalance('${order.id}', ${idx})" 
+                                class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg text-[10px] font-bold transition whitespace-nowrap cursor-pointer" 
+                                title="Encerrar/cancelar saldo restante deste item com justificativa">
+                                🚫 Cancelar Saldo
+                              </button>
+                            ` : `<span class="text-[10px] font-bold text-emerald-600">OK</span>`}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div>
-              <strong class="text-slate-500">LOCAL:</strong>
-              <p>${client.endereco || 'Balcao'}</p>
-              ${client.plus_code ? '<p class="font-mono text-blue-600">Plus Code: ' + client.plus_code + '</p>' : ''}
+
+            <!-- Termo de Declaração de Recebimento -->
+            <div class="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+              <p class="font-medium text-slate-700 dark:text-slate-300">
+                Declaro para os devidos fins que recebi os materiais e serviços acima especificados em perfeito estado de conservação, acabamento e conformidade técnica.
+              </p>
+              ${window.store.getSettings().companyFooterMsg ? `<p class="text-[10px] text-slate-400 italic">${window.store.getSettings().companyFooterMsg}</p>` : ''}
             </div>
           </div>
-          <div class="mt-4">
-            <table class="w-full text-xs text-left border rounded overflow-hidden">
-              <thead class="bg-slate-100"><tr><th class="p-2">Item</th><th class="p-2">Medidas</th><th class="p-2 text-center">Qtd</th><th class="p-2 text-right">Total</th></tr></thead>
-              <tbody>
-                ${order.itens.map(it => `<tr><td class="p-2">${it.descricao}</td><td class="p-2 font-mono">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : '-'}</td><td class="p-2 text-center">${it.quantidade}</td><td class="p-2 text-right font-mono">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-          <div class="mt-6 pt-4 border-t text-xs space-y-4">
-            <p>Declaro que recebi os materiais e servicos acima relacionados em perfeito estado.</p>
-            ${window.store.getSettings().companyFooterMsg ? `<p class="text-[10px] text-slate-400 italic mb-2">${window.store.getSettings().companyFooterMsg}</p>` : ''}
-            <div class="grid grid-cols-2 gap-4">
-              <div><label class="block text-[11px] text-slate-500 no-print">Nome recebedor:</label><input type="text" id="prot-nome-rec" value="${order.protocolo_recebedor_nome||''}" placeholder="Nome legivel" class="w-full border-b pb-1 text-xs bg-transparent"></div>
-              <div><label class="block text-[11px] text-slate-500 no-print">Documento (RG/CPF):</label><input type="text" id="prot-doc-rec" value="${order.protocolo_recebedor_doc||''}" placeholder="Doc" class="w-full border-b pb-1 text-xs bg-transparent"></div>
+
+          <!-- Rodapé de Ações do Protocolo -->
+          <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <button onclick="document.getElementById('protocol-modal-wrap').remove()" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition">
+              Fechar
+            </button>
+            <div class="flex flex-wrap gap-2 items-center w-full sm:w-auto justify-end">
+              <button 
+                type="button" 
+                onclick="salesModule.sendDeliveryWhatsApp('${order.id}', '${localizador}')" 
+                class="px-3.5 py-2 text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                <span>📱 Enviar WhatsApp</span>
+              </button>
+              <button 
+                type="button" 
+                onclick="salesModule.printDeliveryProtocol('${order.id}', '${localizador}')" 
+                class="px-3.5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                <span>🖨️ Imprimir Protocolo A4</span>
+              </button>
+              <button 
+                type="button" 
+                onclick="salesModule.confirmDelivery('${order.id}', '${localizador}')" 
+                class="px-4 py-2 text-xs bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-black rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer">
+                <span>✅ Confirmar Retirada</span>
+              </button>
             </div>
-            <div class="pt-8 text-center"><div class="w-48 border-t mx-auto"></div><p class="text-[11px] mt-1 font-semibold text-slate-600">Assinatura do Recebedor</p></div>
           </div>
-          <div class="mt-6 pt-3 border-t flex justify-between items-center no-print">
-            <button onclick="document.getElementById('protocol-modal-wrap').remove()" class="px-4 py-2 text-xs text-slate-600">Fechar</button>
-            <div class="flex gap-2">
-              <button onclick="salesModule.confirmDelivery('${order.id}')" class="px-4 py-2 text-xs bg-emerald-600 text-white rounded font-bold">Marcar Entregue</button>
-              <button onclick="window.print()" class="px-4 py-2 text-xs bg-blue-600 text-white rounded font-bold">Imprimir OS/Protocolo</button><button onclick="financeModule.openCashierModal(\x27${order.id}\x27)" class="text-blue-600 px-2 font-bold bg-blue-50 border border-blue-200 rounded mx-1 hover:bg-blue-100">💰 Caixa</button>
-            </div>
-          </div>
+
         </div>
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
-  confirmDelivery(orderId) {
+
+  updateDeliveryBalance(idx, total, entregue, cancelado) {
+    const input = document.getElementById(`prot-item-qtd-${idx}`);
+    const span = document.getElementById(`prot-saldo-span-${idx}`);
+    if (!input || !span) return;
+    const maxSaldo = Math.max(0, total - entregue - cancelado);
+    let val = parseFloat(input.value) || 0;
+    if (val < 0) { val = 0; input.value = 0; }
+    if (val > maxSaldo) { val = maxSaldo; input.value = maxSaldo; }
+    const restante = Math.max(0, maxSaldo - val);
+    span.textContent = restante;
+    if (restante > 0) {
+      span.className = 'font-bold text-amber-600 font-mono';
+    } else {
+      span.className = 'font-bold text-emerald-600 font-mono';
+    }
+  },
+
+  cancelPendingItemBalance(orderId, itemIdx) {
     const orders = window.store.getOrders();
     const order = orders.find(o => o.id === orderId);
-    if (order) {
-      order.protocolo_recebedor_nome = document.getElementById('prot-nome-rec').value;
-      order.protocolo_recebedor_doc = document.getElementById('prot-doc-rec').value;
+    if (!order || !order.itens || !order.itens[itemIdx]) return;
+    const it = order.itens[itemIdx];
+    const totalQtd = Number(it.quantidade || 1);
+    const jaEntregue = Number(it.qtd_entregue || 0);
+    const cancelado = Number(it.qtd_cancelada || 0);
+    const saldo = Math.max(0, totalQtd - jaEntregue - cancelado);
+    if (saldo <= 0) {
+      alert('Não há saldo pendente para este item.');
+      return;
+    }
+
+    const motivo = prompt(
+      `GESTÃO DE SALDO PENDENTE\n\nItem: ${it.descricao || it.produto_nome}\nSaldo Faltante: ${saldo} item(ns)\n\nInforme a justificativa administrativa para o encerramento/cancelamento deste saldo restante:`
+    );
+    if (!motivo || !motivo.trim()) return;
+
+    it.qtd_cancelada = cancelado + saldo;
+    it.motivo_cancelamento_saldo = motivo.trim();
+    order.historico = order.historico || [];
+    order.historico.push({
+      fase: order.status_fase,
+      data: new Date().toISOString(),
+      usuario: `${window.authModule?.getCurrentUser()?.nome || 'Gestor'}: Saldo Cancelado (${saldo} un) - Motivo: ${motivo.trim()}`
+    });
+
+    const isAllComplete = order.itens.every(i => ((Number(i.qtd_entregue) || 0) + (Number(i.qtd_cancelada) || 0)) >= (Number(i.quantidade) || 1));
+    if (isAllComplete) {
       order.status_fase = 'entregue';
       order.data_entrega = new Date().toISOString();
-      window.store.save('grafsis_orders', orders);
-      alert('Entrega confirmada!');
-      document.getElementById('protocol-modal-wrap').remove();
-      this.render();
+    }
+
+    window.store.save('grafsis_orders', orders);
+    alert(`Saldo de ${saldo} item(ns) cancelado com sucesso com registro em histórico.`);
+    document.getElementById('protocol-modal-wrap')?.remove();
+    this.openProtocolModal(orderId);
+  },
+
+  sendDeliveryWhatsApp(orderId, localizador) {
+    const order = window.store.getOrders().find(o => o.id === orderId);
+    if (!order) return;
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Cliente', telefone_whatsapp: '' };
+    const tel = document.getElementById('prot-tel-rec')?.value || client.telefone_whatsapp || '';
+    if (!tel) { alert('Informe o telefone para envio via WhatsApp!'); return; }
+    const nomeRec = document.getElementById('prot-nome-rec')?.value || client.nome;
+    const autorizador = document.getElementById('prot-autorizador')?.value || 'Expedição';
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const companyName = tenant.razao_social || tenant.nome_fantasia || 'GRAFSIS';
+
+    let itensText = '';
+    (order.itens || []).forEach((it, idx) => {
+      const input = document.getElementById(`prot-item-qtd-${idx}`);
+      const qtdAgora = input ? input.value : it.quantidade;
+      itensText += `• ${it.descricao || it.produto_nome}: ${qtdAgora} un.%0A`;
+    });
+
+    const msg = `*${companyName}* - Protocolo de Entrega%0A%0A` +
+      `📦 *PEDIDO #${order.numero}*%0A` +
+      `🔑 *LOCALIZADOR: ${localizador}*%0A%0A` +
+      `👤 *Retirado por:* ${nomeRec}%0A` +
+      `👔 *Autorizado por:* ${autorizador}%0A` +
+      `📅 *Data/Hora:* ${new Date().toLocaleString('pt-BR')}%0A%0A` +
+      `*Materiais Entregues:*%0A${itensText}%0A` +
+      `Declaro que conferi e recebi os materiais em perfeito estado.`;
+
+    const cleanTel = tel.replace(/\D/g, '');
+    const url = `https://api.whatsapp.com/send?phone=55${cleanTel}&text=${msg}`;
+    window.open(url, '_blank');
+  },
+
+  printDeliveryProtocol(orderId, localizador) {
+    const order = window.store.getOrders().find(o => o.id === orderId);
+    if (!order) return;
+    const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Consumidor' };
+    const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
+    const nomeRec = document.getElementById('prot-nome-rec')?.value || client.nome;
+    const telRec = document.getElementById('prot-tel-rec')?.value || client.telefone_whatsapp || '';
+    const autorizador = document.getElementById('prot-autorizador')?.value || 'Expedição';
+
+    const printArea = document.createElement('div');
+    printArea.id = 'print-delivery-area';
+    printArea.className = 'fixed inset-0 z-[9999] bg-white p-8 overflow-y-auto text-slate-900';
+    printArea.innerHTML = `
+      <div class="max-w-3xl mx-auto space-y-6">
+        <div class="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
+          <div>
+            <h1 class="text-2xl font-black">${tenant.razao_social || tenant.nome_fantasia || 'GRAFSIS'}</h1>
+            <p class="text-xs uppercase text-slate-600 font-bold">Comprovante / Protocolo de Entrega de Materiais</p>
+            <p class="text-xs text-slate-500">${tenant.endereco || ''} • ${tenant.celular_whatsapp || ''}</p>
+          </div>
+          <div class="text-right">
+            <div class="inline-block bg-slate-900 text-white font-mono text-base px-3 py-1 rounded font-black tracking-widest">
+              LOCALIZADOR: ${localizador}
+            </div>
+            <div class="text-xs font-bold text-slate-700 mt-1">Pedido #${order.numero}</div>
+            <div class="text-xs text-slate-500">Emissão: ${new Date().toLocaleString('pt-BR')}</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 p-3 bg-slate-50 border rounded-lg text-xs">
+          <div>
+            <strong class="text-slate-500 uppercase block text-[10px]">Cliente / Solicitante:</strong>
+            <p class="font-bold text-sm">${client.nome}</p>
+            <p>${client.telefone_whatsapp || ''}</p>
+            <p>${client.endereco || ''}</p>
+          </div>
+          <div>
+            <strong class="text-slate-500 uppercase block text-[10px]">Dados da Retirada:</strong>
+            <p><strong>Retirado por:</strong> ${nomeRec}</p>
+            <p><strong>Telefone:</strong> ${telRec || 'Não informado'}</p>
+            <p><strong>Autorizado por:</strong> ${autorizador}</p>
+          </div>
+        </div>
+
+        ${order.foto_arte_url ? `
+          <div class="text-center p-2 border rounded-lg bg-slate-50">
+            <span class="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Layout Técnico de Referência</span>
+            <img src="${order.foto_arte_url}" class="max-h-36 mx-auto object-contain rounded" alt="Layout">
+          </div>
+        ` : ''}
+
+        <div>
+          <table class="w-full text-xs text-left border rounded overflow-hidden">
+            <thead class="bg-slate-100 text-[10px] uppercase font-bold text-slate-700">
+              <tr>
+                <th class="p-2.5 border-b"># Item</th>
+                <th class="p-2.5 border-b">Descrição / Material</th>
+                <th class="p-2.5 border-b">Medidas</th>
+                <th class="p-2.5 border-b text-center">Qtd Pedido</th>
+                <th class="p-2.5 border-b text-center">Qtd Entregue</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              ${(order.itens || []).map((it, idx) => {
+                const qtdAgora = document.getElementById(`prot-item-qtd-${idx}`)?.value || it.quantidade;
+                return `
+                  <tr>
+                    <td class="p-2.5 font-mono font-bold">#${it.item_id || idx + 1}</td>
+                    <td class="p-2.5 font-bold">${it.descricao || it.produto_nome}</td>
+                    <td class="p-2.5 font-mono">${it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : '-'}</td>
+                    <td class="p-2.5 text-center">${it.quantidade}</td>
+                    <td class="p-2.5 text-center font-bold font-mono text-sm">${qtdAgora}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pt-4 text-xs space-y-2">
+          <p class="font-medium">
+            Declaro para os devidos fins que conferi e recebi os materiais e serviços acima relacionados em perfeito estado de acabamento e conformidade técnica.
+          </p>
+        </div>
+
+        <div class="pt-12 grid grid-cols-2 gap-8 text-center text-xs">
+          <div>
+            <div class="border-t border-slate-400 w-5/6 mx-auto"></div>
+            <p class="font-bold mt-1">${nomeRec}</p>
+            <p class="text-slate-500 text-[10px]">Assinatura de Quem Retirou</p>
+          </div>
+          <div>
+            <div class="border-t border-slate-400 w-5/6 mx-auto"></div>
+            <p class="font-bold mt-1">${autorizador}</p>
+            <p class="text-slate-500 text-[10px]">Assinatura do Responsável pela Liberação</p>
+          </div>
+        </div>
+
+        <div class="pt-8 text-center no-print">
+          <button onclick="document.getElementById('print-delivery-area').remove()" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold mr-2">Fechar Impressão</button>
+          <button onclick="window.print()" class="px-5 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold shadow">Imprimir Agora</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(printArea);
+    window.print();
+  },
+
+  confirmDelivery(orderId, localizador) {
+    const orders = window.store.getOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const nomeRec = document.getElementById('prot-nome-rec')?.value.trim();
+    if (!nomeRec) {
+      alert('Por favor, informe o nome da pessoa que está retirando os materiais.');
+      document.getElementById('prot-nome-rec')?.focus();
+      return;
+    }
+    const telRec = document.getElementById('prot-tel-rec')?.value.trim() || '';
+    const autorizador = document.getElementById('prot-autorizador')?.value.trim() || 'Expedição';
+
+    let totalEntregueNestaSessao = 0;
+    (order.itens || []).forEach((it, idx) => {
+      const input = document.getElementById(`prot-item-qtd-${idx}`);
+      const qtdAgora = input ? (parseFloat(input.value) || 0) : (parseFloat(it.quantidade) || 0);
+      it.qtd_entregue = (parseFloat(it.qtd_entregue) || 0) + qtdAgora;
+      totalEntregueNestaSessao += qtdAgora;
+    });
+
+    if (totalEntregueNestaSessao <= 0) {
+      alert('Atenção: A quantidade total a entregar nesta retirada deve ser maior que zero.');
+      return;
+    }
+
+    const is100Percent = order.itens.every(it => {
+      const entregue = parseFloat(it.qtd_entregue) || 0;
+      const cancelada = parseFloat(it.qtd_cancelada) || 0;
+      const total = parseFloat(it.quantidade) || 1;
+      return (entregue + cancelada) >= total;
+    });
+
+    order.entregas = order.entregas || [];
+    order.entregas.push({
+      localizador: localizador,
+      data: new Date().toISOString(),
+      retirado_por: nomeRec,
+      telefone: telRec,
+      autorizado_por: autorizador,
+      tipo: is100Percent ? 'TOTAL (100%)' : 'PARCIAL'
+    });
+
+    order.ultimo_localizador = localizador;
+    order.protocolo_recebedor_nome = nomeRec;
+    order.protocolo_recebedor_tel = telRec;
+    order.protocolo_autorizado_por = autorizador;
+
+    if (is100Percent) {
+      order.status_fase = 'entregue';
+      order.data_entrega = new Date().toISOString();
+      order.historico = order.historico || [];
+      order.historico.push({
+        fase: 'entregue',
+        data: new Date().toISOString(),
+        usuario: `${autorizador} (Entrega 100% concluída - Loc: ${localizador})`
+      });
+    } else {
+      order.historico = order.historico || [];
+      order.historico.push({
+        fase: order.status_fase || 'embalagem',
+        data: new Date().toISOString(),
+        usuario: `${autorizador} (Entrega Parcial - Loc: ${localizador})`
+      });
+    }
+
+    window.store.save('grafsis_orders', orders);
+    if (typeof window.store.pushRecord === 'function' && window.store.supabaseClient) {
+      window.store.pushRecord('pedidos', order).catch(() => {});
+    }
+
+    alert(
+      is100Percent 
+        ? `✅ ENTREGA 100% CONCLUÍDA!\n\nPedido #${order.numero} finalizado com sucesso.\nLocalizador: ${localizador}\nRetirado por: ${nomeRec}`
+        : `📦 ENTREGA PARCIAL REGISTRADA!\n\nRetirada de materiais gravada com sucesso.\nLocalizador: ${localizador}\nO pedido permanece aguardando a entrega dos itens pendentes.`
+    );
+
+    document.getElementById('protocol-modal-wrap')?.remove();
+    this.render();
+  },
+
+  copyClientApprovalLink(orderId) {
+    const order = window.store.getOrders().find(o => o.id === orderId || String(o.numero) === String(orderId));
+    if (!order) return;
+    const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        alert(`Link de aprovação copiado com sucesso!\n\n${link}\n\nEnvie este link para o cliente no WhatsApp para que ele possa aprovar o layout sem necessidade de login ou senha.`);
+      }).catch(() => {
+        prompt('Copie o link abaixo para enviar ao cliente:', link);
+      });
+    } else {
+      prompt('Copie o link abaixo para enviar ao cliente:', link);
     }
   },
 
@@ -2913,14 +3388,14 @@ window.salesModule = {
     const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
 
     const phaseNames = {
-      'orcamento': '1. ORÇAMENTO',
-      'prevenda': '2. PRÉ-VENDA',
-      'aprovacao': '3. APROVAÇÃO DA ARTE',
-      'liberado': '4. LIBERADO P/ OFICINA',
-      'producao': '5. EM IMPRESSÃO / PRODUÇÃO',
-      'acabamento': '6. ACABAMENTO / SOLDA',
-      'embalagem': '7. EMBALAGEM & EXPEDIÇÃO',
-      'entregue': '8. CONCLUÍDO / ENTREGUE'
+      'orcamento': 'Orçamento',
+      'prevenda': 'Pré-Venda',
+      'aprovacao': 'Aprovação',
+      'liberado': 'Liberação',
+      'producao': 'Produção',
+      'acabamento': 'Acabamento',
+      'embalagem': 'Expedição',
+      'entregue': 'Entrega'
     };
 
     const totalAreaM2 = (order.itens || []).reduce((acc, it) => {
@@ -3167,14 +3642,14 @@ window.salesModule = {
     const companyLogo = tenant.logo_url || '';
 
     const phaseNames = {
-      'orcamento': '1. ORÇAMENTO',
-      'prevenda': '2. PRÉ-VENDA',
-      'aprovacao': '3. APROVAÇÃO DA ARTE',
-      'liberado': '4. LIBERADO P/ PRODUÇÃO',
-      'producao': '5. EM IMPRESSÃO / PRODUÇÃO',
-      'acabamento': '6. ACABAMENTO / SOLDA',
-      'embalagem': '7. EMBALAGEM & EXPEDIÇÃO',
-      'entregue': '8. CONCLUÍDO / ENTREGUE'
+      'orcamento': 'Orçamento',
+      'prevenda': 'Pré-Venda',
+      'aprovacao': 'Aprovação',
+      'liberado': 'Liberação',
+      'producao': 'Produção',
+      'acabamento': 'Acabamento',
+      'embalagem': 'Expedição',
+      'entregue': 'Entrega'
     };
     const faseNome = phaseNames[order.status_fase] || (order.status_fase || 'PRODUÇÃO').toUpperCase();
 

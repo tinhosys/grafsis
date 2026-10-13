@@ -38,13 +38,13 @@
   <!-- Supabase JS Client Oficial -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
+<body class="bg-slate-50 dark:bg-[#080e1a] flex h-screen overflow-hidden text-slate-800 dark:text-slate-100">
 
   <!-- Container do Painel da Aplicação (Exibido apenas quando autenticado) -->
-  <div id="app-layout" class="w-full h-full flex flex-col overflow-hidden bg-[#f3f6f9]" style="display: none;">
+  <div id="app-layout" class="w-full h-full flex flex-col overflow-hidden bg-[#f3f6f9] dark:bg-[#080e1a]" style="display: none;">
 
     <!-- 1. Header Superior Widescreen Completo (Identidade Visual da Imagem) -->
-    <header class="w-full bg-white border-b border-slate-200/90 h-16 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0 shadow-sm no-print">
+    <header class="w-full bg-white dark:bg-[#0c1527] border-b border-slate-200/90 dark:border-slate-800 h-16 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0 shadow-sm no-print">
       
       <!-- Lado Esquerdo: Marca / Logo Nuvem Grafsis e Navegação Superior -->
       <div class="flex items-center gap-4 lg:gap-8">
@@ -170,7 +170,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v4.0.0)
+              Notas de Versão (v4.7.0)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -186,7 +186,7 @@
     <div class="flex flex-1 overflow-hidden relative">
 
       <!-- Sidebar Branca, Minimalista e Limpa (Conforme Imagem) -->
-      <aside id="main-sidebar" class="w-60 bg-white border-r border-slate-200/90 flex flex-col hidden md:flex shrink-0 no-print z-20 transition-all duration-300 justify-between">
+      <aside id="main-sidebar" class="w-60 bg-white dark:bg-[#0c1527] border-r border-slate-200/90 dark:border-slate-800 flex flex-col hidden md:flex shrink-0 no-print z-20 transition-all duration-300 justify-between">
         
         <!-- Itens de Menu Vertical com Ícones Outline e Texto Legível -->
         <nav class="py-4 px-3 space-y-1 overflow-y-auto custom-sidebar-scroll flex-1" id="nav-tabs-container">
@@ -279,7 +279,7 @@
       </aside>
 
       <!-- Área de Conteúdo Principal Dinâmica (#view-container) -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-[#f8fafc] relative" id="main-content-scroll">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-[#f8fafc] dark:bg-[#080e1a] relative" id="main-content-scroll">
         <div id="view-container" class="max-w-7xl mx-auto"></div>
         
         <!-- Rodapé Discreto com Notas de Versão -->
@@ -291,7 +291,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.5.0 (Ver Notas)
+              Versão 4.7.0 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -679,16 +679,25 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.6.3 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Liberação de O.S. por Item, Grid de 6 Botões & Prefixos OS/OP</span>
+            <h4 class="font-bold text-slate-800">Versão 4.7.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Protocolo de Entrega com Localizador, Portal de Aprovação & Refinamentos</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Liberação de O.S. por Item:</strong> Checkbox em cada item (padrão marcado). Permite desmarcar itens ainda não liberados, emitindo a O.S. apenas com os aprovados.</li>
-            <li><strong>Observação Técnica de Pendências:</strong> Emissão da O.S. destaca com alerta amarelo os códigos dos itens que ficaram aguardando liberação (formato <code>#IDXX</code>).</li>
-            <li><strong>Isolamento Rápido por Código:</strong> Digitar ou clicar no código do item (ex: <code>#26000801</code>) isola instantaneamente o item na O.S. e na visualização.</li>
-            <li><strong>Nomenclatura Automática de PDF:</strong> Impressão de Ordens de Serviço nomeadas automaticamente como <code>OS-ID.pdf</code> e Pedidos como <code>OP-ID.pdf</code>.</li>
-            <li><strong>Grid Padronizado de 6 Botões:</strong> Barra inferior harmonizada com botões de tamanho idêntico — Linha Superior: Cancelar, Edita e Salva Operação; Linha Inferior: Finalizar Pedido, Emitir Pedido e Emitir O.S.</li>
-            <li><strong>Limpeza e Status Integrado:</strong> Remoção de campos obsoletos e reposicionamento do bloco de status do Kanban no painel de validações da produção.</li>
+            <li><strong>Protocolo de Entrega Completo:</strong> Na fase Entrega, acesso direto ao Protocolo com controle de entregas parciais, cancelamento administrativo de saldos faltantes, layout aprovado e identificação completa da retirada.</li>
+            <li><strong>Código Localizador Dinâmico:</strong> Geração randômica de código de 5 caracteres alfanuméricos com regra estrita de alternância (3 letras + 2 números ou 2 letras + 3 números).</li>
+            <li><strong>Portal de Aprovação sem Senha:</strong> Link público seguro com visualização em alta definição da arte e aprovação do cliente com captura de geolocalização e data/hora.</li>
+            <li><strong>Carimbo de Movimentação no Card:</strong> Visualização direta no topo dos cards de quando e por quem o pedido foi tramitado.</li>
+            <li><strong>Governança de Tramitação:</strong> Orçamentos e Pré-vendas restritos até a fase de Aprovação; apenas Gerentes e Proprietários editam ou excluem pedidos registrados.</li>
+            <li><strong>Dark Mode Nativo & Botões Limpar:</strong> Fundo escuro uniforme no layout principal e botão 'Limpar' nos campos de busca.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.6.3</h4>
+            <span class="text-xs text-slate-500 font-bold">Liberação de O.S. por Item, Grid de 6 Botões & Prefixos OS/OP</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li>Liberação de O.S. por Item com isolamento rápido por código e grid de 6 botões padronizados.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
@@ -710,15 +719,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.6.3"></script>
-  <script src="js/auth.js?v=4.6.3"></script>
-  <script src="js/store.js?v=4.6.3"></script>
-  <script src="js/clients.js?v=4.6.3"></script>
-  <script src="js/suppliers.js?v=4.6.3"></script>
-  <script src="js/products.js?v=4.6.3"></script>
-  <script src="js/sales.js?v=4.6.3"></script>
-  <script src="js/production.js?v=4.6.3"></script>
-  <script src="js/finance.js?v=4.6.3"></script>
-  <script src="js/app.js?v=4.6.3"></script>
+  <script src="js/config.js?v=4.7.0"></script>
+  <script src="js/auth.js?v=4.7.0"></script>
+  <script src="js/store.js?v=4.7.0"></script>
+  <script src="js/clients.js?v=4.7.0"></script>
+  <script src="js/suppliers.js?v=4.7.0"></script>
+  <script src="js/products.js?v=4.7.0"></script>
+  <script src="js/sales.js?v=4.7.0"></script>
+  <script src="js/production.js?v=4.7.0"></script>
+  <script src="js/finance.js?v=4.7.0"></script>
+  <script src="js/app.js?v=4.7.0"></script>
 </body>
 </html>
