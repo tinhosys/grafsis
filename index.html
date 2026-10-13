@@ -31,6 +31,22 @@
       } catch (e) {}
     })();
   </script>
+  <script>
+    // Detecção instantânea de Portal Público de Aprovação do Cliente (Sem Senha)
+    (function() {
+      try {
+        var h = window.location.hash || '';
+        if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
+          document.documentElement.classList.add('portal-mode');
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    html.portal-mode #auth-modal { display: none !important; }
+    html.portal-mode #app-layout { display: none !important; }
+    html.portal-mode body { overflow-y: auto !important; height: auto !important; min-height: 100vh; }
+  </style>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -170,7 +186,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v4.7.0)
+              Notas de Versão (v4.7.1)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -291,13 +307,16 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.7.0 (Ver Notas)
+              Versão 4.7.1 (Ver Notas)
             </button>
           </div>
         </footer>
       </main>
     </div>
   </div> <!-- Fim de #app-layout -->
+
+  <!-- Container Dedicado do Portal Público de Aprovação do Cliente (Sem Senha, Exclusivo por Pedido) -->
+  <div id="public-portal-root" class="w-full min-h-screen bg-slate-50 dark:bg-[#080e1a] text-slate-800 dark:text-slate-100 hidden"></div>
 
   <!-- Tela Inicial de Autenticação / Login Profissional (v3.2.0 - Imagem Oficial) -->
   <div id="auth-modal" class="fixed inset-0 z-50 bg-[#eef3f9] items-center justify-center p-2.5 sm:p-6 lg:p-10 overflow-y-auto" style="display: flex;">
@@ -679,13 +698,24 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.7.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Protocolo de Entrega com Localizador, Portal de Aprovação & Refinamentos</span>
+            <h4 class="font-bold text-slate-800">Versão 4.7.1 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Portal de Aprovação sem Senha, Isolamento Estrito & Nuvem</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Acesso Exclusivo por Pedido:</strong> O link do cliente acessa estritamente o pedido especificado, sem expor painéis administrativos, outros pedidos ou dados internos.</li>
+            <li><strong>Zero Pedido de Senha:</strong> Bloqueio total do modal de login e remoção de qualquer barreira de acesso na rota pública de aprovação.</li>
+            <li><strong>Busca Resiliente na Nuvem (Supabase):</strong> Carregamento automático do layout e pedido direto da nuvem mesmo quando aberto em dispositivos externos (WhatsApp/celular).</li>
+            <li><strong>Sincronização Imediata de Aceite:</strong> Registro instantâneo de aprovação no banco local e nuvem com geolocalização e histórico de tramitação.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.7.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Protocolo de Entrega com Localizador, Portal de Aprovação & Refinamentos</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li><strong>Protocolo de Entrega Completo:</strong> Na fase Entrega, acesso direto ao Protocolo com controle de entregas parciais, cancelamento administrativo de saldos faltantes, layout aprovado e identificação completa da retirada.</li>
             <li><strong>Código Localizador Dinâmico:</strong> Geração randômica de código de 5 caracteres alfanuméricos com regra estrita de alternância (3 letras + 2 números ou 2 letras + 3 números).</li>
-            <li><strong>Portal de Aprovação sem Senha:</strong> Link público seguro com visualização em alta definição da arte e aprovação do cliente com captura de geolocalização e data/hora.</li>
             <li><strong>Carimbo de Movimentação no Card:</strong> Visualização direta no topo dos cards de quando e por quem o pedido foi tramitado.</li>
             <li><strong>Governança de Tramitação:</strong> Orçamentos e Pré-vendas restritos até a fase de Aprovação; apenas Gerentes e Proprietários editam ou excluem pedidos registrados.</li>
             <li><strong>Dark Mode Nativo & Botões Limpar:</strong> Fundo escuro uniforme no layout principal e botão 'Limpar' nos campos de busca.</li>
@@ -700,15 +730,6 @@
             <li>Liberação de O.S. por Item com isolamento rápido por código e grid de 6 botões padronizados.</li>
           </ul>
         </div>
-        <div class="border-t border-slate-100 pt-3">
-          <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.6.2</h4>
-            <span class="text-xs text-slate-500 font-bold">Compressão de Imagens & Salvar Operação Rápido</span>
-          </div>
-          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Compressão preventiva de imagens via Canvas (&lt; 70KB) e botão rápido 'Salva Operação'.</li>
-          </ul>
-        </div>
       </div>
       <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
         <button onclick="app.closeVersionModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold">
@@ -719,15 +740,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.7.0"></script>
-  <script src="js/auth.js?v=4.7.0"></script>
-  <script src="js/store.js?v=4.7.0"></script>
-  <script src="js/clients.js?v=4.7.0"></script>
-  <script src="js/suppliers.js?v=4.7.0"></script>
-  <script src="js/products.js?v=4.7.0"></script>
-  <script src="js/sales.js?v=4.7.0"></script>
-  <script src="js/production.js?v=4.7.0"></script>
-  <script src="js/finance.js?v=4.7.0"></script>
-  <script src="js/app.js?v=4.7.0"></script>
+  <script src="js/config.js?v=4.7.1"></script>
+  <script src="js/auth.js?v=4.7.1"></script>
+  <script src="js/store.js?v=4.7.1"></script>
+  <script src="js/clients.js?v=4.7.1"></script>
+  <script src="js/suppliers.js?v=4.7.1"></script>
+  <script src="js/products.js?v=4.7.1"></script>
+  <script src="js/sales.js?v=4.7.1"></script>
+  <script src="js/production.js?v=4.7.1"></script>
+  <script src="js/finance.js?v=4.7.1"></script>
+  <script src="js/app.js?v=4.7.1"></script>
 </body>
 </html>

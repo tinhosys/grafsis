@@ -696,8 +696,21 @@ class GrafsisAuth {
   }
 
   openLoginModal() {
+    const h = window.location.hash || '';
+    if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
+      // Nunca abre modal de login ou pede senha no portal de aprovação do cliente
+      return;
+    }
+
     const modal = document.getElementById('auth-modal');
     const appLayout = document.getElementById('app-layout');
+    const portalRoot = document.getElementById('public-portal-root');
+
+    if (portalRoot) {
+      portalRoot.classList.add('hidden');
+      portalRoot.style.display = 'none';
+    }
+
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -718,19 +731,24 @@ class GrafsisAuth {
     }
   }
 
-  closeLoginModal() {
-    // Só permite fechar o modal se o usuário estiver autenticado
-    if (!this.isAuthenticated()) {
+  closeLoginModal(force = false) {
+    const h = window.location.hash || '';
+    const isPortalRoute = h.startsWith('#aprovacao') || h.startsWith('#portal');
+
+    // Só bloqueia fechamento se não for forçado, não autenticado e não for rota pública
+    if (!force && !this.isAuthenticated() && !isPortalRoute) {
       return;
     }
+
     const modal = document.getElementById('auth-modal');
-    const appLayout = document.getElementById('app-layout');
     if (modal) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
       modal.style.display = 'none';
     }
-    if (appLayout) {
+
+    const appLayout = document.getElementById('app-layout');
+    if (appLayout && !isPortalRoute) {
       appLayout.style.display = 'flex';
     }
   }
