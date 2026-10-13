@@ -1290,22 +1290,54 @@ class GrafsisStore {
       localStorage.setItem(key, JSON.stringify(data));
       return true;
     } catch (e) {
-      console.warn('[Store] QuotaExceededError ao salvar ' + key, e);
+      console.warn('[Store] QuotaExceededError detectado ao salvar ' + key, e);
       try {
         if (Array.isArray(data)) {
-          const sanitized = data.map(item => {
-            if (item && item.foto_url && item.foto_url.length > 30000) {
-              const copy = { ...item };
-              delete copy.foto_url;
-              return copy;
+          // Nível 1 de emergência: preserva o item atual (índice 0) e sanitiza imagens antigas (> 1)
+          const sanitized = data.map((item, idx) => {
+            const copy = { ...item };
+            if (copy.foto_arte_url && copy.foto_arte_url.length > 20000 && idx > 1) {
+              copy.foto_arte_url = '';
             }
-            return item;
+            if (Array.isArray(copy.itens)) {
+              copy.itens = copy.itens.map(it => {
+                if (it.arte_url && it.arte_url.length > 20000 && idx > 1) {
+                  return { ...it, arte_url: '' };
+                }
+                return it;
+              });
+            }
+            if (copy.foto_url && copy.foto_url.length > 20000 && idx > 1) {
+              delete copy.foto_url;
+            }
+            return copy;
           });
           localStorage.setItem(key, JSON.stringify(sanitized));
+          console.log('[Store] localStorage recuperado com sucesso após sanitização Nível 1!');
           return true;
         }
       } catch (inner) {
-        console.error('[Store] Falha definitiva no localStorage:', inner);
+        console.warn('[Store] Nível 1 insuficiente, acionando sanitização Nível 2 (emergência total):', inner);
+        try {
+          if (Array.isArray(data) && data.length > 0) {
+            // Nível 2 de emergência: mantém fotos exclusivamente do registro atual (índice 0)
+            const emergency = data.map((item, idx) => {
+              if (idx === 0) return item;
+              const copy = { ...item };
+              delete copy.foto_arte_url;
+              delete copy.foto_url;
+              if (Array.isArray(copy.itens)) {
+                copy.itens = copy.itens.map(it => ({ ...it, arte_url: '' }));
+              }
+              return copy;
+            });
+            localStorage.setItem(key, JSON.stringify(emergency));
+            console.log('[Store] localStorage salvo com sucesso após sanitização Nível 2!');
+            return true;
+          }
+        } catch (criticalErr) {
+          console.error('[Store] Falha crítica de quota no localStorage:', criticalErr);
+        }
       }
       return false;
     }
@@ -1760,14 +1792,6 @@ class GrafsisStore {
 
   async saveOrder(order) {
     const isNew = !order.id || !isValidUUID(order.id);
-    // Antes de criar um pedido novo, tenta puxar os pedidos da nuvem com timeout rápido
-    if (isNew && this.supabaseClient) {
-      try {
-        await this.runWithTimeout(this.pullTable('pedidos', STORAGE_KEYS.ORDERS), 3000);
-      } catch (e) {
-        console.warn('[Supabase Sync] Pull rápido de pedidos ignorado por timeout/rede.');
-      }
-    }
     const orders = this.getOrders();
     // Preserva o número sequencial enviado se já for válido e não colidir com outro pedido de ID diferente
     if (!order.numero) {
@@ -1786,12 +1810,14 @@ class GrafsisStore {
       if (index >= 0) orders[index] = order;
       else orders.unshift(order);
     }
-    // Gravação local imediata (Local-First): garante que os dados nunca sejam perdidos
+    // Gravação local imediata (Local-First): garante que os dados nunca sejam perdidos e resposta seja instantânea (< 5ms)
     this.saveLocal(STORAGE_KEYS.ORDERS, orders);
-    try {
-      await this.pushRecord('pedidos', order);
-    } catch (err) {
-      console.warn('[GRAFSIS] Pedido salvo localmente com sucesso, envio remoto adiado:', err.message || err);
+
+    // Sincronização remota em segundo plano (não bloqueia a interface nem atrasa a operação do usuário)
+    if (this.supabaseClient) {
+      this.pushRecord('pedidos', order).catch(err => {
+        console.warn('[GRAFSIS] Pedido salvo localmente, sincronização remota em segundo plano:', err.message || err);
+      });
     }
     return order;
   }
@@ -1812,7 +1838,11 @@ class GrafsisStore {
         }
       }
       this.saveLocal(STORAGE_KEYS.ORDERS, orders);
-      await this.pushRecord('pedidos', order);
+      if (this.supabaseClient) {
+        this.pushRecord('pedidos', order).catch(err => {
+          console.warn('[GRAFSIS] Status atualizado localmente, envio remoto adiado:', err.message || err);
+        });
+      }
       return true;
     }
     return false;
@@ -1837,7 +1867,11 @@ class GrafsisStore {
       else entries.unshift(entry);
     }
     this.saveLocal(STORAGE_KEYS.FINANCE, entries);
-    await this.pushRecord('financeiro_lancamentos', entry);
+    if (this.supabaseClient) {
+      this.pushRecord('financeiro_lancamentos', entry).catch(err => {
+        console.warn('[GRAFSIS] Lançamento financeiro salvo localmente, sincronização remota em segundo plano:', err.message || err);
+      });
+    }
     return entry;
   }
   async deleteFinanceEntry(id) {

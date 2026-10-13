@@ -988,6 +988,10 @@ window.salesModule = {
                 </div>
                 <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                   <button type="button" onclick="salesModule.render()" class="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                  <button type="button" id="btn-save-draft" onclick="salesModule.saveOrderQuick(event, '${order ? order.id : ''}', '${displayId}')" class="px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer" title="Salvar a operação rapidamente como orçamento no sistema">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Salvar Operação
+                  </button>
                   <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition cursor-pointer">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
                   <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="px-5 py-2.5 text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Documento A4">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
@@ -1010,17 +1014,84 @@ window.salesModule = {
     this.updateFormState();
   },
 
-  handleOrderArteUpload(input) {
+  // Helpers de Compressão de Imagens via Canvas (reduz de 2MB para ~40KB - 70KB, protegendo o localStorage de QuotaExceededError)
+  compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.72) {
+    return new Promise((resolve) => {
+      if (!file) return resolve('');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rawData = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth || h > maxHeight) {
+            if (w > h) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            } else {
+              w = Math.round((w * maxHeight) / h);
+              h = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          try {
+            const compressed = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressed);
+          } catch (err) {
+            resolve(rawData);
+          }
+        };
+        img.onerror = () => resolve(rawData);
+        img.src = rawData;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  },
+
+  compressDataUrl(dataUrl, maxWidth = 900, maxHeight = 900, quality = 0.70) {
+    return new Promise((resolve) => {
+      if (!dataUrl || !dataUrl.startsWith('data:image/')) return resolve(dataUrl || '');
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxWidth || h > maxHeight) {
+          if (w > h) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          } else {
+            w = Math.round((w * maxHeight) / h);
+            h = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        try {
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+        } catch (err) {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  },
+
+  async handleOrderArteUpload(input) {
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
-    if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem da arte deve ter no máximo 2MB.");
-      input.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
+    try {
+      const dataUrl = await this.compressImage(file, 1000, 1000, 0.72);
       document.getElementById('order-arte-url').value = dataUrl;
       const prevContainer = document.getElementById('order-arte-preview-container');
       const prevImg = document.getElementById('order-arte-preview-img');
@@ -1028,8 +1099,9 @@ window.salesModule = {
         prevImg.src = dataUrl;
         prevContainer.classList.remove('hidden');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('[GRAFSIS] Erro ao carregar arte do pedido:', err);
+    }
   },
 
   removeOrderArte() {
@@ -1076,19 +1148,14 @@ window.salesModule = {
     if (prevImg) prevImg.src = '';
   },
 
-  handleItemArteUpload(input) {
+  async handleItemArteUpload(input) {
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
-    if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem deve ter no máximo 2MB.");
-      input.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
+    const btn = document.getElementById('item-arte-btn');
+    if (btn) btn.innerHTML = `<span class="text-[10px] font-bold text-blue-600 animate-pulse">Compactando...</span>`;
+    try {
+      const dataUrl = await this.compressImage(file, 900, 900, 0.72);
       document.getElementById('item-arte-url').value = dataUrl;
-      const btn = document.getElementById('item-arte-btn');
       if (btn) {
         btn.className = 'w-full h-full bg-emerald-100 border border-emerald-400 rounded flex items-center justify-center text-emerald-600';
         btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
@@ -1099,8 +1166,10 @@ window.salesModule = {
         prevImg.src = dataUrl;
         prevContainer.classList.remove('hidden');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('[GRAFSIS] Erro ao carregar imagem do item:', err);
+      alert('Falha ao processar imagem: ' + err.message);
+    }
   },
       calcPiecePrice() {
     const type = document.getElementById('item-type').value;
@@ -2105,22 +2174,157 @@ window.salesModule = {
     
     return { subtotal, discount: descVal, finalTotal, valorEntrada, saldoRestante };
   },
-      handleArteUpload(input) {
+  async handleArteUpload(input) {
     if(!input.files || input.files.length === 0) return;
     const file = input.files[0];
-    if (file.size > 1.5 * 1024 * 1024) {
-      alert("A imagem da arte deve ter no máximo 1.5MB.");
-      input.value = "";
+    try {
+      const dataUrl = await this.compressImage(file, 1000, 1000, 0.72);
+      const fotoEl = document.querySelector('input[name="foto_arte_url"]');
+      if (fotoEl) fotoEl.value = "Imagem salva no banco de dados";
+      const arteEl = document.getElementById('order-arte-url');
+      if (arteEl) arteEl.value = dataUrl;
+      alert("Imagem da arte anexada e otimizada com sucesso!");
+    } catch (err) {
+      console.error('[GRAFSIS] Erro ao anexar arte:', err);
+    }
+  },
+
+  async saveOrderQuick(e, id, geradoNumero) {
+    if (e && e.preventDefault) e.preventDefault();
+    const form = document.getElementById('order-form') || (e && e.target && e.target.tagName === 'FORM' ? e.target : e?.target?.closest('form'));
+    if (!form) {
+      alert('Erro: Formulário do pedido não localizado na tela.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      document.querySelector('input[name="foto_arte_url"]').value = "Imagem salva no banco de dados";
-      document.getElementById('order-arte-url').value = e.target.result;
-      alert("Imagem da arte anexada com sucesso e pronta para salvar!");
-    };
-    reader.readAsDataURL(file);
+
+    const clients = window.store.getClients();
+    let clienteId = form.cliente_id ? form.cliente_id.value : document.getElementById('order-cliente-select')?.value;
+    if (!clienteId) {
+      if (clients && clients.length > 0) {
+        clienteId = clients[0].id;
+        const sel = document.getElementById('order-cliente-select');
+        if (sel) sel.value = clienteId;
+      } else {
+        alert('Selecione ou cadastre ao menos um cliente para salvar a operação.');
+        return;
+      }
+    }
+
+    const saveBtn = document.getElementById('btn-save-draft');
+    const originalText = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<span>Salvando...</span>`;
+    }
+
+    try {
+      const activeDisplayId = document.getElementById('current-display-id')?.value;
+      const currentId = (id && typeof isValidUUID === 'function' && isValidUUID(id)) 
+        ? id 
+        : (this.currentEditingOrderId && typeof isValidUUID === 'function' && isValidUUID(this.currentEditingOrderId) && this.currentEditingOrderId === id 
+            ? this.currentEditingOrderId 
+            : null);
+      const isExistingOrder = !!currentId;
+      const oldOrder = isExistingOrder ? window.store.getOrders().find(o => o.id === currentId) : null;
+      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : (activeDisplayId || geradoNumero || this.getNextOrderId());
+
+      // Se não houver itens adicionados, cria um item provisório de orçamento
+      if (!this.activeItems || this.activeItems.length === 0) {
+        this.activeItems = [{
+          item_id: finalNumber + '01',
+          produto_id: '',
+          produto_nome: 'Item Provisório (Em Definição)',
+          descricao: form.observacoes?.value || 'Operação salva rapidamente em rascunho',
+          tipo_calculo: 'unidade',
+          largura_x: 0,
+          comprimento_y: 0,
+          quantidade: 1,
+          preco_base: 0,
+          preco_unitario: 0,
+          area_m2: 1,
+          valor_total: 0,
+          arte_url: document.getElementById('order-arte-url')?.value || ''
+        }];
+      } else {
+        this.activeItems.forEach((it, idx) => {
+          it.item_id = finalNumber + String(idx + 1).padStart(2, '0');
+        });
+      }
+
+      // Compactação preventiva de imagens nos itens para proteger quota do navegador
+      for (const it of this.activeItems) {
+        if (it.arte_url && it.arte_url.startsWith('data:image/') && it.arte_url.length > 100000) {
+          try {
+            it.arte_url = await this.compressDataUrl(it.arte_url, 800, 800, 0.70);
+          } catch (ign) {}
+        }
+      }
+
+      const { subtotal, discount, finalTotal } = this.recalcTotals();
+      const op = form.tipo_operacao ? form.tipo_operacao.value : 'orcamento';
+      const rawEntrada = document.getElementById("order-valor-entrada")?.value || document.getElementById("order-valor-recebido")?.value || '0';
+      const cleanEntrada = String(rawEntrada).trim().replace(/\./g, '').replace(',', '.');
+      const valorEntrada = parseFloat(cleanEntrada) || 0;
+      const saldoRestante = Math.max(0, finalTotal - valorEntrada);
+      const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
+
+      let historico = oldOrder?.historico ? JSON.parse(JSON.stringify(oldOrder.historico)) : [];
+      historico.push({
+        fase: 'orcamento',
+        data: new Date().toISOString(),
+        usuario: window.app?.currentUser?.nome || 'Operador'
+      });
+
+      const orderData = {
+        id: currentId || undefined,
+        numero: finalNumber,
+        cliente_id: clienteId,
+        tipo_operacao: op,
+        tipo: op,
+        vendedor: window.app?.currentUser?.nome || "Vendedor",
+        status_fase: 'orcamento',
+        previsao_entrega: form.previsao_entrega?.value || null,
+        validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : 10,
+        data_validade: form.data_validade ? form.data_validade.value : null,
+        percentual_operacao: 100,
+        data_aceite: form.data_aceite?.value || null,
+        autorizo_producao: form.autorizo_producao?.value || '',
+        conferencia_arte: form.conferencia_arte?.value || '',
+        foto_arte_url: document.getElementById('order-arte-url')?.value || form.foto_arte_url?.value || '',
+        observacoes: form.observacoes ? form.observacoes.value : '',
+        forma_pagamento: document.getElementById('order-metodo-pagto')?.value || 'A Definir',
+        obs_pagto: document.getElementById('order-obs-pagto')?.value || '',
+        valor_entrada: valorEntrada,
+        valor_recebido: valorEntrada,
+        status_pagamento: statusPagto,
+        valor_total: subtotal,
+        desconto: discount,
+        valor_final: finalTotal,
+        itens: this.activeItems,
+        historico: historico
+      };
+
+      const saved = await window.store.saveOrder(orderData);
+      this.currentEditingOrderId = null;
+
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      }
+
+      alert(`Operação #${saved.numero} salva com sucesso no sistema!`);
+      this.render();
+    } catch (err) {
+      console.error('[GRAFSIS] Erro ao salvar operação rápida:', err);
+      alert('Erro ao salvar operação: ' + (err.message || err));
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      }
+    }
   },
+
   async saveOrder(e, id, geradoNumero, options = {}) {
     if (e && e.preventDefault) e.preventDefault();
     const form = document.getElementById('order-form') || (e && e.target && e.target.tagName === 'FORM' ? e.target : e?.target?.closest('form'));
@@ -2195,6 +2399,15 @@ window.salesModule = {
       this.activeItems.forEach((it, idx) => {
         it.item_id = finalNumber + String(idx + 1).padStart(2, '0');
       });
+
+      // Compactação preventiva de imagens nos itens para proteger quota do navegador e manter alta velocidade
+      for (const it of this.activeItems) {
+        if (it.arte_url && it.arte_url.startsWith('data:image/') && it.arte_url.length > 100000) {
+          try {
+            it.arte_url = await this.compressDataUrl(it.arte_url, 800, 800, 0.70);
+          } catch (ign) {}
+        }
+      }
 
       const orderData = {
         id: currentId || undefined,

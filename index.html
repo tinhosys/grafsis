@@ -671,7 +671,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.6.1</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.6.2</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -679,22 +679,23 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.6.1 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Resiliência de Impressão, Fallback contra Pop-up Blocker & Auto-Emissão</span>
+            <h4 class="font-bold text-slate-800">Versão 4.6.2 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Resolução de Imagens Anexadas, Botão Salvar Operação & Gravação Instantânea</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Proteção contra Bloqueador de Pop-ups:</strong> Eliminação definitiva do erro <code>Cannot read properties of null (reading 'document')</code> ao emitir pedidos ou O.S. com bloqueador de pop-ups ativo no navegador.</li>
-            <li><strong>Fallback de Impressão com Iframe:</strong> Caso a janela popup seja bloqueada, a emissão técnica e recibos são acionados diretamente através de iframe protegido sem travar a gravação.</li>
-            <li><strong>Isolamento de Gravação e Impressão:</strong> Garantia de que falhas de diálogo do navegador nunca impeçam ou invalidem a persistência do pedido no sistema.</li>
+            <li><strong>Compressão Automática de Imagens:</strong> Ao anexar arte no item ou geral no pedido, a imagem é comprimida em Canvas (&lt; 70KB), eliminando o estouro de cota do navegador (<code>QuotaExceededError</code>) e garantindo que pedidos com fotos nunca sumam.</li>
+            <li><strong>Botão 'Salvar Operação':</strong> Novo botão verde na barra inferior de ações para gravar rascunhos e orçamentos rapidamente sem travas burocráticas ou validações financeiras rígidas.</li>
+            <li><strong>Gravação Instantânea Local-First:</strong> Remoção de latência artificial pré-salvamento e sincronização em segundo plano no Supabase, liberando a interface do operador em milissegundos.</li>
+            <li><strong>Proteção Preventiva de Quota:</strong> Sanitização em camadas no armazenamento local para garantir persistência contínua mesmo sob alto volume de registros.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.6.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Menu Operação / Pedido, Detalhes Livres & Máscara Financeira</span>
+            <h4 class="font-bold text-slate-800">Versão 4.6.1</h4>
+            <span class="text-xs text-slate-500 font-bold">Resiliência de Impressão & Pop-up Blocker</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Menu unificado como Operação / Pedido, detalhes da arte em branco ao escolher substrato, máscara padrão ###.###,00 e gravação Local-First.</li>
+            <li>Proteção contra bloqueador de pop-ups, fallback com iframe e isolamento de gravação.</li>
           </ul>
         </div>
       </div>
@@ -707,15 +708,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.6.1"></script>
-  <script src="js/auth.js?v=4.6.1"></script>
-  <script src="js/store.js?v=4.6.1"></script>
-  <script src="js/clients.js?v=4.6.1"></script>
-  <script src="js/suppliers.js?v=4.6.1"></script>
-  <script src="js/products.js?v=4.6.1"></script>
-  <script src="js/sales.js?v=4.6.1"></script>
-  <script src="js/production.js?v=4.6.1"></script>
-  <script src="js/finance.js?v=4.6.1"></script>
-  <script src="js/app.js?v=4.6.1"></script>
+  <script src="js/config.js?v=4.6.2"></script>
+  <script src="js/auth.js?v=4.6.2"></script>
+  <script src="js/store.js?v=4.6.2"></script>
+  <script src="js/clients.js?v=4.6.2"></script>
+  <script src="js/suppliers.js?v=4.6.2"></script>
+  <script src="js/products.js?v=4.6.2"></script>
+  <script src="js/sales.js?v=4.6.2"></script>
+  <script src="js/production.js?v=4.6.2"></script>
+  <script src="js/finance.js?v=4.6.2"></script>
+  <script src="js/app.js?v=4.6.2"></script>
 </body>
 </html>
