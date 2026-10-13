@@ -93,7 +93,7 @@
             Clientes
           </button>
           <button onclick="app.navigate('sales')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="sales">
-            Orçamentos
+            Operação / Pedido
           </button>
           <button onclick="app.navigate('production')" class="top-nav-link px-3 py-5 text-sm text-slate-600 hover:text-blue-600 font-medium transition flex items-center border-b-2 border-transparent" data-tab="production">
             Produção
@@ -203,11 +203,11 @@
             <span class="truncate">Clientes</span>
           </button>
 
-          <!-- Orçamentos ⌄ -->
+          <!-- Operação / Pedido ⌄ -->
           <button class="nav-link w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all group" data-tab="sales" onclick="app.navigate('sales')">
             <div class="flex items-center gap-3 min-w-0">
               <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              <span class="truncate">Orçamentos</span>
+              <span class="truncate">Operação / Pedido</span>
             </div>
             <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </button>
@@ -671,7 +671,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.5.0</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.6.0</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -679,33 +679,32 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.5.0 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Relatório O.S. A4 Paisagem, Busca Rápida por ID & Finalizar Pedido Confiável</span>
+            <h4 class="font-bold text-slate-800">Versão 4.6.0 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Menu Operação / Pedido, Detalhes Livres, Máscara Financeira & Gravação Confiável</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Relatório de O.S. Técnica (A4 Paisagem):</strong> Emissão técnica para chão de fábrica sem valores financeiros, com arte geral aprovada, dados cadastrais completos da gráfica e cliente, e itens dispostos lado a lado com fotos ampliadas e área individual para data e visto manual.</li>
-            <li><strong>Controle de Imagens na O.S.:</strong> Checkbox na emissão para ativar/desativar a impressão das imagens e artes liberadas conforme a necessidade da oficina.</li>
-            <li><strong>Busca Rápida por ID no Topo:</strong> Campo de busca direta por ID (ex: <code>#260001</code>) no cabeçalho de Vendas & Pré-Vendas que localiza e carrega imediatamente o pedido completo com todos os seus itens na tela.</li>
-            <li><strong>Finalização de Pedido Confiável:</strong> Gravação aprimorada com suporte a auto-gravação ao clicar em emitir O.S./Pedido, tratamento de vírgulas nas frações decimais e feedback imediato de sucesso no registro.</li>
-            <li><strong>Mensagem de Mudança de Fase Padronizada:</strong> Diálogo do Kanban organizado em linhas separadas (<code>De: "Fase Anterior"</code> / <code>Para: "Nova Fase"</code>) para maior clareza operacional.</li>
+            <li><strong>Menu Operação / Pedido:</strong> Nomenclatura unificada no menu superior, lateral e atalhos rápidos do dashboard.</li>
+            <li><strong>Descrição / Detalhes em Branco:</strong> Seleção do Produto Base (adesivo, lona, etc.) mantém o campo de detalhes em branco para digitação das especificações da arte (ex: Homem-Aranha, Superman, Candidato Fulano...).</li>
+            <li><strong>Padronização Financeira (###.###,00):</strong> Campos de Valor de Entrada e Desconto R$ estritamente com duas casas decimais no padrão brasileiro.</li>
+            <li><strong>Gravação Local-First e Estabilidade Supabase:</strong> Correção no isolamento de ID (evita que pedido #260004 sobrescreva #260003), proteção com timeout contra travamento em "GRAVANDO..." e sincronização financeira em paralelo.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.5.0</h4>
+            <span class="text-xs text-slate-500 font-bold">Relatório O.S. A4 Paisagem & Busca por ID</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li>Relatório de O.S. técnica paisagem para chão de fábrica, controle de imagens e busca rápida por ID no topo.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
           <div class="flex items-center justify-between mb-1">
             <h4 class="font-bold text-slate-800">Versão 4.4.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Valor de Entrada 2 Decimais, Recibo Oficial & Bloqueio sem ID</span>
+            <span class="text-xs text-slate-500 font-bold">Valor de Entrada 2 Decimais & Recibo Oficial</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li>Máscara de 2 casas decimais no valor de entrada, recibo discriminado com quitação por extenso e colaborador logado.</li>
-          </ul>
-        </div>
-        <div class="border-t border-slate-100 pt-3">
-          <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.3.0</h4>
-            <span class="text-xs text-slate-500 font-bold">Calculadora Fracionada, Botão Novo Produto & Chave Primária Cliente</span>
-          </div>
-          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li>Calculadora com vírgulas e casas decimais padronizadas, botão + Novo Produto direto no pedido, regra de chave primária em edições de clientes aprimorada.</li>
           </ul>
         </div>
       </div>
@@ -718,15 +717,15 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.5.0"></script>
-  <script src="js/auth.js?v=4.5.0"></script>
-  <script src="js/store.js?v=4.5.0"></script>
-  <script src="js/clients.js?v=4.5.0"></script>
-  <script src="js/suppliers.js?v=4.5.0"></script>
-  <script src="js/products.js?v=4.5.0"></script>
-  <script src="js/sales.js?v=4.5.0"></script>
-  <script src="js/production.js?v=4.5.0"></script>
-  <script src="js/finance.js?v=4.5.0"></script>
-  <script src="js/app.js?v=4.5.0"></script>
+  <script src="js/config.js?v=4.6.0"></script>
+  <script src="js/auth.js?v=4.6.0"></script>
+  <script src="js/store.js?v=4.6.0"></script>
+  <script src="js/clients.js?v=4.6.0"></script>
+  <script src="js/suppliers.js?v=4.6.0"></script>
+  <script src="js/products.js?v=4.6.0"></script>
+  <script src="js/sales.js?v=4.6.0"></script>
+  <script src="js/production.js?v=4.6.0"></script>
+  <script src="js/finance.js?v=4.6.0"></script>
+  <script src="js/app.js?v=4.6.0"></script>
 </body>
 </html>

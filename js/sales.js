@@ -5,6 +5,8 @@ window.salesModule = {
   
   render() {
     this.isFormOpen = false;
+    this.currentEditingOrderId = null;
+    this.editingItemIdx = null;
     const container = document.getElementById('view-container');
     if (!this.filters) this.filters = { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' };
     
@@ -573,8 +575,12 @@ window.salesModule = {
       typeSelect.value = type;
     }
     const descInput = document.getElementById('item-desc');
-    if (descInput && (!descInput.value || descInput.value.trim() === '') && prod) {
-      descInput.value = prod.nome;
+    if (descInput) {
+      // Imagem 2: Detalhes em branco para o operador digitar a arte (ex: Homem-Aranha, Superman...)
+      if (this.editingItemIdx === undefined || this.editingItemIdx === null) {
+        descInput.value = '';
+      }
+      descInput.placeholder = 'Ex: Homem-Aranha, Superman, Candidato Fulano...';
     }
     this.toggleDimensionInputs();
     this.calcPiecePrice();
@@ -667,6 +673,8 @@ window.salesModule = {
 
   openModal(params = {}) {
     this.isFormOpen = true;
+    this.currentEditingOrderId = params.orderId || null;
+    this.editingItemIdx = null;
     const clients = window.store.getClients();
     const products = window.store.getProducts();
     const isEdit = params.orderId ? true : false;
@@ -797,7 +805,7 @@ window.salesModule = {
 
                   <div>
                     <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
-                    <input type="text" id="item-desc" placeholder="Ex: Adesivo com recorte" class="w-full p-2 border border-slate-300 rounded bg-white">
+                    <input type="text" id="item-desc" placeholder="Ex: Homem-Aranha, Superman, Candidato Fulano..." class="w-full p-2 border border-slate-300 rounded bg-white">
                   </div>
 
                   <div class="grid grid-cols-12 gap-2 items-end">
@@ -931,21 +939,21 @@ window.salesModule = {
                   </div>
                   <div class="flex justify-between items-center">
                     <span class="text-sm font-semibold text-slate-600">Desconto (R$):</span>
-                    <input type="number" step="0.01" id="order-discount" value="${order ? (order.desconto || 0) : 0}" oninput="salesModule.recalcTotals('val')" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white">
+                    <input type="text" id="order-discount" value="${Number(order ? (order.desconto || 0) : 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" placeholder="0,00" oninput="salesModule.recalcTotals('val')" onblur="salesModule.formatCurrencyInput(this, 'val')" class="w-28 p-1.5 border rounded-lg text-right font-mono text-sm bg-white font-bold text-slate-800 focus:ring-2 focus:ring-blue-400">
                   </div>
                   <div class="flex justify-between items-center pt-2 border-t border-blue-200">
                     <span class="text-base font-black text-blue-900">Total Final:</span>
                     <span class="text-xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
                   </div>
                   
-                  <!-- ENTRADA DIRETA NO FORMULÁRIO (Imagem 1: 2 Casas Decimais) -->
+                  <!-- ENTRADA DIRETA NO FORMULÁRIO (Imagem 3: Padrão ###.###,00 Sempre com 2 Casas Decimais) -->
                   <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2 mt-2">
                     <div class="flex justify-between items-center">
                       <div>
                         <span class="text-xs font-black text-emerald-800 uppercase block">Valor de Entrada (R$):</span>
                         <span class="text-[10px] text-slate-400">Sinal pago no ato</span>
                       </div>
-                      <input type="text" id="order-valor-entrada" value="${Number(order ? (order.valor_entrada || order.valor_recebido || 0) : 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" placeholder="0,00" oninput="salesModule.recalcTotals('entrada')" onblur="this.value = (parseFloat(String(this.value).replace(/\./g, '').replace(',', '.') || 0)).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); salesModule.recalcTotals('entrada');" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                      <input type="text" id="order-valor-entrada" value="${Number(order ? (order.valor_entrada || order.valor_recebido || 0) : 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" placeholder="0,00" oninput="salesModule.recalcTotals('entrada')" onblur="salesModule.formatCurrencyInput(this, 'entrada')" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
                     <div class="flex justify-between items-center pt-1 border-t border-slate-100">
                       <span class="text-xs font-bold text-slate-600 uppercase">Saldo a Pagar (Falta):</span>
@@ -1830,7 +1838,7 @@ window.salesModule = {
   },
   addItemToOrder() {
     const desc = document.getElementById('item-desc').value.trim();
-    if (!desc) { alert('Informe a descricao do item'); return; }
+    if (!desc) { alert('Informe os detalhes/especificações do item (ex: Homem-Aranha, Superman, Candidato Fulano...)'); return; }
     const prodSelect = document.getElementById('item-prod-select');
     if (!prodSelect.value) { alert('Selecione um Produto Base'); return; }
     const opt = prodSelect.options[prodSelect.selectedIndex];
@@ -1985,15 +1993,24 @@ window.salesModule = {
         </tr>
       `).join('');
     },
+  formatCurrencyInput(input, source = 'entrada') {
+    if (!input) return;
+    const clean = String(input.value || '').trim().replace(/\./g, '').replace(',', '.');
+    const val = parseFloat(clean) || 0;
+    input.value = val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    this.recalcTotals(source);
+  },
   recalcTotals(source = 'val') {
     const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
-    let descVal = parseFloat(document.getElementById('order-discount')?.value) || 0;
+    const rawDesc = document.getElementById('order-discount')?.value || '0';
+    const cleanDesc = String(rawDesc).trim().replace(/\./g, '').replace(',', '.');
+    let descVal = parseFloat(cleanDesc) || 0;
     let descPerc = parseFloat(document.getElementById('order-discount-perc')?.value) || 0;
     
     if (source === 'perc') {
       descVal = subtotal * (descPerc / 100);
       const valEl = document.getElementById('order-discount');
-      if (valEl) valEl.value = descVal.toFixed(2);
+      if (valEl) valEl.value = descVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } else if (source === 'val' && subtotal > 0) {
       descPerc = (descVal / subtotal) * 100;
       const percEl = document.getElementById('order-discount-perc');
@@ -2096,8 +2113,13 @@ window.salesModule = {
       }
 
       let historico = [];
-      const currentId = id || this.currentEditingOrderId;
-      const oldOrder = currentId ? window.store.getOrders().find(o => o.id === currentId) : null;
+      const currentId = (id && typeof isValidUUID === 'function' && isValidUUID(id)) 
+        ? id 
+        : (this.currentEditingOrderId && typeof isValidUUID === 'function' && isValidUUID(this.currentEditingOrderId) && this.currentEditingOrderId === id 
+            ? this.currentEditingOrderId 
+            : null);
+      const isExistingOrder = !!currentId;
+      const oldOrder = isExistingOrder ? window.store.getOrders().find(o => o.id === currentId) : null;
       if (oldOrder && oldOrder.historico) {
         historico = JSON.parse(JSON.stringify(oldOrder.historico));
       }
@@ -2123,7 +2145,7 @@ window.salesModule = {
       const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
 
       const activeDisplayId = document.getElementById('current-display-id')?.value;
-      const finalNumber = (currentId && oldOrder && oldOrder.numero) ? oldOrder.numero : (geradoNumero || activeDisplayId || this.getNextOrderId());
+      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : (activeDisplayId || geradoNumero || this.getNextOrderId());
 
       // Atualiza sequencial dos itens vinculados ao numero oficial da operacao
       this.activeItems.forEach((it, idx) => {
@@ -2160,7 +2182,7 @@ window.salesModule = {
       };
 
       const saved = await window.store.saveOrder(orderData);
-      this.currentEditingOrderId = saved.id;
+      this.currentEditingOrderId = null;
 
       // REGRA FINANCEIRA:
       // Orçamento, Pré-Venda e Patrocínio NÃO abrem caixa definitivo
@@ -2168,8 +2190,9 @@ window.salesModule = {
       const isPatrocinio = (op === 'patrocinio');
 
       if (!isBudgetOrPreSale && !isPatrocinio) {
+        const finPromises = [];
         if (valorEntrada > 0) {
-          await window.store.saveFinanceEntry({
+          finPromises.push(window.store.saveFinanceEntry({
             tipo: 'recebimento',
             descricao: (op === 'permuta' ? 'Entrada Permuta #' : 'Entrada Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
             valor: valorEntrada,
@@ -2179,11 +2202,11 @@ window.salesModule = {
             forma_pagamento: orderData.forma_pagamento,
             pedido_id: saved.id,
             cliente_id: orderData.cliente_id
-          });
+          }));
         }
 
         if (saldoRestante > 0.01) {
-          await window.store.saveFinanceEntry({
+          finPromises.push(window.store.saveFinanceEntry({
             tipo: 'receber',
             descricao: (op === 'permuta' ? 'Saldo Restante Permuta #' : 'Saldo Restante Pedido #') + saved.numero + ' - ' + (orderData.itens[0]?.descricao || 'Comunicação Visual'),
             valor: saldoRestante,
@@ -2191,8 +2214,17 @@ window.salesModule = {
             status: valorEntrada > 0 ? 'parcial' : 'pendente',
             pedido_id: saved.id,
             cliente_id: orderData.cliente_id
-          });
+          }));
         }
+        if (finPromises.length > 0) {
+          await Promise.all(finPromises);
+        }
+      }
+
+      // Restaura o botão ANTES do alert nativo para evitar parecer travado em 'Gravando...'
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
       }
 
       if (options && options.autoPrintAfter) {
@@ -2218,7 +2250,8 @@ window.salesModule = {
       }
     }
   },
-  editModal(id) { this.renderOrderForm({ orderId: id }); },
+  editModal(id) { this.openModal({ orderId: id }); },
+  renderOrderForm(params = {}) { return this.openModal(params); },
   quickView(orderId) {
     const order = window.store.getOrders().find(o => o.id === orderId);
     if (!order) return;

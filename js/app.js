@@ -400,7 +400,7 @@ window.app = {
             </button>
             <button onclick="app.navigate('sales')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
               <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition">💼</span>
-              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Orçamentos</span>
+              <span class="text-xs font-bold text-slate-700 group-hover:text-blue-600">Operação / Pedido</span>
             </button>
             <button onclick="app.navigate('production')" class="p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition text-center group flex flex-col items-center gap-2">
               <span class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg group-hover:scale-110 transition">🏭</span>

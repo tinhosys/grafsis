@@ -1412,10 +1412,23 @@ class GrafsisStore {
       console.warn('[Supabase Sync] Erro no push local:', err);
     }
   }
+  async runWithTimeout(promise, timeoutMs = 3500) {
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`Timeout de comunicação com Supabase (${timeoutMs}ms)`)), timeoutMs);
+    });
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async pullTable(tableName, storageKey) {
     if (!this.supabaseClient) return;
     try {
-      const { data, error } = await this.supabaseClient.from(tableName).select('*');
+      const selectPromise = this.supabaseClient.from(tableName).select('*');
+      const { data, error } = await this.runWithTimeout(selectPromise, 3500);
       if (error) {
         console.warn(`[Supabase] Erro ao buscar ${tableName}:`, error.message);
         return;
@@ -1457,7 +1470,7 @@ class GrafsisStore {
         this.saveLocal(storageKey, merged);
       }
     } catch (err) {
-      console.warn(`[Supabase] Falha pull ${tableName}:`, err);
+      console.warn(`[Supabase] Falha pull ${tableName} (mantendo dados locais):`, err.message || err);
     }
   }
 
@@ -1482,7 +1495,8 @@ class GrafsisStore {
         }
       }
 
-      const { error } = await this.supabaseClient.from(tableName).upsert(clean);
+      const upsertPromise = this.supabaseClient.from(tableName).upsert(clean);
+      const { error } = await this.runWithTimeout(upsertPromise, 3500);
       if (error) {
         console.warn(`[Supabase] Erro ao enviar para ${tableName}:`, error.message);
 
@@ -1522,8 +1536,9 @@ class GrafsisStore {
             created_at: clean.created_at || clean.data_criacao || new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
-          const fallbackRes = await this.supabaseClient.from('pedidos').upsert(baseOrder);
-          if (fallbackRes.error) {
+          const fallbackPromise = this.supabaseClient.from('pedidos').upsert(baseOrder);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback de pedidos:', fallbackRes.error.message);
           } else {
             console.log('[Supabase Fallback] Sucesso! Pedido gravado e sincronizado com a nuvem Supabase!');
@@ -1549,8 +1564,9 @@ class GrafsisStore {
             observacoes: clean.observacoes || null,
             updated_at: clean.updated_at || new Date().toISOString()
           };
-          const fallbackRes = await this.supabaseClient.from('clientes').upsert(baseClient);
-          if (fallbackRes.error) {
+          const fallbackPromise = this.supabaseClient.from('clientes').upsert(baseClient);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback de clientes:', fallbackRes.error.message);
           } else {
             console.log('[Supabase Fallback] Sucesso! Cliente sincronizado com a nuvem (colunas básicas).');
@@ -1571,8 +1587,9 @@ class GrafsisStore {
             forma_pagamento: clean.forma_pagamento || null,
             observacoes: clean.observacoes || null
           };
-          const fallbackRes = await this.supabaseClient.from('financeiro_lancamentos').upsert(baseFin);
-          if (fallbackRes.error) {
+          const fallbackPromise = this.supabaseClient.from('financeiro_lancamentos').upsert(baseFin);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback financeiro:', fallbackRes.error.message);
           } else {
             console.log('[Supabase Fallback] Sucesso! Lançamento financeiro sincronizado na nuvem.');
@@ -1582,7 +1599,7 @@ class GrafsisStore {
         console.log(`[Supabase] Registro sincronizado com sucesso em ${tableName}:`, clean.id);
       }
     } catch (err) {
-      console.warn(`[Supabase] Falha ao enviar para ${tableName}:`, err);
+      console.warn(`[Supabase Sync] Falha ou timeout no push de ${tableName} (registro seguro no localStorage):`, err.message || err);
     }
   }
 
@@ -1743,12 +1760,20 @@ class GrafsisStore {
 
   async saveOrder(order) {
     const isNew = !order.id || !isValidUUID(order.id);
-    // Antes de criar um pedido novo, puxa os pedidos da nuvem para não repetir número
+    // Antes de criar um pedido novo, tenta puxar os pedidos da nuvem com timeout rápido
     if (isNew && this.supabaseClient) {
-      await this.pullTable('pedidos', STORAGE_KEYS.ORDERS);
+      try {
+        await this.runWithTimeout(this.pullTable('pedidos', STORAGE_KEYS.ORDERS), 3000);
+      } catch (e) {
+        console.warn('[Supabase Sync] Pull rápido de pedidos ignorado por timeout/rede.');
+      }
     }
     const orders = this.getOrders();
-    if (!order.numero || orders.some(o => o.id !== order.id && String(o.numero) === String(order.numero))) {
+    // Preserva o número sequencial enviado se já for válido e não colidir com outro pedido de ID diferente
+    if (!order.numero) {
+      order.numero = this.getNextOrderNumber(orders);
+    } else if (orders.some(o => o.id !== order.id && String(o.numero) === String(order.numero))) {
+      console.warn(`[GRAFSIS] Colisão detectada no pedido #${order.numero}. Gerando próximo número sequencial...`);
       order.numero = this.getNextOrderNumber(orders);
     }
     if (isNew) {
@@ -1761,8 +1786,13 @@ class GrafsisStore {
       if (index >= 0) orders[index] = order;
       else orders.unshift(order);
     }
+    // Gravação local imediata (Local-First): garante que os dados nunca sejam perdidos
     this.saveLocal(STORAGE_KEYS.ORDERS, orders);
-    await this.pushRecord('pedidos', order);
+    try {
+      await this.pushRecord('pedidos', order);
+    } catch (err) {
+      console.warn('[GRAFSIS] Pedido salvo localmente com sucesso, envio remoto adiado:', err.message || err);
+    }
     return order;
   }
   async updateOrderStatus(orderId, newStatus) {
