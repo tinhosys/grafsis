@@ -586,6 +586,66 @@ window.salesModule = {
     this.calcPiecePrice();
   },
 
+  toggleDimensionInputs() {
+    const type = document.getElementById('item-type')?.value || 'm2';
+    const widthInput = document.getElementById('item-width');
+    const heightInput = document.getElementById('item-height');
+    const qtyInput = document.getElementById('item-qty');
+    const priceRefText = document.getElementById('item-price-ref-text');
+
+    if (widthInput) {
+      if (type === 'm2' || type === 'linear') {
+        widthInput.disabled = false;
+        widthInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        widthInput.classList.add('bg-white');
+      } else {
+        widthInput.disabled = true;
+        widthInput.value = '0.00';
+        widthInput.classList.remove('bg-white');
+        widthInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+      }
+    }
+
+    if (heightInput) {
+      if (type === 'm2') {
+        heightInput.disabled = false;
+        heightInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        heightInput.classList.add('bg-white');
+      } else {
+        heightInput.disabled = true;
+        heightInput.value = '0.00';
+        heightInput.classList.remove('bg-white');
+        heightInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+      }
+    }
+
+    if (qtyInput) {
+      if (type === 'hora') {
+        qtyInput.step = '0.5';
+        qtyInput.min = '0.5';
+      } else if (type === 'L') {
+        qtyInput.step = '0.1';
+        qtyInput.min = '0.1';
+      } else {
+        qtyInput.step = '1';
+        qtyInput.min = '1';
+      }
+    }
+
+    if (priceRefText) {
+      const labels = {
+        'm2': 'Base m²',
+        'unidade': 'Base Unidade',
+        'servico': 'Base Serviço',
+        'diaria': 'Base Diária',
+        'hora': 'Base Hora',
+        'L': 'Base Litro (L)',
+        'linear': 'Base Metro Linear'
+      };
+      priceRefText.innerText = labels[type] || 'Base m² / un';
+    }
+  },
+
   openQuickProductModal() {
     if (window.productsModule && typeof window.productsModule.openModal === 'function') {
       window.productsModule.openModal();
@@ -598,7 +658,10 @@ window.salesModule = {
     const products = window.store.getProducts() || [];
     sel.innerHTML = `
       <option value="">Selecione...</option>
-      ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome}</option>`).join('')}
+      ${products.map(p => {
+        const paramLabel = p.tipo_cobranca === 'm2' ? 'm²' : (p.unidade_medida || p.tipo_cobranca);
+        return `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (${paramLabel})</option>`;
+      }).join('')}
     `;
     if (selectedId) {
       sel.value = selectedId;
@@ -662,6 +725,8 @@ window.salesModule = {
           document.getElementById('item-height').value = '0.00';
           document.getElementById('item-qty').value = '1';
           salesModule.removeItemArte();
+          salesModule.toggleDimensionInputs();
+          salesModule.calcPiecePrice();
           cancelBtn.remove();
           salesModule.recalcTotals('val');
         }
@@ -806,20 +871,27 @@ window.salesModule = {
                       <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
                       <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
                         <option value="">Selecione...</option>
-                        ${products.map(p => `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome}</option>`).join('')}
+                        ${products.map(p => {
+                          const paramLabel = p.tipo_cobranca === 'm2' ? 'm²' : (p.unidade_medida || p.tipo_cobranca);
+                          return `<option value="${p.id}" data-type="${p.tipo_cobranca}" data-price="${p.preco_base}">${p.nome} (${paramLabel})</option>`;
+                        }).join('')}
                       </select>
                     </div>
                     <div class="col-span-6 sm:col-span-3">
-                      <label class="block font-semibold mb-1 text-slate-700">Calculo</label>
-                      <select id="item-type" onchange="salesModule.toggleDimensionInputs()" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
-                        <option value="m2">m2 (X x Y)</option>
+                      <label class="block font-semibold mb-1 text-slate-700">Parâmetro de Cálculo</label>
+                      <select id="item-type" onchange="salesModule.toggleDimensionInputs(); salesModule.calcPiecePrice();" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
+                        <option value="m2">m² (X x Y)</option>
+                        <option value="unidade">Unidade</option>
+                        <option value="servico">Serviço</option>
+                        <option value="diaria">Diária</option>
+                        <option value="hora">Hora</option>
+                        <option value="L">L (Litro)</option>
                         <option value="linear">Linear</option>
-                        <option value="unidade">Unitario</option>
                       </select>
                     </div>
                     <div class="col-span-6 sm:col-span-2">
-                      <label class="block font-semibold mb-1 text-slate-700 flex items-center justify-between">
-                        <span>Base m² / un</span>
+                      <label class="block font-semibold mb-1 text-slate-700 flex items-center justify-between" id="item-price-label">
+                        <span id="item-price-ref-text">Base m² / un</span>
                         <span class="text-[9px] text-slate-400 font-normal">2x clique (4s)</span>
                       </label>
                       <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" onmouseenter="salesModule.handlePriceHover(this, true)" onmouseleave="salesModule.handlePriceHover(this, false)" ondblclick="salesModule.revealPrice4s(this)" style="color: transparent; text-shadow: none;" class="w-full p-2 border border-slate-300 rounded bg-white font-mono font-bold transition-all duration-200 cursor-pointer selection:text-transparent" title="Preço base - Passe o mouse ou dê duplo clique para visualizar por 4 segundos">
@@ -1088,6 +1160,7 @@ window.salesModule = {
     this.recalcTotals();
     this.updateFormState();
     this.updateOsStatusInfo();
+    this.toggleDimensionInputs();
   },
 
   // Helpers de Compressão de Imagens via Canvas (reduz de 2MB para ~40KB - 70KB, protegendo o localStorage de QuotaExceededError)
@@ -1247,20 +1320,29 @@ window.salesModule = {
       alert('Falha ao processar imagem: ' + err.message);
     }
   },
-      calcPiecePrice() {
-    const type = document.getElementById('item-type').value;
-    let w = parseFloat(document.getElementById('item-width').value); if(isNaN(w)) w = 0;
-    let h = parseFloat(document.getElementById('item-height').value); if(isNaN(h)) h = 0;
-    const price = parseFloat(document.getElementById('item-price').value) || 0;
-    const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
-    const piecePrice = type === 'unidade' ? price : (area * price);
-          const displayEl = document.getElementById('item-piece-price');
-      if(displayEl) displayEl.innerText = `R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      const subtotalEl = document.getElementById('item-subtotal-price');
-      if(subtotalEl) {
-         const qty = parseInt(document.getElementById('item-qty').value) || 1;
-         subtotalEl.innerText = `R$ ${(piecePrice * qty).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      }
+  calcPiecePrice() {
+    const type = document.getElementById('item-type')?.value || 'm2';
+    let w = parseFloat(document.getElementById('item-width')?.value); if(isNaN(w)) w = 0;
+    let h = parseFloat(document.getElementById('item-height')?.value); if(isNaN(h)) h = 0;
+    const price = parseFloat(document.getElementById('item-price')?.value) || 0;
+    
+    let piecePrice = 0;
+    if (type === 'm2') {
+      piecePrice = (w * h) * price;
+    } else if (type === 'linear') {
+      piecePrice = w * price;
+    } else {
+      // unidade, servico, diaria, hora, L
+      piecePrice = price;
+    }
+
+    const displayEl = document.getElementById('item-piece-price');
+    if (displayEl) displayEl.innerText = `R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    const subtotalEl = document.getElementById('item-subtotal-price');
+    if (subtotalEl) {
+      const qty = parseFloat(document.getElementById('item-qty')?.value) || 1;
+      subtotalEl.innerText = `R$ ${(piecePrice * qty).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
   },
       numeroPorExtenso(v) {
     const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
@@ -2038,10 +2120,10 @@ window.salesModule = {
     if (!prodSelect.value) { alert('Selecione um Produto Base'); return; }
     const opt = prodSelect.options[prodSelect.selectedIndex];
     const prodNome = opt.text.split(' (R$')[0];
-    const type = document.getElementById('item-type').value;
+    const type = document.getElementById('item-type')?.value || 'm2';
     let w = parseFloat(document.getElementById('item-width').value); if(isNaN(w)) w = 0;
     let h = parseFloat(document.getElementById('item-height').value); if(isNaN(h)) h = 0;
-    const qty = parseInt(document.getElementById('item-qty').value) || 1;
+    const qty = parseFloat(document.getElementById('item-qty').value) || 1;
     const price = parseFloat(document.getElementById('item-price').value) || 0;
     
     const itemArteInput = document.getElementById('item-arte-url');
@@ -2051,8 +2133,18 @@ window.salesModule = {
     const seq = String(this.activeItems.length + 1).padStart(2, '0');
     const generatedItemId = orderIdStr + seq;
 
-    const area = type === 'm2' ? (w * h) : (type === 'linear' ? w : 1);
-    const piecePrice = type === 'unidade' ? price : (area * price);
+    let area = 0;
+    let piecePrice = price;
+    if (type === 'm2') {
+      area = (w * h);
+      piecePrice = area * price;
+    } else if (type === 'linear') {
+      area = w;
+      piecePrice = w * price;
+    } else {
+      area = 0;
+      piecePrice = price;
+    }
     const total = piecePrice * qty;
 
     this.activeItems.push({
@@ -2061,8 +2153,8 @@ window.salesModule = {
       produto_nome: prodNome, 
       descricao: desc, 
       tipo_calculo: type, 
-      largura_x: w, 
-      comprimento_y: h,
+      largura_x: (type === 'm2' || type === 'linear') ? w : 0, 
+      comprimento_y: (type === 'm2') ? h : 0,
       quantidade: qty, 
       preco_base: price,
       preco_unitario: piecePrice,
@@ -2083,6 +2175,7 @@ window.salesModule = {
     // LIMPA A ARTE DA MEMÓRIA E DO PREVIEW COMPLETAMENTE PARA O PRÓXIMO LAYOUT
     this.removeItemArte();
 
+    this.toggleDimensionInputs();
     this.calcPiecePrice();
     this.recalcTotals('val');
     this.updateOsStatusInfo();
@@ -2102,6 +2195,7 @@ window.salesModule = {
     document.getElementById('item-height').value = '0.00';
     document.getElementById('item-qty').value = '1';
     this.removeItemArte();
+    this.toggleDimensionInputs();
     this.calcPiecePrice();
     this.recalcTotals('val');
     this.updateOsStatusInfo();
@@ -2178,9 +2272,20 @@ window.salesModule = {
               </div>
             </div>
           </td>
-          <td class="p-3 font-mono text-xs text-slate-700">${it.tipo_calculo === 'm2' ? it.largura_x + 'm x ' + it.comprimento_y + 'm' : (it.tipo_calculo === 'linear' ? it.largura_x + 'm linear' : 'UNID')}</td>
+          <td class="p-3 font-mono text-xs text-slate-700">${
+            it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` :
+            (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` :
+            (it.tipo_calculo === 'unidade' ? 'Unidade' :
+            (it.tipo_calculo === 'servico' ? 'Serviço' :
+            (it.tipo_calculo === 'diaria' ? 'Diária' :
+            (it.tipo_calculo === 'hora' ? 'Hora' :
+            (it.tipo_calculo === 'L' ? 'Litro (L)' : 'Unidade'))))))
+          }</td>
           <td class="p-3 font-bold text-center text-xs">${it.quantidade}</td>
-          <td class="p-3 font-mono text-xs text-purple-700 font-bold">${it.tipo_calculo !== 'unidade' ? (it.area_m2 * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + (it.tipo_calculo === 'm2' ? ' m²' : ' m') : '-'}</td>
+          <td class="p-3 font-mono text-xs text-purple-700 font-bold">${
+            it.tipo_calculo === 'm2' ? ((it.area_m2 || (it.largura_x * it.comprimento_y)) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' :
+            (it.tipo_calculo === 'linear' ? ((it.largura_x || 0) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m' : '-')
+          }</td>
           <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-3 text-right">

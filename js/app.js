@@ -262,13 +262,13 @@ window.app = {
       }
     });
 
-    // Atualização da Top Navbar (com indicador sublinhado azul ativo)
+    // Atualização da Top Navbar (com indicador sublinhado azul ativo e ícones Lucide)
     document.querySelectorAll('.top-nav-link').forEach(link => {
       const isTarget = link.getAttribute('data-tab') === tab;
       if (isTarget) {
-        link.className = 'top-nav-link text-blue-600 font-bold border-b-2 border-blue-600 py-1 flex items-center gap-1 transition';
+        link.className = 'top-nav-link px-3 py-2 text-sm text-blue-600 dark:text-blue-400 font-bold border-b-2 border-blue-600 flex items-center transition';
       } else {
-        link.className = 'top-nav-link text-slate-600 hover:text-blue-600 font-medium py-1 flex items-center gap-1 transition';
+        link.className = 'top-nav-link px-3 py-2 text-sm text-[#334155] dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/70 rounded-md font-medium transition flex items-center border-b-2 border-transparent';
       }
     });
 
@@ -339,9 +339,9 @@ window.app = {
   },
 
   toggleMobileSidebar() {
-    const sidebar = document.getElementById('sidebar');
+    const sidebar = document.getElementById('main-sidebar') || document.getElementById('sidebar');
     if (sidebar) {
-      sidebar.classList.toggle('-translate-x-full');
+      sidebar.classList.toggle('hidden');
     }
   },
 

@@ -79,6 +79,14 @@ window.productsModule = {
         typeBadge = '<span class="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded">Fracionado m²</span>';
       } else if (isLinear) {
         typeBadge = '<span class="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded">Metro Linear</span>';
+      } else if (prod.tipo_cobranca === 'servico') {
+        typeBadge = '<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded">Serviço</span>';
+      } else if (prod.tipo_cobranca === 'diaria') {
+        typeBadge = '<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded">Diária</span>';
+      } else if (prod.tipo_cobranca === 'hora') {
+        typeBadge = '<span class="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold px-2 py-0.5 rounded">Hora</span>';
+      } else if (prod.tipo_cobranca === 'L') {
+        typeBadge = '<span class="bg-cyan-50 text-cyan-700 border border-cyan-200 text-[10px] font-bold px-2 py-0.5 rounded">Litro (L)</span>';
       } else {
         typeBadge = '<span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded">Unitário</span>';
       }
@@ -197,11 +205,15 @@ window.productsModule = {
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de Cobrança / Cálculo *</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Parâmetro de Cálculo *</label>
                 <select name="tipo_cobranca" id="tipo_cobranca" onchange="productsModule.adjustUnit(this.value)" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                  <option value="m2" ${product && product.tipo_cobranca === 'm2' ? 'selected' : ''}>Fracionado por m² (Largura X x Altura Y)</option>
+                  <option value="m2" ${product && product.tipo_cobranca === 'm2' ? 'selected' : ''}>m² (Fracionado: Largura X x Altura Y)</option>
+                  <option value="unidade" ${product && product.tipo_cobranca === 'unidade' ? 'selected' : ''}>Unidade (Venda inteira / Peça)</option>
+                  <option value="servico" ${product && product.tipo_cobranca === 'servico' ? 'selected' : ''}>Serviço (Qtd x Valor do serviço)</option>
+                  <option value="diaria" ${product && product.tipo_cobranca === 'diaria' ? 'selected' : ''}>Diária (Locação / Estruturas)</option>
+                  <option value="hora" ${product && product.tipo_cobranca === 'hora' ? 'selected' : ''}>Hora (Máquina / Técnica / Serviço)</option>
+                  <option value="L" ${product && product.tipo_cobranca === 'L' ? 'selected' : ''}>L (Litro - Tintas e Líquidos)</option>
                   <option value="linear" ${product && product.tipo_cobranca === 'linear' ? 'selected' : ''}>Metro Linear (Comprimento)</option>
-                  <option value="unidade" ${product && product.tipo_cobranca === 'unidade' ? 'selected' : ''}>Por Peça / Unidade (Brindes)</option>
                 </select>
               </div>
 
@@ -224,7 +236,7 @@ window.productsModule = {
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Estoque Mínimo</label>
                 <input type="number" step="0.1" name="estoque_minimo" value="${product ? product.estoque_minimo : '20'}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               </div>
-              <div class="md:col-span-2 p-3 bg-slate-50 border rounded-lg" id="div-larguras" style="${product && product.tipo_cobranca === 'm2' ? '' : 'display:none;'}">
+              <div class="md:col-span-2 p-3 bg-slate-50 border rounded-lg" id="div-larguras" style="${product && (product.tipo_cobranca === 'm2' || product.tipo_cobranca === 'linear') ? '' : 'display:none;'}">
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Larguras de Bobina Disponíveis em Estoque (metros)</label>
                 <input type="text" name="larguras_bobinas" value="${product && product.larguras_bobinas ? product.larguras_bobinas : '1.06, 1.27, 1.37, 1.52'}" placeholder="Ex: 1.00, 1.20, 1.60" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
                 <span class="text-[10px] text-slate-500">Separado por vírgulas. Usado para sugerir a bobina com menor perda na produção.</span>
@@ -255,7 +267,7 @@ window.productsModule = {
 
   adjustUnit(type) {
     const divLarguras = document.getElementById('div-larguras');
-    if(divLarguras) divLarguras.style.display = type === 'm2' ? 'block' : 'none';
+    if(divLarguras) divLarguras.style.display = (type === 'm2' || type === 'linear') ? 'block' : 'none';
     // Automático
   },
 
@@ -281,7 +293,11 @@ window.productsModule = {
     const tipo = form.tipo_cobranca.value;
     let unit = 'm²';
     if (tipo === 'linear') unit = 'm';
-    if (tipo === 'unidade') unit = 'un';
+    else if (tipo === 'unidade') unit = 'un';
+    else if (tipo === 'servico') unit = 'serv';
+    else if (tipo === 'diaria') unit = 'dia';
+    else if (tipo === 'hora') unit = 'h';
+    else if (tipo === 'L') unit = 'L';
 
     const productData = {
       id: id || undefined,
