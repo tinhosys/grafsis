@@ -207,3 +207,12 @@ ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS tipo_operacao VARCHAR(50) DEFAULT '
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS validade_proposta_dias INT DEFAULT 10;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS data_validade DATE;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS percentual_operacao NUMERIC(5,2) DEFAULT 100.00;
+
+-- Atualizações v4.9.0 (Monitor de Notícias On-Line & Feed RSS por Empresa)
+CREATE TABLE IF NOT EXISTS empresas_feed_noticias (
+    empresa_id VARCHAR(50) PRIMARY KEY,
+    rss_url TEXT NOT NULL,
+    atualizado_por VARCHAR(150),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+

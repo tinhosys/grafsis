@@ -422,4 +422,75 @@ html.dark .badge-qualidade { background-color: rgba(249, 115, 22, 0.25); color: 
 html.dark .badge-pronto { background-color: rgba(16, 185, 129, 0.3); color: #4ade80; border: 1px solid rgba(16, 185, 129, 0.5); }
 html.dark .badge-entregue { background-color: rgba(71, 85, 105, 0.3); color: #94a3b8; border: 1px solid rgba(71, 85, 105, 0.4); }
 
+/* ==============================================================================
+   MONITOR DE NOTÍCIAS ON-LINE & TICKER DINÂMICO (v4.9.0 - Imagem 5)
+   ============================================================================== */
+
+/* Redeterminação do limite inferior do conteúdo com margem para a barra de notícias */
+#main-content-scroll.with-news-ticker {
+  padding-bottom: 3.5rem !important;
+}
+
+#news-ticker-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  z-index: 25;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+}
+
+html.dark #news-ticker-bar {
+  background-color: #0c1527 !important;
+  border-top-color: #1e293b !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Área de Rolagem do Ticker: Da esquerda para a direita */
+.news-ticker-viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+}
+
+.news-ticker-track {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  /* Animação contínua da esquerda para a direita (reverse) */
+  animation: ticker-scroll-ltr 45s linear infinite;
+}
+
+.news-ticker-viewport:hover .news-ticker-track {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll-ltr {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-ticker-track {
+    animation: none;
+    overflow-x: auto;
+  }
+}
+
+
 

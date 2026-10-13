@@ -121,6 +121,10 @@ window.app = {
     const perms = window.authModule.getRolePermissions();
     const initialTab = window.authModule.canAccess(this.currentTab) ? this.currentTab : perms.tabs[0];
     this.navigate(initialTab);
+
+    if (window.newsTickerModule && typeof window.newsTickerModule.init === 'function') {
+      window.newsTickerModule.init();
+    }
   },
 
   updateUserHeader() {
@@ -132,12 +136,17 @@ window.app = {
     const userPhotoEl = document.getElementById('user-header-photo');
     const userIconEl = document.getElementById('user-header-icon');
 
+    const inlineLoginEl = document.getElementById('user-header-inline-login');
+    const inlineRoleEl = document.getElementById('user-header-inline-role');
+
     if (!user) {
       if (nameEl) nameEl.textContent = 'Não Conectado';
       if (badgeEl) {
         badgeEl.textContent = 'LOGIN NECESSÁRIO';
         badgeEl.className = 'text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-300';
       }
+      if (inlineLoginEl) inlineLoginEl.textContent = 'desconectado';
+      if (inlineRoleEl) inlineRoleEl.textContent = 'VISITANTE';
       if (userPhotoEl) userPhotoEl.classList.add('hidden');
       if (userIconEl) userIconEl.classList.remove('hidden');
       return;
@@ -148,6 +157,9 @@ window.app = {
       badgeEl.textContent = permissions.name;
       badgeEl.className = `text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${permissions.badgeColor}`;
     }
+
+    if (inlineLoginEl) inlineLoginEl.textContent = user.login || (user.operador ? user.operador.toLowerCase() : 'operador');
+    if (inlineRoleEl) inlineRoleEl.textContent = permissions.name || user.role;
 
     if (userPhotoEl && userIconEl) {
       if (user.foto_url) {
@@ -226,6 +238,11 @@ window.app = {
 
     // Atualização em tempo real do badge de Notificação Inteligente (Vermelho = 3 dias úteis expira / Amarelo = Entrega atrasada)
     this.updateNotificationStatus();
+
+    // Atualiza permissões e dados do Monitor de Notícias On-Line (News Ticker)
+    if (window.newsTickerModule && typeof window.newsTickerModule.updateManageAccess === 'function') {
+      window.newsTickerModule.updateManageAccess();
+    }
   },
 
   navigate(tab) {
@@ -246,15 +263,21 @@ window.app = {
 
     // Atualização da Sidebar (tema limpo & profissional)
     document.querySelectorAll('.nav-link').forEach(link => {
-      const isTarget = link.getAttribute('data-tab') === tab;
+      const linkTab = link.getAttribute('data-tab');
+      // Respeita permissões RBAC estritas: se não tem acesso, mantém oculto
+      if (linkTab && window.authModule && !window.authModule.canAccess(linkTab)) {
+        link.classList.add('hidden');
+        return;
+      }
+      const isTarget = linkTab === tab;
       if (isTarget) {
-        link.className = 'nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold rounded-xl bg-blue-50 text-blue-600 transition-all';
+        link.className = 'nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold rounded-xl bg-blue-50 text-blue-600 transition-all';
         const iconContainer = link.querySelector('span:first-child');
         if (iconContainer) {
           iconContainer.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-blue-600 text-white shadow-sm transition-all';
         }
       } else {
-        link.className = 'nav-link w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all';
+        link.className = 'nav-link w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all';
         const iconContainer = link.querySelector('span:first-child');
         if (iconContainer) {
           iconContainer.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 text-slate-500 transition-all';
@@ -371,10 +394,12 @@ window.app = {
             <p class="text-slate-500 text-sm mt-0.5">Visão executiva em tempo real da sua gráfica na nuvem</p>
           </div>
           <div class="flex items-center gap-2.5">
-            <button onclick="app.openNewOrderModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-              Novo Orçamento / Pedido
-            </button>
+            ${(window.authModule && window.authModule.can('canCreateOrders')) ? `
+              <button onclick="app.openNewOrderModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Novo Orçamento / Pedido
+              </button>
+            ` : ''}
             <button onclick="window.clientsModule.openModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
               + Cliente
@@ -2249,9 +2274,11 @@ window.app = {
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1.5">Selecione um Pedido para Gerar Link de Teste:</label>
               <select id="portal-sel-order" class="w-full p-2.5 border rounded-xl bg-slate-50 text-xs font-bold text-slate-800">
-                ${orders.map(o => `
-                  <option value="${o.id}">Pedido #${o.id || o.numero_pedido} - ${o.cliente_nome || 'Cliente'} (R$ ${Number(o.total || o.valor_final || 0).toFixed(2)})</option>
-                `).join('')}
+                ${orders.map(o => {
+                  const showVal = (window.authModule && window.authModule.can('canViewSaleValues'));
+                  const valStr = showVal ? ` (R$ ${Number(o.total || o.valor_final || 0).toFixed(2)})` : '';
+                  return `<option value="${o.id}">Pedido #${o.id || o.numero_pedido} - ${o.cliente_nome || 'Cliente'}${valStr}</option>`;
+                }).join('')}
               </select>
             </div>
 
@@ -2285,6 +2312,12 @@ window.app = {
   },
 
   openNewOrderModal(params) {
+    if (window.authModule && !window.authModule.can('canCreateOrders')) {
+      const user = window.authModule.getCurrentUser();
+      const roleName = user ? (user.role || user.perfil || 'PRODUÇÃO') : 'PRODUÇÃO';
+      alert(`Acesso Restrito: O perfil ${roleName} não possui permissão para emitir vendas ou orçamentos.\n\nA emissão e precificação de pedidos é restrita aos perfis Vendas, Gerente e Proprietário.`);
+      return;
+    }
     if (window.salesModule && typeof window.salesModule.openModal === 'function') {
       window.salesModule.openModal(params);
     }

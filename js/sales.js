@@ -737,6 +737,12 @@ window.salesModule = {
   },
 
   openModal(params = {}) {
+    if (window.authModule && !window.authModule.can('canCreateOrders')) {
+      const user = window.authModule.getCurrentUser();
+      const roleName = user ? (user.role || user.perfil || 'PRODUÇÃO') : 'PRODUÇÃO';
+      alert(`Acesso Restrito: O perfil ${roleName} não possui permissão para emitir vendas ou orçamentos.\n\nA emissão e precificação de pedidos é restrita aos perfis Vendas, Gerente e Proprietário.`);
+      return;
+    }
     this.isFormOpen = true;
     this.currentEditingOrderId = params.orderId || null;
     this.editingItemIdx = null;
@@ -2831,6 +2837,11 @@ window.salesModule = {
     setTimeout(() => badge.remove(), 2500);
   },
   quickView(orderId) {
+    if (window.authModule && !window.authModule.can('canViewSaleValues')) {
+      // Perfil de Oficina/Produção: abre exclusivamente a Ordem Técnica de Produção (Sem valores R$)
+      this.openProductionWorkOrder(orderId);
+      return;
+    }
     const order = window.store.getOrders().find(o => o.id === orderId);
     if (!order) return;
     const client = window.store.getClients().find(c => c.id === order.cliente_id) || { nome: 'Desconhecido' };
@@ -4174,6 +4185,10 @@ window.salesModule = {
   // CRM, INTELIGÊNCIA DE CLIENTES & PÓS-VENDA (ARP COMPLETO)
   // =========================================================================
   openCrmModal() {
+    if (window.authModule && !window.authModule.can('canViewSaleValues')) {
+      alert('Acesso Restrito: Painel comercial e histórico de faturamento disponível apenas para perfis autorizados (Vendas, Gerente, Proprietário).');
+      return;
+    }
     const inactiveClients = window.store.getInactiveClients(30);
     const priceStats = window.store.getPriceAverages();
     const surveys = window.store.getPostSalesSurveys();
@@ -4398,6 +4413,10 @@ window.salesModule = {
   // HISTÓRICO 360º DO CLIENTE & REPOSITÓRIO TIPO CHAT DE ANOTAÇÕES CRM
   // =========================================================================
   openClientHistoryModal(clientId) {
+    if (window.authModule && !window.authModule.can('canViewSaleValues')) {
+      alert('Acesso Restrito: Histórico comercial e métricas de faturamento disponíveis apenas para perfis autorizados.');
+      return;
+    }
     const client = window.store.getClients().find(c => String(c.id) === String(clientId));
     if (!client) {
       alert('Cliente não encontrado.');

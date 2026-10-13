@@ -29,7 +29,9 @@ const ROLE_PERMISSIONS = {
     canManageUsers: true,
     canDeleteRecords: true,
     canManageTenants: true,
-    canBlockCompanies: true
+    canBlockCompanies: true,
+    canViewSaleValues: true,
+    canManageNewsFeed: true
   },
   PROPRIETARIO: {
     name: 'Proprietário',
@@ -45,7 +47,9 @@ const ROLE_PERMISSIONS = {
     canManageUsers: true,
     canDeleteRecords: true,
     canManageTenants: false,
-    canBlockCompanies: false
+    canBlockCompanies: false,
+    canViewSaleValues: true,
+    canManageNewsFeed: true
   },
   GERENTE: {
     name: 'Gerente Geral',
@@ -61,7 +65,9 @@ const ROLE_PERMISSIONS = {
     canManageUsers: false,
     canDeleteRecords: true,
     canManageTenants: false,
-    canBlockCompanies: false
+    canBlockCompanies: false,
+    canViewSaleValues: true,
+    canManageNewsFeed: true
   },
   VENDAS: {
     name: 'Comercial & Vendas',
@@ -77,7 +83,9 @@ const ROLE_PERMISSIONS = {
     canManageUsers: false,
     canDeleteRecords: false,
     canManageTenants: false,
-    canBlockCompanies: false
+    canBlockCompanies: false,
+    canViewSaleValues: true,
+    canManageNewsFeed: false
   },
   PRODUCAO: {
     name: 'Operador de Produção',
@@ -93,7 +101,9 @@ const ROLE_PERMISSIONS = {
     canManageUsers: false,
     canDeleteRecords: false,
     canManageTenants: false,
-    canBlockCompanies: false
+    canBlockCompanies: false,
+    canViewSaleValues: false,
+    canManageNewsFeed: false
   }
 };
 

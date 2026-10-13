@@ -280,15 +280,19 @@ window.productionModule = {
             </button>
           </div>
 
-          <!-- Botões de Ação -->
+          <!-- Botões de Ação (Respeitando RBAC de Vendas e Produção) -->
           <div class="flex items-center gap-2">
-            <button onclick="salesModule.openCrmModal()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5" title="Painel ARP / CRM de Clientes e Pós-Venda">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              <span>CRM & Pós-Venda</span>
-            </button>
-            <button onclick="salesModule.openModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
-              <span>+ Novo Pedido</span>
-            </button>
+            ${(window.authModule && window.authModule.can('canViewSaleValues')) ? `
+              <button onclick="salesModule.openCrmModal()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5" title="Painel ARP / CRM de Clientes e Pós-Venda">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span>CRM & Pós-Venda</span>
+              </button>
+            ` : ''}
+            ${(window.authModule && window.authModule.can('canCreateOrders')) ? `
+              <button onclick="salesModule.openModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
+                <span>+ Novo Pedido</span>
+              </button>
+            ` : ''}
           </div>
 
         </div>
