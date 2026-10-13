@@ -1111,7 +1111,9 @@ class GrafsisStore {
       unidade: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 },
       servico: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 },
       hora: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 },
-      diaria: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 }
+      diaria: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 },
+      L: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 },
+      linear: { count: 0, sumPrice: 0, sumCost: 0, avgPrice: 0, avgCost: 0, avgMargin: 0 }
     };
 
     products.forEach(p => {
