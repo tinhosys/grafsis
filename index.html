@@ -168,8 +168,8 @@
 
       <!-- Lado Direito: Notificações com Badge Inteligente e Foto de Perfil com Menu -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Status de Nuvem Supabase -->
-        <div id="cloud-sync-status" class="hidden xl:block"></div>
+        <!-- Status de Nuvem Supabase / Manifesto Online -->
+        <div id="cloud-sync-status" class="flex items-center"></div>
 
         <!-- Botão Alternador Modo Claro / Escuro (Dia ☀️ / Noite 🌙) -->
         <button id="btn-theme-toggle" onclick="app.toggleTheme()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50/80 text-amber-800 hover:bg-amber-100 transition-all shadow-sm cursor-pointer select-none" title="Alternar entre Modo Dia (Claro) e Modo Noite (Escuro)">
@@ -237,7 +237,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v4.9.2)
+              Notas de Versão (v4.9.3)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -358,7 +358,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.2 (Ver Notas)
+              Versão 4.9.3 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -775,7 +775,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.2</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.3</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -783,8 +783,21 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.2 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Retaguarda Offline Resiliente & Edição In-Place</span>
+            <h4 class="font-bold text-slate-800">Versão 4.9.3 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Restauração de Catálogo, Abertura de Formulários & IDs ao Salvar</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Restauração Resiliente do Catálogo:</strong> Carregamento automático e proteção permanente dos produtos padrão (INITIAL_PRODUCTS) evitando catálogo vazio.</li>
+            <li><strong>Numeração Sequencial Exclusiva no Salvamento:</strong> O número do pedido (#ID) é calculado estritamente antes de persistir, exibindo #NOVO durante a digitação e eliminando concorrência de numeração.</li>
+            <li><strong>Abertura Confiável de Formulários:</strong> Acesso direto e navegação fluida em Novo/Editar Cliente e Nova Venda (+ Operação e Esteira de Produção).</li>
+            <li><strong>Vínculo Resiliente Cliente-Pedido:</strong> Reconexão automática por ID e nome do cliente no Kanban e histórico de vendas.</li>
+            <li><strong>Manifesto Visual de Conectividade:</strong> Indicador destacado no topo exibindo em tempo real se o sistema está On-Line (Nuvem Ativa) ou em Retaguarda Local com botão de reconexão.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.2</h4>
+            <span class="text-xs text-slate-500 font-bold">Retaguarda Offline Resiliente & Edição In-Place</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li><strong>Cálculo Estrito de Reentradas (Senha "0000"):</strong> O contador regressivo de segurança agora inicia rigorosamente em 10 entradas e decrementa exatamente 1 a cada login, exibindo alerta claro e bloqueando ao atingir o limite até a troca por senha pessoal definitiva.</li>
@@ -861,16 +874,16 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.9.2"></script>
-  <script src="js/auth.js?v=4.9.2"></script>
-  <script src="js/store.js?v=4.9.2"></script>
-  <script src="js/clients.js?v=4.9.2"></script>
-  <script src="js/suppliers.js?v=4.9.2"></script>
-  <script src="js/products.js?v=4.9.2"></script>
-  <script src="js/sales.js?v=4.9.2"></script>
-  <script src="js/production.js?v=4.9.2"></script>
-  <script src="js/finance.js?v=4.9.2"></script>
-  <script src="js/newsticker.js?v=4.9.2"></script>
-  <script src="js/app.js?v=4.9.2"></script>
+  <script src="js/config.js?v=4.9.3"></script>
+  <script src="js/auth.js?v=4.9.3"></script>
+  <script src="js/store.js?v=4.9.3"></script>
+  <script src="js/clients.js?v=4.9.3"></script>
+  <script src="js/suppliers.js?v=4.9.3"></script>
+  <script src="js/products.js?v=4.9.3"></script>
+  <script src="js/sales.js?v=4.9.3"></script>
+  <script src="js/production.js?v=4.9.3"></script>
+  <script src="js/finance.js?v=4.9.3"></script>
+  <script src="js/newsticker.js?v=4.9.3"></script>
+  <script src="js/app.js?v=4.9.3"></script>
 </body>
 </html>

@@ -98,6 +98,13 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Restauração de Catálogo, Abertura de Formulários & IDs ao Salvar (v4.9.3)
+- **Restauração Resiliente do Catálogo**: Garantia de carregamento e persistência imediata dos produtos padrão (`INITIAL_PRODUCTS`), eliminando a exibição de catálogo vazio.
+- **Numeração Sequencial Exclusiva no Salvamento**: O número sequencial de novos pedidos (#ID) é calculado e consolidado estritamente no instante de salvar a operação, exibindo `#NOVO` durante o preenchimento e evitando conflito ou desperdício de IDs.
+- **Abertura Confiável de Formulários**: Navegação fluida para formulários de Clientes (Novo/Editar) e Vendas/Operações (`+ Operação` no topo e `+ Novo Pedido` no Kanban).
+- **Vínculo Resiliente Cliente-Pedido**: Resolução de cliente por ID e por nome com fallback automático no Kanban de produção e lista de vendas.
+- **Manifesto Visual de Conectividade**: Indicador no cabeçalho em tempo real manifestando se o sistema está ON-LINE (Nuvem Ativa) ou em Retaguarda Local com botão de reconexão.
+
 ## 🔄 Retaguarda Offline Resiliente & Sincronização Multidispositivo (v4.9.2)
 - **Contador Estrito de Reentradas (Senha "0000")**: Inicia rigorosamente em 10 entradas e decrementa exatamente 1 a cada login até a troca por senha pessoal definitiva.
 - **Desbloqueio de Edição de Clientes & Chave Primária Inteligente**: Remoção de bloqueios artificiais em formulários e validação de unicidade de telefone/CPF excluindo expressamente o próprio registro em edição.

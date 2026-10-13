@@ -190,8 +190,11 @@ window.salesModule = {
 
     let html = '';
     orders.forEach(o => {
-      const c = clients.find(cl => cl.id === o.cliente_id);
-      const cName = c ? c.nome : 'Desconhecido';
+      let c = clients.find(cl => cl.id === o.cliente_id);
+      if (!c && o.cliente_nome) {
+        c = clients.find(cl => cl.nome && cl.nome.toLowerCase().trim() === String(o.cliente_nome).toLowerCase().trim());
+      }
+      const cName = c ? c.nome : (o.cliente_nome || 'Desconhecido');
       
       const entradaCadastrada = parseFloat(o.valor_entrada) || parseFloat(o.valor_recebido) || 0;
       const payments = allFinance.filter(fin => fin.pedido_id === o.id && fin.tipo === 'recebimento');
@@ -772,10 +775,10 @@ window.salesModule = {
       });
     }
     
-    const displayId = isEdit ? order.numero : this.getNextOrderId();
+    const displayId = isEdit ? order.numero : '#NOVO';
     this.activeItems.forEach((it, idx) => {
       if (!it.item_id || !it.item_id.startsWith(String(displayId))) {
-        it.item_id = String(displayId) + String(idx + 1).padStart(2, '0');
+        it.item_id = isEdit ? (String(displayId) + String(idx + 1).padStart(2, '0')) : ('ITEM' + String(idx + 1).padStart(2, '0'));
       }
     });
     const canPermutaPatrocinio = this.canManagePermutaPatrocinio();
@@ -798,7 +801,7 @@ window.salesModule = {
             </div>
             <div class="text-right flex flex-col items-end">
               <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider">ID OPERAÇÃO</span>
-              <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">#${displayId}</span>
+              <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">${isEdit ? '#' + displayId : '#NOVO (Gerado ao salvar)'}</span>
               <input type="hidden" id="current-display-id" value="${displayId}">
               ${order ? `
                 <button type="button" onclick="salesModule.copyClientApprovalLink('${order.id}')" class="mt-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Copiar link público para aprovação do cliente sem login">
@@ -813,10 +816,12 @@ window.salesModule = {
             <!-- GRID SUPERIOR: CLIENTE, TIPO DE OPERAÇÃO E CONTROLES ESPECÍFICOS (IMAGEM 1) -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div class="md:col-span-2">
-                <label class="block text-xs font-semibold mb-1 text-slate-800 flex items-center justify-between">
-                  <span>Cliente *</span>
-                  <span class="text-[11px] text-blue-600 font-bold">Obrigatório para prosseguir</span>
-                </label>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-semibold text-slate-800">Cliente *</label>
+                  <button type="button" onclick="clientsModule.openModal()" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer" title="Cadastrar cliente rápido sem sair">
+                    + Novo Cliente
+                  </button>
+                </div>
                 <select name="cliente_id" id="order-cliente-select" required class="w-full p-2.5 border-2 border-blue-400 rounded-lg text-sm bg-white font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all shadow-sm" onchange="salesModule.checkClientStatusAndAge(this)">
                   <option value="">Selecione o Cliente...</option>
                   ${clients.map(c => `<option value="${c.id}" ${initialClientId === c.id ? 'selected' : ''}>${c.nome} ${c.cpf_cnpj ? '('+c.cpf_cnpj+')' : ''}</option>`).join('')}
@@ -2437,7 +2442,7 @@ window.salesModule = {
           return;
         }
       }
-      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : (activeDisplayId || geradoNumero || this.getNextOrderId());
+      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
 
       // Se não houver itens adicionados, cria um item provisório de orçamento
       if (!this.activeItems || this.activeItems.length === 0) {
@@ -2620,8 +2625,7 @@ window.salesModule = {
       const saldoRestante = Math.max(0, finalTotal - valorEntrada);
       const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
 
-      const activeDisplayId = document.getElementById('current-display-id')?.value;
-      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : (activeDisplayId || geradoNumero || this.getNextOrderId());
+      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
 
       // Atualiza sequencial dos itens vinculados ao numero oficial da operacao
       this.activeItems.forEach((it, idx) => {

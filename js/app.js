@@ -2335,9 +2335,12 @@ window.app = {
       alert(`Acesso Restrito: O perfil ${roleName} não possui permissão para emitir vendas ou orçamentos.\n\nA emissão e precificação de pedidos é restrita aos perfis Vendas, Gerente e Proprietário.`);
       return;
     }
-    if (window.salesModule && typeof window.salesModule.openModal === 'function') {
-      window.salesModule.openModal(params);
-    }
+    this.navigate('sales');
+    setTimeout(() => {
+      if (window.salesModule && typeof window.salesModule.openModal === 'function') {
+        window.salesModule.openModal(params);
+      }
+    }, 50);
   },
 
   async fetchOrderFromCloud(orderId) {

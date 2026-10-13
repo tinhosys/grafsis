@@ -1267,18 +1267,18 @@ class GrafsisStore {
     if (badge) {
       if (connected) {
         badge.innerHTML = `
-          <button onclick="window.store.handleManualSyncClick()" title="Clique para sincronizar o banco na nuvem e atualizar a página" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-sm cursor-pointer group">
+          <button onclick="window.store.handleManualSyncClick()" title="Nuvem Supabase Conectada e Sincronizada em Tempo Real. Clique para sincronizar agora" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-sm cursor-pointer group">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse group-hover:scale-125 transition-transform"></span>
-            <span>Nuvem Sincronizada</span>
+            <span class="font-black text-[11px]">ON-LINE (Nuvem Ativa)</span>
             <span class="text-xs transition-transform group-hover:rotate-180">↻</span>
           </button>
         `;
       } else {
         badge.innerHTML = `
-          <button onclick="window.store.handleManualSyncClick()" title="Banco desconectado. Clique para tentar reconectar agora" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer">
+          <button onclick="window.store.handleManualSyncClick()" title="Servidor Supabase Inacessível (Gateway 504/Offline). Retaguarda Local Ativa! Clique para tentar reconectar agora" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer group">
             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            <span>Reconectar Nuvem</span>
-            <span class="text-xs">↻</span>
+            <span class="font-black text-[11px]">OFF-LINE (Retaguarda Ativa)</span>
+            <span class="text-xs group-hover:rotate-180 transition-transform">↻</span>
           </button>
         `;
       }
@@ -1414,8 +1414,10 @@ class GrafsisStore {
       }
 
       console.log('[Supabase Sync] Sincronizacao concluida com sucesso!');
+      this.updateSyncBadge(true);
     } catch (e) {
       console.warn('[Supabase Sync] Erro na sincronizacao:', e);
+      this.updateSyncBadge(false);
     } finally {
       this.isSyncing = false;
     }
@@ -1960,7 +1962,11 @@ class GrafsisStore {
 
   // Produtos
   getProducts() {
-    const list = this.getLocal(STORAGE_KEYS.PRODUCTS) || [];
+    let list = this.getLocal(STORAGE_KEYS.PRODUCTS);
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      list = JSON.parse(JSON.stringify(INITIAL_PRODUCTS));
+      this.saveLocal(STORAGE_KEYS.PRODUCTS, list);
+    }
     const seen = new Set();
     const deduped = [];
     let needsSave = false;

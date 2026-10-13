@@ -341,10 +341,13 @@ window.clientsModule = {
   },
 
   openModal(client = null) {
+    const existingModal = document.getElementById('client-modal');
+    if (existingModal) existingModal.remove();
+
     const isEdit = !!client;
     this.currentEditingClientId = client ? client.id : null;
-    const clientUf = client ? (client.uf || (client.cidade && client.cidade.includes(' - ') ? client.cidade.split(' - ')[1].trim().toUpperCase() : 'RO')) : '';
-    const clientCidade = client ? (client.cidade ? (client.cidade.includes(' - ') ? client.cidade.split(' - ')[0].trim() : client.cidade) : '') : '';
+    const clientUf = client ? (client.uf || (client.cidade && typeof client.cidade === 'string' && client.cidade.includes(' - ') ? client.cidade.split(' - ')[1].trim().toUpperCase() : 'RO')) : '';
+    const clientCidade = client ? (client.cidade ? (typeof client.cidade === 'string' && client.cidade.includes(' - ') ? client.cidade.split(' - ')[0].trim() : String(client.cidade)) : '') : '';
 
     const modalHtml = `
       <div id="client-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -551,51 +554,58 @@ window.clientsModule = {
   },
 
   initGoogleAutocomplete() {
-    if (window.google && window.google.maps && window.google.maps.places) {
-      const input = document.getElementById('client-logradouro');
-      if (input) {
-        const autocomplete = new google.maps.places.Autocomplete(input, {
-          componentRestrictions: { country: "br" },
-          fields: ["address_components", "geometry", "name"],
-          types: ["address"],
-        });
-        autocomplete.addListener("place_changed", () => {
-          const place = autocomplete.getPlace();
-          let numero = '';
-          let logradouro = '';
-          let bairro = '';
-          let cidade = '';
-          let uf = '';
-          let cep = '';
-          
-          if(place.address_components) {
-            for (const component of place.address_components) {
-              const componentType = component.types[0];
-              switch (componentType) {
-                case "street_number": numero = component.long_name; break;
-                case "route": logradouro = component.long_name; break;
-                case "sublocality_level_1": bairro = component.long_name; break;
-                case "administrative_area_level_2": cidade = component.long_name; break;
-                case "administrative_area_level_1": uf = component.short_name; break;
-                case "postal_code": cep = component.long_name; break;
+    try {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        const input = document.getElementById('client-logradouro');
+        if (input) {
+          const autocomplete = new google.maps.places.Autocomplete(input, {
+            componentRestrictions: { country: "br" },
+            fields: ["address_components", "geometry", "name"],
+            types: ["address"],
+          });
+          autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            let numero = '';
+            let logradouro = '';
+            let bairro = '';
+            let cidade = '';
+            let uf = '';
+            let cep = '';
+            
+            if(place.address_components) {
+              for (const component of place.address_components) {
+                const componentType = component.types[0];
+                switch (componentType) {
+                  case "street_number": numero = component.long_name; break;
+                  case "route": logradouro = component.long_name; break;
+                  case "sublocality_level_1": bairro = component.long_name; break;
+                  case "administrative_area_level_2": cidade = component.long_name; break;
+                  case "administrative_area_level_1": uf = component.short_name; break;
+                  case "postal_code": cep = component.long_name; break;
+                }
               }
             }
-          }
-          if(logradouro) input.value = logradouro;
-          if(numero && document.getElementById('client-numero')) document.getElementById('client-numero').value = numero;
-          if(bairro && document.getElementById('client-bairro')) document.getElementById('client-bairro').value = bairro;
-          if(cidade && document.getElementById('client-cidade')) document.getElementById('client-cidade').value = cidade;
-          if(uf && document.getElementById('client-uf')) document.getElementById('client-uf').value = uf;
-          if(cep && document.getElementById('client-cep')) document.getElementById('client-cep').value = cep;
-        });
+            if(logradouro) input.value = logradouro;
+            if(numero && document.getElementById('client-numero')) document.getElementById('client-numero').value = numero;
+            if(bairro && document.getElementById('client-bairro')) document.getElementById('client-bairro').value = bairro;
+            if(cidade && document.getElementById('client-cidade')) document.getElementById('client-cidade').value = cidade;
+            if(uf && document.getElementById('client-uf')) document.getElementById('client-uf').value = uf;
+            if(cep && document.getElementById('client-cep')) document.getElementById('client-cep').value = cep;
+          });
+        }
       }
+    } catch (e) {
+      console.warn('[Clients] Autocomplete indisponível:', e);
     }
   },
 
   editModal(id) {
-    const client = window.store.getClients().find(c => c.id === id);
+    if (!id) return;
+    const client = window.store.getClients().find(c => c.id === id || String(c.id) === String(id));
     if (client) {
       this.openModal(client);
+    } else {
+      console.warn('[Clients] Cliente não encontrado para edição:', id);
     }
   },
 

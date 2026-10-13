@@ -289,7 +289,7 @@ window.productionModule = {
               </button>
             ` : ''}
             ${(window.authModule && window.authModule.can('canCreateOrders')) ? `
-              <button onclick="salesModule.openModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
+              <button onclick="app.openNewOrderModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-1.5 cursor-pointer">
                 <span>+ Novo Pedido</span>
               </button>
             ` : ''}
@@ -333,7 +333,14 @@ window.productionModule = {
   },
   
   renderCard(order, clients) {
-    const client = clients.find(c => c.id === order.cliente_id) || { nome: 'Cliente não vinculado' };
+    let client = clients.find(c => c.id === order.cliente_id);
+    if (!client && order.cliente_nome) {
+      client = clients.find(c => c.nome && c.nome.toLowerCase().trim() === String(order.cliente_nome).toLowerCase().trim());
+      if (client) {
+        order.cliente_id = client.id;
+      }
+    }
+    const clientObj = client || { nome: order.cliente_nome || 'Cliente não vinculado' };
     const totalArea = (order.itens || []).reduce((acc, it) => acc + (it.tipo_calculo === 'm2' ? (Number(it.largura_x || 0) * Number(it.comprimento_y || 0) * Number(it.quantidade || 1)) : 0), 0);
 
     // Indicador visual de Prazo de Entrega
@@ -501,8 +508,15 @@ window.productionModule = {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
-    const client = window.store.getClients().find(c => c.id === order.cliente_id);
-    const clientName = client ? client.nome : 'Cliente não vinculado';
+    const allClients = window.store.getClients();
+    let client = allClients.find(c => c.id === order.cliente_id);
+    if (!client && order.cliente_nome) {
+      client = allClients.find(c => c.nome && c.nome.toLowerCase().trim() === String(order.cliente_nome).toLowerCase().trim());
+      if (client) {
+        order.cliente_id = client.id;
+      }
+    }
+    const clientName = client ? client.nome : (order.cliente_nome || 'Cliente não vinculado');
     const oldPhaseObj = this.phases.find(p => p.id === order.status_fase);
     const newPhaseObj = this.phases.find(p => p.id === newPhaseId);
     
