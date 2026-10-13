@@ -3009,11 +3009,22 @@ window.salesModule = {
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    ${(order.itens || []).map((it, idx) => `
-                      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                        <td class="p-3 font-mono font-bold text-blue-600 dark:text-cyan-400">${idx + 1}</td>
+                    ${(order.itens || []).map((it, idx) => {
+                      const itemCode = it.item_id || (String(order.numero) + String(idx + 1).padStart(2, '0'));
+                      const isLiberado = it.liberado_os !== false;
+                      return `
+                      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition ${!isLiberado ? 'bg-amber-50/40 opacity-90' : ''}">
                         <td class="p-3">
-                          <strong class="text-slate-900 dark:text-white block">${it.produto_nome || it.descricao}</strong>
+                          <span class="font-mono font-black text-xs ${isLiberado ? 'text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-blue-950/60' : 'text-amber-700 bg-amber-100'} px-1.5 py-0.5 rounded border ${isLiberado ? 'border-blue-200' : 'border-amber-300'}">#${itemCode}</span>
+                        </td>
+                        <td class="p-3">
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <strong class="text-slate-900 dark:text-white block">${it.produto_nome || it.descricao}</strong>
+                            ${isLiberado 
+                              ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">Liberado O.S.</span>` 
+                              : `<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">Aguardando Liberação</span>`
+                            }
+                          </div>
                           <span class="text-[11px] text-slate-500">${it.descricao || ''}</span>
                         </td>
                         <td class="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
@@ -3024,7 +3035,8 @@ window.salesModule = {
                           ${it.acabamento || 'Ilhós nas 4 pontas + Bainha vulcanizada'}
                         </td>
                       </tr>
-                    `).join('')}
+                      `;
+                    }).join('')}
                   </tbody>
                 </table>
               </div>
