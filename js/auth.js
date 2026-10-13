@@ -696,7 +696,7 @@ class GrafsisAuth {
   }
 
   openLoginModal() {
-    const h = window.location.hash || '';
+    const h = (window.location.hash || '').toLowerCase();
     if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
       // Nunca abre modal de login ou pede senha no portal de aprovação do cliente
       return;
@@ -732,7 +732,7 @@ class GrafsisAuth {
   }
 
   closeLoginModal(force = false) {
-    const h = window.location.hash || '';
+    const h = (window.location.hash || '').toLowerCase();
     const isPortalRoute = h.startsWith('#aprovacao') || h.startsWith('#portal');
 
     // Só bloqueia fechamento se não for forçado, não autenticado e não for rota pública

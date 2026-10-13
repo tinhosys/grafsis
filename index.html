@@ -35,7 +35,7 @@
     // Detecção instantânea de Portal Público de Aprovação do Cliente (Sem Senha)
     (function() {
       try {
-        var h = window.location.hash || '';
+        var h = (window.location.hash || '').toLowerCase();
         if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
           document.documentElement.classList.add('portal-mode');
         }
@@ -45,7 +45,8 @@
   <style>
     html.portal-mode #auth-modal { display: none !important; }
     html.portal-mode #app-layout { display: none !important; }
-    html.portal-mode body { overflow-y: auto !important; height: auto !important; min-height: 100vh; }
+    html.portal-mode #public-portal-root { display: block !important; }
+    html.portal-mode body { display: block !important; overflow-y: auto !important; height: auto !important; min-height: 100vh; }
   </style>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">

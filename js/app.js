@@ -76,10 +76,10 @@ window.app = {
     if (!this._hashListenerAttached) {
       this._hashListenerAttached = true;
       window.addEventListener('hashchange', () => {
-        const h = window.location.hash || '';
+        const h = (window.location.hash || '').toLowerCase();
         if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
           document.documentElement.classList.add('portal-mode');
-          this.renderPublicClientApprovalPortal(h);
+          this.renderPublicClientApprovalPortal(window.location.hash);
         } else {
           document.documentElement.classList.remove('portal-mode');
           const portalRoot = document.getElementById('public-portal-root');
@@ -100,10 +100,10 @@ window.app = {
     }
 
     // Verificação de rota pública: Portal de Aprovação de Cliente (Sem Senha)
-    const currentHash = window.location.hash || '';
+    const currentHash = (window.location.hash || '').toLowerCase();
     if (currentHash.startsWith('#aprovacao') || currentHash.startsWith('#portal')) {
       document.documentElement.classList.add('portal-mode');
-      this.renderPublicClientApprovalPortal(currentHash);
+      this.renderPublicClientApprovalPortal(window.location.hash);
       return;
     }
 
@@ -2373,14 +2373,17 @@ window.app = {
 
     // 2. Extrai o identificador do pedido da URL
     let orderId = '';
-    if (hash.includes('id=')) {
-      orderId = hash.split('id=')[1].split('&')[0];
-    } else if (hash.includes('order=')) {
-      orderId = hash.split('order=')[1].split('&')[0];
+    const lowerHash = hash.toLowerCase();
+    if (lowerHash.includes('id=')) {
+      const idx = lowerHash.indexOf('id=') + 3;
+      orderId = hash.slice(idx).split('&')[0];
+    } else if (lowerHash.includes('order=')) {
+      const idx = lowerHash.indexOf('order=') + 6;
+      orderId = hash.slice(idx).split('&')[0];
     } else if (hash.includes('?')) {
       orderId = hash.split('?')[1].split('&')[0];
     } else {
-      orderId = hash.replace('#aprovacao', '').replace('#portal', '').replace('/', '');
+      orderId = hash.replace(/#aprovacao/i, '').replace(/#portal/i, '').replace('/', '');
     }
     orderId = decodeURIComponent(orderId).trim();
 
