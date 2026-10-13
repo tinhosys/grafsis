@@ -679,10 +679,23 @@ window.salesModule = {
     const products = window.store.getProducts();
     const isEdit = params.orderId ? true : false;
     const order = isEdit ? window.store.getOrders().find(o => o.id === params.orderId) : null;
-    this.activeItems = order ? JSON.parse(JSON.stringify(order.itens || [])) : [];
-    if (params.preItem) { this.activeItems.push(params.preItem); }
+    this.activeItems = order ? JSON.parse(JSON.stringify(order.itens || [])).map(it => ({
+      ...it,
+      liberado_os: it.liberado_os !== undefined ? it.liberado_os : true
+    })) : [];
+    if (params.preItem) {
+      this.activeItems.push({
+        ...params.preItem,
+        liberado_os: params.preItem.liberado_os !== undefined ? params.preItem.liberado_os : true
+      });
+    }
     
     const displayId = isEdit ? order.numero : this.getNextOrderId();
+    this.activeItems.forEach((it, idx) => {
+      if (!it.item_id || !it.item_id.startsWith(String(displayId))) {
+        it.item_id = String(displayId) + String(idx + 1).padStart(2, '0');
+      }
+    });
     const canPermutaPatrocinio = this.canManagePermutaPatrocinio();
     
     const defValidadeDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -854,10 +867,40 @@ window.salesModule = {
                   </div>
                 </div>
 
-                <div class="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+                <!-- BARRA DE ISOLAMENTO E FILTRO DE ITENS P/ ORDEM DE SERVIÇO (IMAGEM 1) -->
+                <div class="mt-4 p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-slate-700 flex items-center gap-1">
+                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                      Liberação O.S.:
+                    </span>
+                    <input type="text" id="filter-item-code-os" placeholder="Isolar item (ex: #${displayId}01 ou 01)..." onkeydown="if(event.key==='Enter'){event.preventDefault(); salesModule.isolateTypedItemOs();}" class="p-1.5 border border-slate-300 rounded text-xs font-mono w-44 bg-white focus:ring-1 focus:ring-blue-500">
+                    <button type="button" onclick="salesModule.isolateTypedItemOs()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-[11px] transition shadow-sm cursor-pointer">Isolar Item</button>
+                    <button type="button" onclick="salesModule.resetItemsOsFilter()" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-bold text-[11px] transition cursor-pointer">Liberar Todos</button>
+                  </div>
+                  <div id="os-items-status-info" class="text-[11px] text-emerald-600 font-bold">
+                    ● Todos os itens liberados para O.S.
+                  </div>
+                </div>
+
+                <div class="mt-2 border border-slate-200 rounded-lg overflow-hidden">
                   <table class="w-full text-sm text-left">
                     <thead class="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
-                      <tr><th class="p-3">Produto & Item</th><th class="p-3">Dimensoes</th><th class="p-3 text-center">Qtd</th><th class="p-3">Area</th><th class="p-3">Preco</th><th class="p-3 text-right">Total</th><th class="p-3 text-center">Acao</th></tr>
+                      <tr>
+                        <th class="p-3 text-center w-12" title="Liberar para O.S. (Padrão: Marcado)">
+                          <div class="flex flex-col items-center gap-0.5">
+                            <span class="text-[9px] text-blue-700 font-black">O.S.</span>
+                            <input type="checkbox" id="check-all-os" checked onchange="salesModule.toggleAllItemsOs(this.checked)" title="Marcar / Desmarcar todos para O.S." class="w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
+                          </div>
+                        </th>
+                        <th class="p-3">Produto & Item</th>
+                        <th class="p-3">Dimensoes</th>
+                        <th class="p-3 text-center">Qtd</th>
+                        <th class="p-3">Area</th>
+                        <th class="p-3">Preco</th>
+                        <th class="p-3 text-right">Total</th>
+                        <th class="p-3 text-center">Acao</th>
+                      </tr>
                     </thead>
                     <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
                   </table>
@@ -898,33 +941,32 @@ window.salesModule = {
                     <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
                   </div>
 
-                  <!-- ARTE GERAL DO PEDIDO COM PREVIEW -->
-                  <div class="pt-2 border-t border-slate-200">
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Arte / Mockup Geral do Pedido</label>
-                    <div class="flex items-center gap-3">
-                      <input type="file" id="order-arte-upload" accept="image/*" class="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" onchange="salesModule.handleOrderArteUpload(this)">
-                      <input type="hidden" name="foto_arte_url" id="order-arte-url" value="${order ? (order.foto_arte_url || '') : ''}">
-                    </div>
-                    <div id="order-arte-preview-container" class="${order && order.foto_arte_url ? '' : 'hidden'} mt-2 p-2 bg-white rounded-lg border border-slate-200 flex items-center gap-3">
-                      <img id="order-arte-preview-img" src="${order ? (order.foto_arte_url || '') : ''}" class="max-h-20 max-w-xs object-contain rounded-lg border border-slate-300 shadow-sm cursor-pointer" onclick="window.open(this.src, '_blank')" title="Clique para ver arte em tamanho real">
-                      <button type="button" onclick="salesModule.removeOrderArte()" class="text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 bg-red-50 hover:bg-red-100 rounded">Remover</button>
+                  <!-- IDENTIFICAÇÃO E STATUS DA OPERAÇÃO (MUDADO CONFORME IMAGEM 2) -->
+                  <div class="pt-2 border-t border-slate-200" id="secao-status-producao">
+                    <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-sm">
+                      <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-blue-600 animate-pulse"></span>
+                        <div>
+                          <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Identificação & Status</div>
+                          <div class="text-sm font-black text-slate-800 flex items-center gap-2 flex-wrap">
+                            <span>Operação <strong class="font-mono text-blue-700">#${displayId}</strong></span>
+                            <span class="text-slate-300">&bull;</span>
+                            <span class="text-slate-600 font-medium text-xs">Fluxo controlado pelo Kanban da Produção</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <span class="text-[10px] font-bold uppercase text-slate-400 block">Fase Atual</span>
+                        <span class="text-xs font-black px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg border border-amber-300 uppercase">${order ? (order.status_fase || 'Orçamento') : 'Orçamento'}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200">
-                    <div>
-                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Data Aceite Cliente</label>
-                      <input type="date" name="data_aceite" id="order-data-aceite" value="${order && order.data_aceite ? order.data_aceite.slice(0,10) : ''}" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
-                    </div>
-                    <div>
-                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Autorizo Produção</label>
-                      <input type="text" name="autorizo_producao" id="order-autorizo-producao" value="${order ? (order.autorizo_producao || '') : ''}" placeholder="Nome / Visto" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
-                    </div>
-                    <div>
-                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Conferência Arte</label>
-                      <input type="text" name="conferencia_arte" id="order-conferencia-arte" value="${order ? (order.conferencia_arte || '') : ''}" placeholder="Designer / OK" class="w-full p-1.5 border rounded-lg text-xs bg-white font-medium">
-                    </div>
-                  </div>
+                  <!-- CAMPOS OCULTOS PARA COMPATIBILIDADE -->
+                  <input type="hidden" name="foto_arte_url" id="order-arte-url" value="${order ? (order.foto_arte_url || '') : ''}">
+                  <input type="hidden" name="data_aceite" id="order-data-aceite" value="${order && order.data_aceite ? order.data_aceite.slice(0,10) : ''}">
+                  <input type="hidden" name="autorizo_producao" id="order-autorizo-producao" value="${order ? (order.autorizo_producao || '') : ''}">
+                  <input type="hidden" name="conferencia_arte" id="order-conferencia-arte" value="${order ? (order.conferencia_arte || '') : ''}">
                 </div>
 
                 <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100" id="secao-fechamento-financeiro">
@@ -977,28 +1019,45 @@ window.salesModule = {
                 </div>
               </div>
 
-              <!-- BARRA DE BOTÕES & CONTROLE OPERACIONAL (Imagem 2: Combo de Fases Retirado) -->
+              <!-- BARRA DE BOTÕES & CONTROLE OPERACIONAL (Imagem 2: 6 Botões Padronizados em Grid) -->
               <input type="hidden" name="status_fase" value="${order ? (order.status_fase || 'orcamento') : 'orcamento'}">
-              <div class="pt-6 mt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
-                <div class="text-xs text-slate-600 font-semibold flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                  <span>Operação <strong>#${displayId}</strong></span>
-                  <span class="text-slate-400">&bull;</span>
-                  <span class="text-slate-500">Fluxo controlado pelo Kanban da Produção</span>
-                </div>
-                <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                  <button type="button" onclick="salesModule.render()" class="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
-                  <button type="button" id="btn-save-draft" onclick="salesModule.saveOrderQuick(event, '${order ? order.id : ''}', '${displayId}')" class="px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer" title="Salvar a operação rapidamente como orçamento no sistema">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    Salvar Operação
+              <div class="pt-6 mt-4 border-t bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                  <!-- LINHA SUPERIOR (3 BOTÕES) -->
+                  <!-- 1. Cancelar -->
+                  <button type="button" onclick="salesModule.render()" class="w-full h-12 text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Cancelar e voltar para a listagem">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    Cancelar
                   </button>
-                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition cursor-pointer">${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}</button>
-                  <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="px-5 py-2.5 text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Documento A4">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+
+                  <!-- 2. Edita (marcado em amarelo na imagem 2) -->
+                  <button type="button" id="btn-edit-order" onclick="salesModule.handleEditAction('${order ? order.id : ''}')" class="w-full h-12 text-sm font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 border border-amber-500 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Editar dados e itens da operação">
+                    <svg class="w-4 h-4 text-amber-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    Edita
+                  </button>
+
+                  <!-- 3. Salva Operação (marcado em verde na imagem 2) -->
+                  <button type="button" id="btn-save-draft" onclick="salesModule.saveOrderQuick(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Salvar a operação rapidamente como rascunho / orçamento">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Salva Operação
+                  </button>
+
+                  <!-- LINHA INFERIOR (3 BOTÕES) -->
+                  <!-- 4. Finalizar Pedido -->
+                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase" title="Gravar e oficializar pedido">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    ${isEdit ? 'Atualizar Pedido' : 'Finalizar Pedido'}
+                  </button>
+
+                  <!-- 5. Emitir Pedido -->
+                  <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="w-full h-12 text-sm font-bold text-slate-800 bg-slate-200 hover:bg-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Emitir Pedido / Operação em A4">
+                    <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     Emitir Pedido
                   </button>
-                  <button type="button" id="btn-emitir-os" onclick="salesModule.printOrder('os')" class="px-5 py-2.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold rounded-xl transition shadow-sm flex items-center gap-2" title="Emitir Ordem de Serviço A4">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+
+                  <!-- 6. Emitir O.S. -->
+                  <button type="button" id="btn-emitir-os" onclick="salesModule.printOrder('os')" class="w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Emitir Ordem de Serviço Técnica em A4 Paisagem">
+                    <svg class="w-4 h-4 text-orange-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                     Emitir O.S.
                   </button>
                 </div>
@@ -1012,6 +1071,7 @@ window.salesModule = {
     document.getElementById("view-container").innerHTML = formHtml;
     this.recalcTotals();
     this.updateFormState();
+    this.updateOsStatusInfo();
   },
 
   // Helpers de Compressão de Imagens via Canvas (reduz de 2MB para ~40KB - 70KB, protegendo o localStorage de QuotaExceededError)
@@ -1363,13 +1423,16 @@ window.salesModule = {
     }
   },
 
-  openPrintDocument(htmlContent) {
+  openPrintDocument(htmlContent, docTitle = '') {
     if (!htmlContent) return;
     try {
       const printWin = window.open('', '_blank');
       if (printWin && !printWin.closed && typeof printWin.document !== 'undefined') {
         printWin.document.open();
         printWin.document.write(htmlContent);
+        if (docTitle) {
+          printWin.document.title = docTitle;
+        }
         printWin.document.close();
         return;
       }
@@ -1396,6 +1459,9 @@ window.salesModule = {
       if (frameDoc) {
         frameDoc.open();
         frameDoc.write(htmlContent);
+        if (docTitle) {
+          try { frameDoc.title = docTitle; } catch (e) {}
+        }
         frameDoc.close();
         setTimeout(() => {
           try {
@@ -1404,10 +1470,10 @@ window.salesModule = {
           } catch (err) {
             console.warn('[GRAFSIS Print] Erro no print via iframe:', err);
           }
-        }, 500);
+        }, 350);
       }
     } catch (err) {
-      console.error('[GRAFSIS Print] Falha em todos os canais de impressão:', err);
+      console.error('[GRAFSIS Print] Erro crítico ao imprimir documento:', err);
       alert('Aviso: O navegador bloqueou a abertura da impressão. Por favor, permita pop-ups para este site.');
     }
   },
@@ -1697,7 +1763,7 @@ window.salesModule = {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>${title} #${orderIdStr}</title>
+        <title>OP-${orderIdStr}</title>
         <style>
           @page { size: A4; margin: 15mm; }
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.4; margin: 0; padding: 15px; font-size: 12px; }
@@ -1882,7 +1948,7 @@ window.salesModule = {
       </body>
       </html>
     `;
-    this.openPrintDocument(pdfHtml);
+    this.openPrintDocument(pdfHtml, 'OP-' + orderIdStr);
   },
   calcPiecePriceOLD() {
     const type = document.getElementById('item-type').value;
@@ -1986,7 +2052,8 @@ window.salesModule = {
       preco_unitario: piecePrice,
       area_m2: area, 
       valor_total: total,
-      arte_url: arteUrl
+      arte_url: arteUrl,
+      liberado_os: true
     });
 
     document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
@@ -2002,27 +2069,26 @@ window.salesModule = {
 
     this.calcPiecePrice();
     this.recalcTotals('val');
+    this.updateOsStatusInfo();
     document.getElementById('item-prod-select').focus();
   },
   removeItem(idx) {
     this.activeItems.splice(idx, 1);
-        document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
-          document.getElementById('item-desc').value = '';
-      document.getElementById('item-prod-select').value = '';
-      document.getElementById('item-price').value = '0.00';
-      document.getElementById('item-width').value = '0.00';
-      document.getElementById('item-height').value = '0.00';
-      document.getElementById('item-qty').value = '1';
-          if(itemArteInput) itemArteInput.value = '';
-      const arteBtn = document.getElementById('item-arte-btn');
-      if(arteBtn) {
-        arteBtn.className = 'w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors';
-        arteBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>`;
-      }
-      const arteUpload = document.getElementById('item-arte-upload');
-      if(arteUpload) arteUpload.value = '';
-      this.calcPiecePrice();
+    const orderIdStr = document.getElementById('current-display-id')?.value || '000000';
+    this.activeItems.forEach((it, i) => {
+      it.item_id = orderIdStr + String(i + 1).padStart(2, '0');
+    });
+    document.getElementById('order-items-tbody').innerHTML = this.renderActiveItemsHtml();
+    document.getElementById('item-desc').value = '';
+    document.getElementById('item-prod-select').value = '';
+    document.getElementById('item-price').value = '0.00';
+    document.getElementById('item-width').value = '0.00';
+    document.getElementById('item-height').value = '0.00';
+    document.getElementById('item-qty').value = '1';
+    this.removeItemArte();
+    this.calcPiecePrice();
     this.recalcTotals('val');
+    this.updateOsStatusInfo();
     document.getElementById('item-prod-select').focus();
   },
           viewItemDetails(idx) {
@@ -2068,10 +2134,13 @@ window.salesModule = {
     },
     renderActiveItemsHtml() {
       if (!this.activeItems || this.activeItems.length === 0) {
-        return `<tr><td colspan="7" class="p-4 text-center text-slate-400 font-semibold bg-slate-50">Nenhum item adicionado ao pedido.</td></tr>`;
+        return `<tr><td colspan="8" class="p-4 text-center text-slate-400 font-semibold bg-slate-50">Nenhum item adicionado ao pedido.</td></tr>`;
       }
       return this.activeItems.map((it, idx) => `
-        <tr class="border-b hover:bg-slate-50 transition">
+        <tr class="border-b hover:bg-slate-50 transition ${it.liberado_os === false ? 'bg-amber-50/50 opacity-90' : ''}">
+          <td class="p-3 text-center">
+            <input type="checkbox" ${it.liberado_os !== false ? 'checked' : ''} onchange="salesModule.toggleItemOs(${idx}, this.checked)" title="Liberar item para O.S. (Desmarque para reter)" class="w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
+          </td>
           <td class="p-3">
             <div class="flex items-center gap-3">
               ${it.arte_url 
@@ -2084,9 +2153,10 @@ window.salesModule = {
                    </div>`
               }
               <div>
-                <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                  <span class="text-[10px] font-mono bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200" onclick="salesModule.viewItemDetails(${idx})" title="Ver Detalhes do Item e Arte">#${it.item_id || '----'}</span>
+                <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[10px] font-mono ${it.liberado_os !== false ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'} border px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200 transition" onclick="salesModule.isolateItemForOs(${idx})" title="Clique para isolar este item na O.S. / visualização">#${it.item_id || '----'}</span>
                   ${it.produto_nome || ''}
+                  ${it.liberado_os === false ? '<span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Aguardando Liberação</span>' : ''}
                 </div>
                 <div class="text-[11px] text-slate-500 font-medium mt-0.5">${it.descricao}</div>
               </div>
@@ -2514,6 +2584,107 @@ window.salesModule = {
   },
   editModal(id) { this.openModal({ orderId: id }); },
   renderOrderForm(params = {}) { return this.openModal(params); },
+
+  // MÉTODOS DE CONTROLE E LIBERAÇÃO DE O.S. POR ITEM (IMAGEM 1 & 2)
+  toggleItemOs(idx, checked) {
+    if (!this.activeItems || !this.activeItems[idx]) return;
+    this.activeItems[idx].liberado_os = !!checked;
+    this.updateOsStatusInfo();
+  },
+
+  toggleAllItemsOs(checked) {
+    if (!this.activeItems || this.activeItems.length === 0) return;
+    this.activeItems.forEach(it => {
+      it.liberado_os = !!checked;
+    });
+    const tbody = document.getElementById('order-items-tbody');
+    if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+    this.updateOsStatusInfo();
+  },
+
+  isolateItemForOs(targetIdx) {
+    if (!this.activeItems || !this.activeItems[targetIdx]) return;
+    this.activeItems.forEach((it, idx) => {
+      it.liberado_os = (idx === targetIdx);
+    });
+    const item = this.activeItems[targetIdx];
+    const filterInput = document.getElementById('filter-item-code-os');
+    if (filterInput) filterInput.value = '#' + (item.item_id || '');
+    const tbody = document.getElementById('order-items-tbody');
+    if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+    this.updateOsStatusInfo();
+  },
+
+  isolateTypedItemOs() {
+    const filterInput = document.getElementById('filter-item-code-os');
+    if (!filterInput) return;
+    const val = String(filterInput.value || '').replace('#', '').trim().toLowerCase();
+    if (!val) {
+      alert('Digite o código do item (ex: #26000801 ou 01) para isolá-lo.');
+      return;
+    }
+    const foundIdx = this.activeItems.findIndex(it => {
+      const code = String(it.item_id || '').toLowerCase();
+      return code === val || code.endsWith(val) || code.includes(val);
+    });
+    if (foundIdx === -1) {
+      alert(`Item com código '${val}' não encontrado na lista atual deste pedido.`);
+      return;
+    }
+    this.isolateItemForOs(foundIdx);
+  },
+
+  resetItemsOsFilter() {
+    const filterInput = document.getElementById('filter-item-code-os');
+    if (filterInput) filterInput.value = '';
+    const checkAll = document.getElementById('check-all-os');
+    if (checkAll) checkAll.checked = true;
+    this.toggleAllItemsOs(true);
+  },
+
+  updateOsStatusInfo() {
+    if (!this.activeItems) return;
+    const total = this.activeItems.length;
+    const liberados = this.activeItems.filter(it => it.liberado_os !== false).length;
+    const retidos = total - liberados;
+
+    const checkAll = document.getElementById('check-all-os');
+    if (checkAll) {
+      checkAll.checked = (total > 0 && liberados === total);
+      checkAll.indeterminate = (liberados > 0 && liberados < total);
+    }
+
+    const infoEl = document.getElementById('os-items-status-info');
+    if (infoEl) {
+      if (total === 0) {
+        infoEl.innerHTML = `<span class="text-slate-400">Nenhum item adicionado</span>`;
+      } else if (liberados === total) {
+        infoEl.innerHTML = `<span class="text-emerald-600 font-bold">● Todos os ${total} item(ns) liberados para O.S.</span>`;
+      } else if (liberados === 0) {
+        infoEl.innerHTML = `<span class="text-rose-600 font-bold">⛔ Nenhum item liberado para O.S. (O.S. pausada)</span>`;
+      } else {
+        infoEl.innerHTML = `<span class="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">⚠️ ${liberados} de ${total} liberado(s) • ${retidos} aguardando liberação</span>`;
+      }
+    }
+  },
+
+  handleEditAction(orderId) {
+    if (orderId) {
+      this.currentEditingOrderId = orderId;
+    }
+    const clientSel = document.getElementById('order-cliente-select') || document.querySelector('select[name="cliente_id"]');
+    const prodSel = document.getElementById('item-prod-select');
+    if (prodSel) prodSel.focus();
+    else if (clientSel) clientSel.focus();
+    
+    // Feedback visual
+    const displayId = document.getElementById('current-display-id')?.value || '';
+    const badge = document.createElement('div');
+    badge.className = 'fixed bottom-4 right-4 z-50 bg-amber-500 text-amber-950 font-black px-4 py-2 rounded-xl shadow-lg border border-amber-600 animate-bounce text-sm';
+    badge.innerText = `Modo de Edição ativo no Pedido #${displayId || ''}!`;
+    document.body.appendChild(badge);
+    setTimeout(() => badge.remove(), 2500);
+  },
   quickView(orderId) {
     const order = window.store.getOrders().find(o => o.id === orderId);
     if (!order) return;
@@ -2913,24 +3084,47 @@ window.salesModule = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  // BUSCA DIRETA DE PEDIDO PELO ID (IMAGEM 5)
+  // BUSCA DIRETA DE PEDIDO PELO ID OU CÓDIGO DO ITEM (IMAGEM 5)
   searchAndOpenOrderById(term) {
     if (!term || !String(term).trim()) {
-      alert('Por favor, informe o número do ID para buscar (ex: 260001 ou 1008).');
+      alert('Por favor, informe o número do ID para buscar (ex: 260001 ou 26000101).');
       return;
     }
     const cleanTerm = String(term).replace('#', '').trim().toLowerCase();
     const orders = window.store?.getOrders ? window.store.getOrders() : [];
-    const found = orders.find(o => {
+    let isolateItemIndex = null;
+    let found = orders.find(o => {
       const num = String(o.numero || '').toLowerCase();
       const id = String(o.id || '').toLowerCase();
       return num === cleanTerm || id === cleanTerm || num.padStart(6, '0') === cleanTerm || id.startsWith(cleanTerm);
     });
 
+    if (!found) {
+      // Tenta localizar por código sequencial de item (ex: 26000801)
+      for (const o of orders) {
+        if (o.itens && o.itens.length > 0) {
+          const itemIdx = o.itens.findIndex(it => {
+            const code = String(it.item_id || '').toLowerCase();
+            return code === cleanTerm || code.endsWith(cleanTerm);
+          });
+          if (itemIdx !== -1) {
+            found = o;
+            isolateItemIndex = itemIdx;
+            break;
+          }
+        }
+      }
+    }
+
     if (found) {
       this.openModal({ orderId: found.id });
+      if (isolateItemIndex !== null) {
+        setTimeout(() => {
+          this.isolateItemForOs(isolateItemIndex);
+        }, 150);
+      }
     } else {
-      alert(`Nenhum pedido encontrado com o ID #${term}. Verifique a numeração digitada.`);
+      alert(`Nenhum pedido ou item encontrado com o ID #${term}. Verifique a numeração digitada.`);
     }
   },
 
@@ -2976,17 +3170,25 @@ window.salesModule = {
     const prazoEntrega = order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'A Combinar';
     const clientAddressStr = [client.endereco, client.numero, client.bairro, client.cidade, client.uf].filter(Boolean).join(', ');
 
-    const items = order.itens && order.itens.length > 0 ? order.itens : [];
+    const allItems = (order.itens && order.itens.length > 0) ? order.itens : (this.activeItems || []);
+    const items = allItems.filter(it => it.liberado_os !== false);
+    const aguardandoItems = allItems.filter(it => it.liberado_os === false);
+
+    if (items.length === 0) {
+      alert(`Atenção: Nenhum item do Pedido #${order.numero} está liberado para emissão da Ordem de Serviço. Libere ao menos 1 item na lista antes de imprimir.`);
+      return;
+    }
 
     const itemsCardsHtml = items.map((it, idx) => {
       const itemImg = it.arte_url || order.foto_arte_url || '';
+      const itemCode = it.item_id || (String(order.numero) + String(allItems.indexOf(it) + 1).padStart(2, '0'));
       const dimensao = it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m (${(Number(it.largura_x || 0) * Number(it.comprimento_y || 0)).toFixed(2)} m²)` : (it.tipo_calculo === 'linear' ? `${it.largura_x || it.quantidade} metros lineares` : 'Peça Unidade');
       
       return `
         <div class="item-card">
           <div class="item-header">
             <div>
-              <span class="item-number">[ ] ITEM #${idx + 1}</span>
+              <span class="item-number">[ ] CÓD: #${itemCode}</span>
               <strong style="display: block; font-size: 11px; margin-top: 1px; color: #0f172a;">${it.produto_nome || it.descricao || 'Item de Produção'}</strong>
               ${it.descricao && it.descricao !== it.produto_nome ? `<div style="font-size: 9.5px; color: #64748b;">${it.descricao}</div>` : ''}
             </div>
@@ -3000,7 +3202,7 @@ window.salesModule = {
 
           ${(includeImages && itemImg) ? `
             <div class="item-img-container">
-              <img src="${itemImg}" class="item-img" alt="Arte Item #${idx + 1}">
+              <img src="${itemImg}" class="item-img" alt="Arte Item #${itemCode}">
             </div>
           ` : `
             <div class="item-img-placeholder">
@@ -3027,7 +3229,7 @@ window.salesModule = {
       <html lang="pt-BR">
       <head>
         <meta charset="utf-8">
-        <title>O.S. Técnica #${order.numero} - Chão de Fábrica</title>
+        <title>OS-${order.numero}</title>
         <style>
           @page {
             size: A4 landscape;
@@ -3310,7 +3512,7 @@ window.salesModule = {
             </div>
             <div class="cell">
               <span>Status & Volume</span>
-              <strong style="color: #0369a1;">${items.length} item(ns) a produzir</strong>
+              <strong style="color: #0369a1;">${items.length} de ${allItems.length} item(ns) liberado(s)</strong>
               <div style="font-size: 9px; color: #64748b;">Controle: ${faseNome}</div>
             </div>
           </div>
@@ -3322,9 +3524,20 @@ window.salesModule = {
             </div>
           ` : ''}
 
+          <!-- ALERTA DE ITENS AGUARDANDO LIBERAÇÃO (IMAGEM 1) -->
+          ${aguardandoItems.length > 0 ? `
+            <div style="background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 10px; color: #92400e;">
+              <strong>⚠️ OBSERVAÇÃO TÉCNICA - EMISSÃO PARCIAL:</strong>
+              Existem <strong>${aguardandoItems.length}</strong> item(ns) deste pedido aguardando liberação e que <strong>NÃO</strong> constam nesta O.S.:
+              <span style="font-family: monospace; font-weight: bold; background: #fef3c7; padding: 1px 6px; border-radius: 4px;">
+                ${aguardandoItems.map(it => '#' + (it.item_id || String(order.numero) + String(allItems.indexOf(it) + 1).padStart(2, '0'))).join(', ')}
+              </span>
+            </div>
+          ` : ''}
+
           <!-- GRADE DE ITENS (DISPOSTOS UM AO LADO DO OUTRO) -->
           <div class="items-header">
-            <span>Itens a Produzir & Especificações Técnicas (${items.length} itens)</span>
+            <span>Itens a Produzir & Especificações Técnicas (${items.length} item(ns) liberado(s)${aguardandoItems.length > 0 ? ` • ${aguardandoItems.length} aguardando` : ''})</span>
             <span style="font-size: 9px; font-weight: normal; text-transform: none; color: #64748b;">Conferência visual e liberação técnica por item</span>
           </div>
 
@@ -3362,7 +3575,7 @@ window.salesModule = {
       </html>
     `;
 
-    this.openPrintDocument(html);
+    this.openPrintDocument(html, 'OS-' + order.numero);
   },
 
   // =========================================================================
