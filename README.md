@@ -117,6 +117,11 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
   - Upload de anexos limitado a 15MB com bloqueio preventivo de executáveis e scripts (.exe, .bat, .cmd, .sh, .vbs, .js) e rejeição granular informando o motivo sem afetar arquivos íntegros.
 - **Alerta Visual de Cadastro Pendente no Kanban (Seção 06)**:
   - O fallback visual não mascara inconsistências cadastrais: pedidos sem vínculo formal exibem a badge `⚠️ Cadastro Pendente`.
+- **Tela de Login com Autenticação Direta por CPF (Sem Combos)**:
+  - Removido o seletor de Empresa/Gráfica da tela inicial de acesso.
+  - O seletor em combo de Operador foi substituído por campo de entrada direta de CPF com máscara automática (`000.000.000-00`) e foco automático.
+  - Preservada a regra de senha de 4 dígitos (padrão temporário `0000` ou senha definitiva do operador).
+  - Vinculação e ativação automática da empresa correspondente ao operador logado, com persistência segura do CPF via "Lembrar-me".
 
 ---
 

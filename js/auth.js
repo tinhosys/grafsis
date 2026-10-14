@@ -710,8 +710,12 @@ class GrafsisAuth {
 
   handleCpfInput(input) {
     if (!input) return;
-    // Remove qualquer caractere não numérico se o operador digitar diretamente
-    input.value = input.value.replace(/\D/g, '');
+    const raw = input.value.trim();
+    // Se o usuário estiver digitando números (CPF), aplica máscara progressiva 000.000.000-00
+    const digitsOnly = raw.replace(/\D/g, '');
+    if (digitsOnly.length > 0 && /^[0-9.\-]+$/.test(raw)) {
+      input.value = this.maskCpf(digitsOnly);
+    }
   }
 
   openLoginModal() {
@@ -743,11 +747,29 @@ class GrafsisAuth {
 
     this.populateLoginCombos();
 
+    // Recupera CPF do "Lembrar-me" se existir
+    const rememberedCpf = localStorage.getItem('grafsis_remember_cpf') || '';
+    const cpfInp = document.getElementById('auth-cpf');
     const passInp = document.getElementById('auth-pin');
+    const remCheck = document.getElementById('auth-remember');
+
+    if (cpfInp) {
+      cpfInp.value = rememberedCpf ? this.maskCpf(rememberedCpf) : '';
+    }
+    if (remCheck) {
+      remCheck.checked = !!rememberedCpf;
+    }
     if (passInp) {
       passInp.value = '';
-      setTimeout(() => passInp.focus(), 150);
     }
+
+    setTimeout(() => {
+      if (cpfInp && !cpfInp.value) {
+        cpfInp.focus();
+      } else if (passInp) {
+        passInp.focus();
+      }
+    }, 150);
   }
 
   closeLoginModal(force = false) {
@@ -825,9 +847,44 @@ class GrafsisAuth {
     if (e) e.preventDefault();
     const cpfOuLogin = (document.getElementById('auth-cpf')?.value || '').trim();
     const pin = (document.getElementById('auth-pin')?.value || '').trim();
+    const rememberCheckbox = document.getElementById('auth-remember');
+
+    if (!cpfOuLogin) {
+      const errEl = document.getElementById('auth-error');
+      if (errEl) {
+        errEl.innerText = 'Por favor, informe seu CPF de acesso.';
+        errEl.classList.remove('hidden');
+      }
+      document.getElementById('auth-cpf')?.focus();
+      return;
+    }
+
+    if (!pin) {
+      const errEl = document.getElementById('auth-error');
+      if (errEl) {
+        errEl.innerText = 'Por favor, informe sua senha de 4 dígitos.';
+        errEl.classList.remove('hidden');
+      }
+      document.getElementById('auth-pin')?.focus();
+      return;
+    }
+
     const result = this.login(cpfOuLogin, pin);
 
     if (result.success) {
+      // Salva ou remove do Lembrar-me
+      if (rememberCheckbox && rememberCheckbox.checked) {
+        const cleanCpf = this.cleanDigits(cpfOuLogin) || cpfOuLogin;
+        localStorage.setItem('grafsis_remember_cpf', cleanCpf);
+      } else {
+        localStorage.removeItem('grafsis_remember_cpf');
+      }
+
+      // Sincroniza a empresa vinculada ao operador autenticado
+      if (result.user && result.user.empresa_id && window.store && typeof window.store.setActiveTenant === 'function') {
+        window.store.setActiveTenant(result.user.empresa_id);
+      }
+
       this.closeLoginModal();
       if (window.app) {
         window.app.updateUserHeader();
@@ -846,7 +903,7 @@ class GrafsisAuth {
     } else {
       const errEl = document.getElementById('auth-error');
       if (errEl) {
-        errEl.innerText = result.message;
+        errEl.innerText = result.message || 'CPF ou Senha incorretos. A senha padrão de teste é 0000.';
         errEl.classList.remove('hidden');
       }
     }
