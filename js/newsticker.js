@@ -1,7 +1,8 @@
-﻿/* ==============================================================================
+/* ==============================================================================
    GRAFSIS - Monitor de Notícias On-Line & RSS Feed Ticker Dinâmico
-   Versão 4.9.0 - Tempo Real, Ticker da Esquerda para a Direita, Relógio Ativo,
-   Fixação Alfinete (Mostrar/Esconder) e Configuração Centralizada por Empresa.
+   Versão 4.9.7 - Feed Oficial Roxo News (https://roxo.news/feed/),
+   Movimento Contínuo Fluido, Categorias em Destaque, Redirecionamento Direto ao Artigo
+   e Desobstrução Automática do Card de Suporte da Sidebar.
    ============================================================================== */
 
 window.newsTickerModule = {
@@ -12,7 +13,41 @@ window.newsTickerModule = {
   isHidden: false,
   STORAGE_PREF_KEY: 'grafsis_news_ticker_pinned',
   STORAGE_FEED_KEY_PREFIX: 'grafsis_news_feed_',
-  DEFAULT_FEED: 'https://g1.globo.com/rss/g1/economia/',
+  DEFAULT_FEED: 'https://roxo.news/feed/',
+
+  // Notícias de Fallback Reais do Roxo News (Garante exibição instantânea sem tela vazia)
+  FALLBACK_NEWS: [
+    {
+      title: 'Fluminense x Palmeiras: confira onde assistir e as prováveis escalações',
+      link: 'https://roxo.news/esportes/fluminense-x-palmeiras-confira-onde-assistir-e-as-provaveis-escalacoes/',
+      category: 'ESPORTES'
+    },
+    {
+      title: 'Acordo Mercosul-UE impulsiona exportações brasileiras em 30,7%, e país amplia mercados do agro',
+      link: 'https://roxo.news/economia/acordo-mercosul-ue-impulsiona-exportacoes-brasileiras-em-307-e-pais-amplia-mercados-do-agro/',
+      category: 'ECONOMIA'
+    },
+    {
+      title: 'CBF lamenta morte de Silvio Barsetti; jornalista terá homenagem em jogo da seleção feminina',
+      link: 'https://roxo.news/esportes/cbf-lamenta-morte-de-silvio-barsetti-jornalista-tera-homenagem-em-jogo-da-selecao-feminina/',
+      category: 'RECONHECIMENTO'
+    },
+    {
+      title: 'Retiram grade de passarela das Cataratas do Iguaçu após cheia histórica',
+      link: 'https://roxo.news/brasil/retiram-grade-de-passarela-das-cataratas-do-iguacu/',
+      category: 'TURISMO'
+    },
+    {
+      title: '\'Linha dura\' e polêmico: as histórias de Seedorf como jogador por onde passou',
+      link: 'https://roxo.news/esportes/linha-dura-e-polemico-as-historias-de-seedorf-como-jogador-por-onde-passou/',
+      category: 'COMANDANTE'
+    },
+    {
+      title: 'Eleições 2026: Principais propostas econômicas em debate no Congresso Nacional',
+      link: 'https://roxo.news/politica/',
+      category: 'POLÍTICA'
+    }
+  ],
 
   init() {
     try {
@@ -25,9 +60,15 @@ window.newsTickerModule = {
     this.applyVisibility();
     this.startClock();
     this.loadFeedConfig();
+
+    // Renderiza imediatamente as notícias de fallback enquanto a busca remota carrega
+    this.newsItems = [...this.FALLBACK_NEWS];
+    this.renderItems();
+
+    // Busca remota atualizada do feed Roxo News
     this.fetchNews();
 
-    // Atualização automática do feed a cada 5 minutos
+    // Atualização automática periódica a cada 5 minutos
     if (this.intervalId) clearInterval(this.intervalId);
     this.intervalId = setInterval(() => {
       this.fetchNews();
@@ -41,6 +82,18 @@ window.newsTickerModule = {
     }
     const user = window.authModule ? window.authModule.getCurrentUser() : null;
     return (user && user.empresa_id) ? String(user.empresa_id) : '001';
+  },
+
+  normalizeUrl(rawUrl) {
+    if (!rawUrl) return this.DEFAULT_FEED;
+    let u = rawUrl.trim();
+    if (u.includes('g1.globo.com')) {
+      return this.DEFAULT_FEED;
+    }
+    if (u === 'https://roxo.news' || u === 'https://roxo.news/' || u === 'http://roxo.news' || u === 'http://roxo.news/') {
+      return this.DEFAULT_FEED;
+    }
+    return u;
   },
 
   async loadFeedConfig() {
@@ -59,17 +112,17 @@ window.newsTickerModule = {
         );
         if (!error && data && data.rss_url) {
           url = data.rss_url;
-          localStorage.setItem(this.STORAGE_FEED_KEY_PREFIX + tenantId, url);
         }
       } catch (err) {}
     }
 
-    this.feedUrl = url || this.DEFAULT_FEED;
+    this.feedUrl = this.normalizeUrl(url);
+    localStorage.setItem(this.STORAGE_FEED_KEY_PREFIX + tenantId, this.feedUrl);
   },
 
   async saveFeedUrl(newUrl) {
     const tenantId = this.getTenantId();
-    const cleanUrl = (newUrl || '').trim();
+    const cleanUrl = this.normalizeUrl(newUrl);
     if (!cleanUrl) return;
 
     this.feedUrl = cleanUrl;
@@ -88,7 +141,7 @@ window.newsTickerModule = {
           3500
         );
       } catch (err) {
-        console.warn('[NewsTicker] Não foi possível salvar na nuvem empresas_feed_noticias:', err);
+        console.warn('[NewsTicker] Não foi possível salvar empresas_feed_noticias no banco:', err);
       }
     }
 
@@ -106,7 +159,7 @@ window.newsTickerModule = {
       const hora = String(now.getHours()).padStart(2, '0');
       const min = String(now.getMinutes()).padStart(2, '0');
       const seg = String(now.getSeconds()).padStart(2, '0');
-      el.textContent = ${dia}// ::;
+      el.textContent = `${dia}/${mes}/${ano} ${hora}:${min}:${seg}`;
     };
 
     updateTime();
@@ -126,15 +179,24 @@ window.newsTickerModule = {
     const bar = document.getElementById('news-ticker-bar');
     const pinTab = document.getElementById('news-ticker-pin-tab');
     const mainScroll = document.getElementById('main-content-scroll');
+    const supportContainer = document.getElementById('sidebar-support-container');
 
     if (this.isHidden) {
       if (bar) bar.classList.add('hidden');
       if (pinTab) pinTab.classList.remove('hidden');
       if (mainScroll) mainScroll.classList.remove('with-news-ticker');
+      if (supportContainer) {
+        supportContainer.classList.remove('mb-11');
+        supportContainer.classList.add('mb-2');
+      }
     } else {
       if (bar) bar.classList.remove('hidden');
       if (pinTab) pinTab.classList.add('hidden');
       if (mainScroll) mainScroll.classList.add('with-news-ticker');
+      if (supportContainer) {
+        supportContainer.classList.remove('mb-2');
+        supportContainer.classList.add('mb-11');
+      }
     }
 
     this.updateManageAccess();
@@ -155,34 +217,31 @@ window.newsTickerModule = {
     const track = document.getElementById('news-ticker-track');
     if (!track) return;
 
-    if (!this.feedUrl) {
-      track.innerHTML = '<span class="px-4 text-xs text-slate-400">Nenhum feed RSS configurado.</span>';
-      return;
-    }
+    const url = this.feedUrl || this.DEFAULT_FEED;
 
     try {
-      let items = await this.tryFetchDirect(this.feedUrl);
+      let items = await this.tryFetchRss2Json(url);
 
       if (!items || items.length === 0) {
-        items = await this.tryFetchRss2Json(this.feedUrl);
+        items = await this.tryFetchAllOrigins(url);
       }
 
       if (!items || items.length === 0) {
-        items = await this.tryFetchAllOrigins(this.feedUrl);
+        items = await this.tryFetchDirect(url);
       }
 
       if (items && items.length > 0) {
         this.newsItems = items.slice(0, 20);
         this.renderItems();
-      } else {
-        if (!this.newsItems || this.newsItems.length === 0) {
-          track.innerHTML = '<span class="px-4 text-xs text-amber-500 font-medium">⚠️ Aguardando notícias do site configurado...</span>';
-        }
+      } else if (!this.newsItems || this.newsItems.length === 0) {
+        this.newsItems = [...this.FALLBACK_NEWS];
+        this.renderItems();
       }
     } catch (e) {
       console.warn('[NewsTicker] Erro ao carregar feed:', e);
       if (!this.newsItems || this.newsItems.length === 0) {
-        track.innerHTML = '<span class="px-4 text-xs text-slate-400">Notícias temporariamente indisponíveis no link.</span>';
+        this.newsItems = [...this.FALLBACK_NEWS];
+        this.renderItems();
       }
     }
   },
@@ -190,7 +249,7 @@ window.newsTickerModule = {
   async tryFetchDirect(url) {
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const timer = setTimeout(() => ctrl.abort(), 3500);
       const res = await fetch(url, { signal: ctrl.signal });
       clearTimeout(timer);
       if (!res.ok) return null;
@@ -205,16 +264,23 @@ window.newsTickerModule = {
     try {
       const target = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url);
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const timer = setTimeout(() => ctrl.abort(), 4500);
       const res = await fetch(target, { signal: ctrl.signal });
       clearTimeout(timer);
       if (!res.ok) return null;
       const data = await res.json();
       if (data && data.items && Array.isArray(data.items)) {
-        return data.items.map(it => ({
-          title: it.title || '',
-          link: it.link || ''
-        }));
+        return data.items.map(it => {
+          let cat = 'DESTAQUE';
+          if (it.categories && Array.isArray(it.categories) && it.categories.length > 0) {
+            cat = String(it.categories[0]).trim().toUpperCase();
+          }
+          return {
+            title: it.title || '',
+            link: it.link || 'https://roxo.news/',
+            category: cat
+          };
+        });
       }
       return null;
     } catch (e) {
@@ -251,7 +317,14 @@ window.newsTickerModule = {
         rssItems.forEach(el => {
           const t = el.querySelector('title')?.textContent || '';
           const l = el.querySelector('link')?.textContent || '';
-          if (t) items.push({ title: t.trim(), link: l.trim() });
+          const c = el.querySelector('category')?.textContent || 'DESTAQUE';
+          if (t) {
+            items.push({
+              title: t.trim(),
+              link: l.trim() || 'https://roxo.news/',
+              category: c.trim().toUpperCase()
+            });
+          }
         });
         return items;
       }
@@ -262,7 +335,14 @@ window.newsTickerModule = {
           const t = el.querySelector('title')?.textContent || '';
           const linkNode = el.querySelector('link');
           const l = linkNode ? (linkNode.getAttribute('href') || linkNode.textContent || '') : '';
-          if (t) items.push({ title: t.trim(), link: l.trim() });
+          const c = el.querySelector('category')?.getAttribute('term') || el.querySelector('category')?.textContent || 'DESTAQUE';
+          if (t) {
+            items.push({
+              title: t.trim(),
+              link: l.trim() || 'https://roxo.news/',
+              category: c.trim().toUpperCase()
+            });
+          }
         });
         return items;
       }
@@ -277,29 +357,38 @@ window.newsTickerModule = {
     const track = document.getElementById('news-ticker-track');
     if (!track) return;
 
-    if (!this.newsItems || this.newsItems.length === 0) {
-      track.innerHTML = '<span class="px-4 text-xs text-slate-400">Nenhuma notícia recente encontrada.</span>';
-      return;
-    }
-
-    const renderList = [...this.newsItems, ...this.newsItems];
+    const list = (this.newsItems && this.newsItems.length > 0) ? this.newsItems : this.FALLBACK_NEWS;
+    
+    // Duplica a lista para permitir rolagem horizontal infinita e contínua sem engasgos
+    const renderList = [...list, ...list];
     track.innerHTML = '';
+
     renderList.forEach(item => {
       const a = document.createElement('a');
-      a.href = item.link || '#';
+      a.href = item.link || 'https://roxo.news/';
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.className = 'news-ticker-item inline-flex items-center gap-1.5 px-3 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-cyan-400 transition whitespace-nowrap group';
-      
-      const dot = document.createElement('span');
-      dot.className = 'w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 transition-transform shrink-0';
-      
+      a.className = 'news-ticker-item inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-400 whitespace-nowrap group select-none transition-colors';
+      a.title = `Clique para ler matéria completa em Roxo News: ${item.title}`;
+
+      // Badge de Categoria em Caixa Alta (estilo oficial Roxo News)
+      const badge = document.createElement('span');
+      badge.className = 'inline-block px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200 border border-purple-200 dark:border-purple-800/60 shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors';
+      badge.textContent = item.category || 'DESTAQUE';
+
+      // Título da Notícia
       const txt = document.createElement('span');
       txt.textContent = item.title;
-      txt.className = 'underline-offset-2 group-hover:underline';
+      txt.className = 'underline-offset-2 group-hover:underline text-[11.5px] font-medium text-slate-700 dark:text-slate-200';
 
-      a.appendChild(dot);
+      // Separador discreto entre as notícias
+      const separator = document.createElement('span');
+      separator.className = 'text-slate-300 dark:text-slate-700 ml-2 select-none';
+      separator.textContent = '•';
+
+      a.appendChild(badge);
       a.appendChild(txt);
+      a.appendChild(separator);
       track.appendChild(a);
     });
   },
@@ -311,7 +400,7 @@ window.newsTickerModule = {
     }
 
     const currentUrl = this.feedUrl || this.DEFAULT_FEED;
-    const modalHtml = 
+    const modalHtml = `
       <div id="news-feed-config-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -329,28 +418,26 @@ window.newsTickerModule = {
 
             <div>
               <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">URL do Feed RSS / Notícias:</label>
-              <input type="url" id="input-rss-feed-url" value="" placeholder="Ex: https://g1.globo.com/rss/g1/economia/" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+              <input type="url" id="input-rss-feed-url" value="${currentUrl}" placeholder="Ex: https://roxo.news/feed/" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
 
-            <div class="space-y-1 pt-1">
-              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Sugestões de Portais:</span>
+            <div class="space-y-1.5 pt-1">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Portais Recomendados:</span>
               <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="document.getElementById('input-rss-feed-url').value='https://roxo.news/feed/'" class="px-2.5 py-1.5 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 rounded-lg text-[10px] font-bold border border-purple-200 dark:border-purple-800 transition flex items-center gap-1">
+                  <span>⚡</span>
+                  <span>Roxo News (Padrão Oficial)</span>
+                </button>
                 <button type="button" onclick="document.getElementById('input-rss-feed-url').value='https://g1.globo.com/rss/g1/economia/'" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition">
                   G1 Economia
-                </button>
-                <button type="button" onclick="document.getElementById('input-rss-feed-url').value='https://g1.globo.com/rss/g1/'" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition">
-                  G1 Notícias
                 </button>
                 <button type="button" onclick="document.getElementById('input-rss-feed-url').value='https://feeds.folha.uol.com.br/mercado/rss091.xml'" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition">
                   Folha Mercado
                 </button>
-                <button type="button" onclick="document.getElementById('input-rss-feed-url').value='https://rss.uol.com.br/feed/noticias.xml'" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition">
-                  UOL Notícias
-                </button>
               </div>
             </div>
 
-            <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-900 dark:text-blue-200 text-[11px]">
+            <div class="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900 text-purple-900 dark:text-purple-200 text-[11px]">
               🔒 <strong>Permissão Exclusiva:</strong> Apenas Gerente, Proprietário e Administrador podem alterar esta fonte.
             </div>
           </div>
@@ -365,13 +452,13 @@ window.newsTickerModule = {
                 newsTickerModule.saveFeedUrl(val);
                 document.getElementById('news-feed-config-modal').remove();
               }
-            " class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition">
+            " class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-500/20 transition">
               Salvar para a Empresa
             </button>
           </div>
         </div>
       </div>
-    ;
+    `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
