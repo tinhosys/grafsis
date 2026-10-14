@@ -875,6 +875,7 @@ window.salesModule = {
       ...it,
       liberado_os: it.liberado_os !== undefined ? it.liberado_os : true
     })) : [];
+    this.activeRepositoryItems = order ? JSON.parse(JSON.stringify(order.repositorio_arquivos || [])) : [];
     if (params.preItem) {
       this.activeItems.push({
         ...params.preItem,
@@ -1229,6 +1230,33 @@ window.salesModule = {
                     </div>
                   </div>
 
+                  <!-- REPOSITÓRIO DA OPERAÇÃO / FOTOS DO LOCAL, PRINTS & GOOGLE DRIVE (MARCAÇÃO VERDE IMAGEM 1) -->
+                  <div class="pt-2" id="secao-repositorio-operacao">
+                    <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm">
+                      <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                        </div>
+                        <div>
+                          <div class="text-[11px] text-emerald-950 font-black uppercase tracking-wide flex items-center gap-1.5">
+                            Repositório da Operação
+                            <span id="repo-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-200 text-emerald-900">${(this.activeRepositoryItems && this.activeRepositoryItems.length) ? this.activeRepositoryItems.length + ' arquivo(s)' : '0 arquivos'}</span>
+                          </div>
+                          <div class="text-[11px] text-emerald-800 font-medium leading-tight">
+                            Fotos do local, fachada, prints, câmera do celular e Google Drive
+                          </div>
+                        </div>
+                      </div>
+                      <button 
+                        type="button" 
+                        onclick="salesModule.openRepositoryModal('${order ? order.id : ''}', '${displayId}')" 
+                        class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center justify-center gap-2 cursor-pointer shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        <span>Abrir Repositório</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <!-- CAMPOS OCULTOS PARA COMPATIBILIDADE -->
                   <input type="hidden" name="foto_arte_url" id="order-arte-url" value="${order ? (order.foto_arte_url || '') : ''}">
                   <input type="hidden" name="data_aceite" id="order-data-aceite" value="${order && order.data_aceite ? order.data_aceite.slice(0,10) : ''}">
@@ -1439,6 +1467,301 @@ window.salesModule = {
     if (fileInput) fileInput.value = '';
     const prevContainer = document.getElementById('order-arte-preview-container');
     if (prevContainer) prevContainer.classList.add('hidden');
+  },
+
+  // ==============================================================================
+  // REPOSITÓRIO DA OPERAÇÃO / FOTOS DO LOCAL, PRINTS & GOOGLE DRIVE
+  // ==============================================================================
+  updateRepositoryCountBadge() {
+    const badge = document.getElementById('repo-count-badge');
+    if (badge) {
+      const count = (this.activeRepositoryItems && this.activeRepositoryItems.length) ? this.activeRepositoryItems.length : 0;
+      badge.textContent = `${count} arquivo(s)`;
+    }
+  },
+
+  openRepositoryModal(orderId, displayNumero) {
+    const modalId = 'modal-order-repository';
+    document.getElementById(modalId)?.remove();
+
+    if (!this.activeRepositoryItems) {
+      this.activeRepositoryItems = [];
+      if (orderId) {
+        const order = window.store.getOrders().find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+        if (order && order.repositorio_arquivos) {
+          this.activeRepositoryItems = JSON.parse(JSON.stringify(order.repositorio_arquivos));
+        }
+      }
+    }
+
+    const currentDisplay = displayNumero || (document.getElementById('current-display-id')?.value) || '#NOVO';
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          
+          <!-- Cabeçalho do Repositório -->
+          <div class="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl font-black shadow-md shadow-emerald-600/20">
+                📁
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Repositório da Operação</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">#${currentDisplay}</span>
+                </div>
+                <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">Fotos do Local, Rascunhos & Google Drive</h3>
+              </div>
+            </div>
+            <button type="button" onclick="document.getElementById('${modalId}').remove()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+              ✕
+            </button>
+          </div>
+
+          <!-- Barra de Ações: Upload, Câmera e Google Drive -->
+          <div class="p-4 sm:p-5 bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              
+              <!-- 1. Upload de Arquivos / Prints (Compactação Automática) -->
+              <label class="relative flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 border-2 border-dashed border-emerald-400 dark:border-emerald-600 rounded-2xl text-xs font-black text-emerald-700 dark:text-emerald-300 cursor-pointer shadow-sm transition">
+                <input type="file" multiple accept="image/*,application/pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="salesModule.handleRepositoryUpload(this, '${orderId}')">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span>Upload Fotos / Prints</span>
+              </label>
+
+              <!-- 2. Câmera Direta do Celular (Fotos no Local da Fachada/Instalação) -->
+              <label class="relative flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 border-2 border-dashed border-blue-400 dark:border-blue-600 rounded-2xl text-xs font-black text-blue-700 dark:text-cyan-300 cursor-pointer shadow-sm transition">
+                <input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="salesModule.handleRepositoryUpload(this, '${orderId}')">
+                <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span>Tirar Foto no Local (Câmera)</span>
+              </label>
+
+              <!-- 3. Adicionar Link do Google Drive (Para Arquivos Pesados) -->
+              <button type="button" onclick="salesModule.promptRepositoryDriveLink('${orderId}')" class="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 border-2 border-dashed border-amber-400 dark:border-amber-600 rounded-2xl text-xs font-black text-amber-700 dark:text-amber-300 cursor-pointer shadow-sm transition">
+                <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                <span>Vincular Pasta Google Drive</span>
+              </button>
+
+            </div>
+
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              💡 <strong>Dica de Armazenamento:</strong> Fotos capturadas são compactadas preventivamente em resolução ideal para manter a navegação instantânea. Para vídeos ou arquivos pesados de edição (CDR/AI/PSD), utilize o botão do <strong>Google Drive</strong>.
+            </p>
+          </div>
+
+          <!-- Conteúdo: Grid de Arquivos / Fotos -->
+          <div class="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+            <div id="repo-items-container">
+              ${this.renderRepositoryGrid(orderId)}
+            </div>
+          </div>
+
+          <!-- Rodapé do Modal -->
+          <div class="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex justify-between items-center">
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Itens disponíveis para Consulta no Comercial e na Produção
+            </span>
+            <button type="button" onclick="document.getElementById('${modalId}').remove()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-sm">
+              Concluir & Fechar
+            </button>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  renderRepositoryGrid(orderId) {
+    if (!this.activeRepositoryItems || this.activeRepositoryItems.length === 0) {
+      return `
+        <div class="py-12 text-center text-slate-400 dark:text-slate-500">
+          <svg class="w-12 h-12 mx-auto mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+          <p class="font-extrabold text-sm">Nenhum anexo no repositório desta operação.</p>
+          <p class="text-xs text-slate-400 mt-1">Utilize os botões acima para subir fotos do local, prints ou link do Google Drive.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+        ${this.activeRepositoryItems.map((item, idx) => {
+          const isDrive = item.tipo === 'drive';
+          return `
+            <div class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-2.5 flex flex-col justify-between shadow-sm hover:shadow-md transition group relative overflow-hidden">
+              <div class="h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center relative">
+                ${isDrive ? `
+                  <div class="flex flex-col items-center justify-center text-amber-600 p-2 text-center">
+                    <svg class="w-10 h-10 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    <span class="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300">Google Drive</span>
+                  </div>
+                ` : `
+                  <img src="${item.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="${item.nome || 'Foto'}">
+                `}
+                
+                <!-- Overlay de Ações Rápidas -->
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button type="button" onclick="salesModule.viewRepositoryItem(${idx})" class="p-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold hover:bg-slate-100 transition shadow" title="Visualizar ampliado">
+                    🔍
+                  </button>
+                  <button type="button" onclick="salesModule.deleteRepositoryItem(${idx}, '${orderId}')" class="p-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow" title="Excluir arquivo">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-2 space-y-0.5">
+                <span class="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate block" title="${item.nome || 'Arquivo'}">${item.nome || 'Arquivo'}</span>
+                <div class="flex items-center justify-between text-[10px] text-slate-400">
+                  <span>${item.data || 'Hoje'}</span>
+                  ${isDrive ? `
+                    <a href="${item.url}" target="_blank" class="text-blue-600 dark:text-cyan-400 font-bold hover:underline">Abrir Link &rarr;</a>
+                  ` : `
+                    <span class="font-mono">${item.tamanho || 'Compactada'}</span>
+                  `}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  async handleRepositoryUpload(input, orderId) {
+    if (!input.files || input.files.length === 0) return;
+    const files = Array.from(input.files);
+    input.value = '';
+
+    for (const file of files) {
+      try {
+        let finalUrl = '';
+        if (file.type.startsWith('image/')) {
+          finalUrl = await this.compressImage(file, 1200, 1200, 0.75);
+        } else {
+          finalUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+        }
+
+        if (finalUrl) {
+          if (!this.activeRepositoryItems) this.activeRepositoryItems = [];
+          this.activeRepositoryItems.push({
+            id: 'repo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            nome: file.name || 'Foto_' + new Date().toLocaleTimeString('pt-BR'),
+            tipo: file.type.startsWith('image/') ? 'imagem' : 'documento',
+            data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            url: finalUrl,
+            tamanho: (file.size ? (file.size / 1024).toFixed(0) + 'KB' : 'OK')
+          });
+        }
+      } catch (err) {
+        console.error('[GRAFSIS] Erro ao adicionar anexo ao repositório:', err);
+      }
+    }
+
+    const container = document.getElementById('repo-items-container');
+    if (container) {
+      container.innerHTML = this.renderRepositoryGrid(orderId);
+    }
+    this.updateRepositoryCountBadge();
+
+    // Se a ordem já existir no store, persiste de imediato
+    if (orderId) {
+      const orders = window.store.getOrders();
+      const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+      if (order) {
+        order.repositorio_arquivos = JSON.parse(JSON.stringify(this.activeRepositoryItems));
+        await window.store.saveOrder(order);
+      }
+    }
+  },
+
+  promptRepositoryDriveLink(orderId) {
+    const url = prompt('Cole o link da pasta ou arquivo no Google Drive:');
+    if (!url || !url.trim()) return;
+
+    const nome = prompt('Identificação do link (ex: Pasta Fotos Fachada / Arquivos CDR):', 'Google Drive - Pasta do Pedido') || 'Google Drive';
+
+    if (!this.activeRepositoryItems) this.activeRepositoryItems = [];
+    this.activeRepositoryItems.push({
+      id: 'repo_drive_' + Date.now(),
+      nome: nome.trim(),
+      tipo: 'drive',
+      data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      url: url.trim(),
+      tamanho: 'Nuvem'
+    });
+
+    const container = document.getElementById('repo-items-container');
+    if (container) {
+      container.innerHTML = this.renderRepositoryGrid(orderId);
+    }
+    this.updateRepositoryCountBadge();
+
+    if (orderId) {
+      const orders = window.store.getOrders();
+      const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+      if (order) {
+        order.repositorio_arquivos = JSON.parse(JSON.stringify(this.activeRepositoryItems));
+        window.store.saveOrder(order);
+      }
+    }
+  },
+
+  async deleteRepositoryItem(idx, orderId) {
+    if (!confirm('Deseja realmente remover este arquivo do repositório?')) return;
+    if (this.activeRepositoryItems && this.activeRepositoryItems[idx]) {
+      this.activeRepositoryItems.splice(idx, 1);
+      const container = document.getElementById('repo-items-container');
+      if (container) {
+        container.innerHTML = this.renderRepositoryGrid(orderId);
+      }
+      this.updateRepositoryCountBadge();
+
+      if (orderId) {
+        const orders = window.store.getOrders();
+        const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+        if (order) {
+          order.repositorio_arquivos = JSON.parse(JSON.stringify(this.activeRepositoryItems));
+          await window.store.saveOrder(order);
+        }
+      }
+    }
+  },
+
+  viewRepositoryItem(idx) {
+    if (!this.activeRepositoryItems || !this.activeRepositoryItems[idx]) return;
+    const item = this.activeRepositoryItems[idx];
+    if (item.tipo === 'drive' || !item.url.startsWith('data:image/')) {
+      window.open(item.url, '_blank');
+      return;
+    }
+
+    const previewId = 'modal-repo-image-preview';
+    document.getElementById(previewId)?.remove();
+
+    const previewHtml = `
+      <div id="${previewId}" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" onclick="this.remove()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+          <img src="${item.url}" class="max-h-[80vh] w-auto max-w-full rounded-2xl shadow-2xl object-contain border border-white/20">
+          <div class="mt-3 flex items-center justify-between w-full px-2 text-white">
+            <span class="text-xs font-bold">${item.nome} • ${item.data}</span>
+            <div class="flex items-center gap-2">
+              <a href="${item.url}" download="${item.nome || 'arquivo'}" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition">⬇ Baixar</a>
+              <button type="button" onclick="document.getElementById('${previewId}').remove()" class="px-3 py-1 bg-rose-600 hover:bg-rose-700 rounded-lg text-xs font-bold transition">✕ Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', previewHtml);
   },
 
   handlePriceHover(el, isHover) {
@@ -2704,6 +3027,7 @@ window.salesModule = {
         desconto: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.desconto : discount,
         valor_final: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_final : finalTotal,
         itens: (this.isReadOnlyFinancial && oldOrder && oldOrder.itens) ? oldOrder.itens : this.activeItems,
+        repositorio_arquivos: this.activeRepositoryItems || (oldOrder ? oldOrder.repositorio_arquivos : []) || [],
         historico: historico
       };
 
@@ -2864,6 +3188,7 @@ window.salesModule = {
         desconto: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.desconto : discount,
         valor_final: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_final : finalTotal,
         itens: (this.isReadOnlyFinancial && oldOrder && oldOrder.itens) ? oldOrder.itens : this.activeItems,
+        repositorio_arquivos: this.activeRepositoryItems || (oldOrder ? oldOrder.repositorio_arquivos : []) || [],
         historico: historico
       };
 
@@ -4008,7 +4333,12 @@ window.salesModule = {
                   <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   Arte Aprovada do Pedido
                 </h4>
-                ${order.foto_arte_url ? `<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300">Arquivo Conforme</span>` : ''}
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="salesModule.openRepositoryModal('${order.id}', '${order.numero}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black transition flex items-center gap-1 shadow-sm cursor-pointer" title="Ver fotos do local, prints e arquivos no Google Drive">
+                    📁 Repositório de Fotos & Drive (${(order.repositorio_arquivos || []).length})
+                  </button>
+                  ${order.foto_arte_url ? `<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300">Arquivo Conforme</span>` : ''}
+                </div>
               </div>
               <div class="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center min-h-[160px] max-h-[260px] overflow-hidden group relative">
                 ${order.foto_arte_url ? `

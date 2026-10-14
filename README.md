@@ -98,6 +98,20 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Repositório da Operação, Fotos/Prints, Google Drive & Mural de Serviços (v4.9.6)
+- **Repositório da Operação / Fotos & Prints (Marcação Verde)**:
+  - Botão integrado na coluna esquerda do formulário do pedido para gestão centralizada de anexos do pedido.
+  - Permite captura direta pela câmera do celular (`capture="environment"`) para fotos no local de instalação/fachada, além de upload de fotos e prints.
+  - **Compactação Preventiva via Canvas**: Redimensionamento inteligente e compressão JPEG para evitar estouro de armazenamento local ou lentidão na rede.
+  - **Integração com Google Drive**: Opção para vincular pastas externas e compartilhadas no Google Drive para arquivos de arte pesados (CorelDraw CDR, Illustrator AI, Photoshop PSD, vídeos) sem onerar a aplicação.
+  - **Acesso Compartilhado Comercial & Fábrica**: O repositório pode ser acessado no formulário de pedidos e também na Ordem de Serviço Técnica (O.S.), permitindo que a oficina consulte fotos e detalhes do local.
+- **Estabilização do Mural de Serviços (Kanban de Produção)**:
+  - Resolução da falha de renderização causada por pedidos sem vínculo de cliente ou com cliente nulo (`clientObj.nome`).
+  - Inicialização segura da aba padrão (`currentTab: 'orcamento'`) e tratamento de exceções com fallback visual.
+  - Operação fluida tanto na visualização em grade Desktop com Drag & Drop quanto na versão sanfona Mobile.
+
+---
+
 ## 🔄 Governança Estrita, Trava de Proposta Aprovada & Auditoria (v4.9.5)
 - **Bloqueio Rigoroso de Proposta Aprovada**: Se o pedido já possui aprovação do cliente, todos os campos (cliente, itens, descontos, financeiro) ficam bloqueados por padrão, permanecendo editáveis exclusivamente a Linha Amarela (Prazos de Produção/Entrega) e Observações Técnicas.
 - **Governança dos 6 Botões Operacionais**:

@@ -9,6 +9,7 @@ window.productionModule = {
     { id: 'embalagem', name: 'Expedição', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
     { id: 'entregue', name: 'Entrega', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' }
   ],
+  currentTab: 'orcamento',
   searchTerm: '',
   filterUrgency: 'all',
 
@@ -28,14 +29,20 @@ window.productionModule = {
   },
 
   render() {
-    const orders = window.store.getOrders();
-    const clients = window.store.getClients();
-    const container = document.getElementById('view-container');
+    try {
+      const orders = window.store.getOrders();
+      const clients = window.store.getClients();
+      const container = document.getElementById('view-container');
+      if (!container) return;
 
-    if (!this.mobileOpenPhases) {
-      this.mobileOpenPhases = {};
-      this.mobileOpenPhases[this.currentTab] = true;
-    }
+      if (!this.currentTab) {
+        this.currentTab = 'orcamento';
+      }
+
+      if (!this.mobileOpenPhases) {
+        this.mobileOpenPhases = {};
+        this.mobileOpenPhases[this.currentTab] = true;
+      }
 
     // 1. Cálculos de KPIs em Tempo Real do Chão de Fábrica
     const today = new Date();
@@ -330,6 +337,19 @@ window.productionModule = {
 
       </div>
     `;
+    } catch (err) {
+      console.error('[GRAFSIS] Erro ao renderizar Mural de Serviços:', err);
+      const container = document.getElementById('view-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-800 dark:text-rose-200">
+            <h3 class="font-black text-base mb-1">Mural de Serviços</h3>
+            <p class="text-xs">Ocorreu uma falha ao carregar as ordens de produção: ${err.message || err}</p>
+            <button onclick="productionModule.render()" class="mt-3 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition">Tentar Novamente</button>
+          </div>
+        `;
+      }
+    }
   },
   
   renderCard(order, clients) {
@@ -395,6 +415,8 @@ window.productionModule = {
       lastMovText = `🕒 ${dia}/${mes} ${hor}:${min} • ${order.operador || 'Operador'}`;
     }
 
+    const safeClientNome = clientObj.nome || 'Cliente';
+
     return `
       <div 
         id="kanban-card-${order.id}" 
@@ -420,8 +442,8 @@ window.productionModule = {
         </div>
 
         <!-- Nome do Cliente em Destaque e Fonte Maior -->
-        <h4 class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm mt-2 truncate" title="${client.nome}">
-          ${client.nome}
+        <h4 class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm mt-2 truncate" title="${safeClientNome}">
+          ${safeClientNome}
         </h4>
         
         <!-- Descrição Técnica dos Materiais -->
@@ -545,7 +567,10 @@ window.productionModule = {
     const dataPedido = order.data_venda ? new Date(order.data_venda).toLocaleDateString('pt-BR') : 'Sem data';
     const prazo = order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'Sem prazo';
 
-    const msg = `MUDANÇA DE FASE\n\nID: #${order.numero}\nCliente: ${clientName}\nData do Pedido: ${dataPedido}\nPrazo de Entrega: ${prazo}\n\nConfirma a mudança de fase:\nDe: "${oldPhaseObj.name}"\nPara: "${newPhaseObj.name}"?`;
+    const oldPhaseName = oldPhaseObj ? oldPhaseObj.name : (order.status_fase || 'Fase Atual');
+    const newPhaseName = newPhaseObj ? newPhaseObj.name : newPhaseId;
+
+    const msg = `MUDANÇA DE FASE\n\nID: #${order.numero}\nCliente: ${clientName}\nData do Pedido: ${dataPedido}\nPrazo de Entrega: ${prazo}\n\nConfirma a mudança de fase:\nDe: "${oldPhaseName}"\nPara: "${newPhaseName}"?`;
     
     if (confirm(msg)) {
       if (sourceEl) {
