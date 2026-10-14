@@ -233,7 +233,7 @@ window.app = {
     }
 
     if (window.store) {
-      window.store.updateSyncBadge(!!window.store.supabaseClient);
+      window.store.updateSyncBadge(!!window.store.cloudConnected);
     }
 
     // Atualização em tempo real do badge de Notificação Inteligente (Vermelho = 3 dias úteis expira / Amarelo = Entrega atrasada)
@@ -1999,7 +1999,7 @@ window.app = {
     alert('Dados salvos com sucesso!');
   },
 
-  saveSupabaseSettings() {
+  async saveSupabaseSettings() {
     const url = document.getElementById('set-url').value.trim();
     const key = document.getElementById('set-key').value.trim();
     if (window.GRAFSIS_CONFIG) {
@@ -2015,19 +2015,25 @@ window.app = {
     
     this.updateUserHeader();
     this.renderSettings();
-    alert('Configurações salvas! Sincronizando com o Supabase...');
-    window.store.syncAllWithCloud(true);
+    
+    const isHealthy = await window.store.checkCloudHealth(true);
+    if (isHealthy) {
+      alert('✅ 100% CONECTADO!\n\nConfigurações salvas e conexão com a nuvem estabelecida com sucesso!');
+      window.store.syncAllWithCloud(true);
+    } else {
+      alert('⚠️ Configurações salvas no sistema.\n\nPorém a base na nuvem ainda não respondeu ao teste inicial.\nVerifique se o seu projeto Supabase está ativo no painel.');
+    }
   },
 
   async testSupabaseConnection() {
     if (!window.store.supabaseClient) {
-      alert('❌ SISTEMA INOPERANTE: Supabase desconectado.\n\nPreencha a URL e a Anon Key nas configurações e clique em "Salvar Parâmetros" para autenticar.');
+      alert('❌ SISTEMA INOPERANTE: Supabase desconectado.\n\nPreencha a URL e a Anon Key nas configurações e clique em "Salvar & Reconectar" para autenticar.');
       return;
     }
     try {
-      const isHealthy = await window.store.checkCloudHealth();
+      const isHealthy = await window.store.checkCloudHealth(true);
       if (!isHealthy) {
-        alert('❌ SISTEMA INOPERANTE: Não foi possível acessar a base de dados Supabase na nuvem.\n\nRegra de Ouro: O Grafsis opera exclusivamente 100% ON-LINE e integrado ao banco de dados.\n\nVerifique se o seu projeto Supabase está ATIVO ou se precisa ser reativado (Resume/Restore) no painel.');
+        alert('❌ SISTEMA INOPERANTE: Não foi possível acessar a base de dados Supabase na nuvem.\n\nO Grafsis opera exclusivamente 100% ON-LINE e integrado ao banco de dados.\n\nVerifique se o seu projeto Supabase está ATIVO ou se precisa ser reativado (Resume/Restore) no painel.');
       } else {
         alert('✅ 100% CONECTADO!\n\nConexão com o banco de dados Supabase efetuada com SUCESSO!\nA base de dados na nuvem está 100% operacional e sincronizada.');
       }

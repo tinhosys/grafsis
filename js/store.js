@@ -1389,6 +1389,9 @@ class GrafsisStore {
 
   updateSyncBadge(connected) {
     this.cloudConnected = !!connected;
+    if (connected) {
+      this.hideInoperableNotice();
+    }
     const badge = document.getElementById('cloud-sync-status');
     if (badge) {
       if (connected) {
