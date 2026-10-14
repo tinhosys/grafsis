@@ -44,22 +44,50 @@ window.productionModule = {
         this.mobileOpenPhases[this.currentTab] = true;
       }
 
-    // 1. Cálculos de KPIs em Tempo Real do Chão de Fábrica
+    // 1. Cálculos de KPIs e Filtros de Gestão Semanal
     const today = new Date();
     today.setHours(0,0,0,0);
 
+    // Gestão Semanal: Segunda a Domingo desta semana e da próxima semana
+    const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Segunda, ... 6 = Sábado
+    const diffMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+
+    const mondayThisWeek = new Date(today);
+    mondayThisWeek.setDate(diffMonday);
+    mondayThisWeek.setHours(0, 0, 0, 0);
+
+    const sundayThisWeek = new Date(mondayThisWeek);
+    sundayThisWeek.setDate(mondayThisWeek.getDate() + 6);
+    sundayThisWeek.setHours(23, 59, 59, 999);
+
+    const mondayNextWeek = new Date(mondayThisWeek);
+    mondayNextWeek.setDate(mondayThisWeek.getDate() + 7);
+    mondayNextWeek.setHours(0, 0, 0, 0);
+
+    const sundayNextWeek = new Date(mondayNextWeek);
+    sundayNextWeek.setDate(mondayNextWeek.getDate() + 6);
+    sundayNextWeek.setHours(23, 59, 59, 999);
+
     let countAtrasados = 0;
     let countHoje = 0;
+    let countEstaSemana = 0;
+    let countSemanaQueVem = 0;
     let totalM2EmProducao = 0;
 
     orders.forEach(o => {
       if (o.status_fase !== 'entregue' && o.previsao_entrega) {
         const parts = o.previsao_entrega.split('-');
         const dLine = new Date(parts[0], parts[1]-1, parts[2]);
-        dLine.setHours(0,0,0,0);
+        dLine.setHours(12, 0, 0, 0);
         const diffDays = Math.ceil((dLine - today) / (1000 * 60 * 60 * 24));
         if (diffDays < 0) countAtrasados++;
         else if (diffDays === 0) countHoje++;
+
+        if (dLine >= mondayThisWeek && dLine <= sundayThisWeek) {
+          countEstaSemana++;
+        } else if (dLine >= mondayNextWeek && dLine <= sundayNextWeek) {
+          countSemanaQueVem++;
+        }
       }
 
       if (o.status_fase !== 'entregue') {
@@ -88,16 +116,22 @@ window.productionModule = {
         }
       }
 
-      // Filtro de Urgência
+      // Filtro de Urgência e Gestão Semanal
       if (this.filterUrgency !== 'all' && o.status_fase !== 'entregue') {
         if (!o.previsao_entrega) return false;
         const parts = o.previsao_entrega.split('-');
         const dLine = new Date(parts[0], parts[1]-1, parts[2]);
-        dLine.setHours(0,0,0,0);
+        dLine.setHours(12, 0, 0, 0);
         const diffDays = Math.ceil((dLine - today) / (1000 * 60 * 60 * 24));
         if (this.filterUrgency === 'atrasado' && diffDays >= 0) return false;
         if (this.filterUrgency === 'hoje' && diffDays !== 0) return false;
         if (this.filterUrgency === 'noprazo' && diffDays <= 0) return false;
+        if (this.filterUrgency === 'esta_semana') {
+          if (dLine < mondayThisWeek || dLine > sundayThisWeek) return false;
+        }
+        if (this.filterUrgency === 'semana_que_vem') {
+          if (dLine < mondayNextWeek || dLine > sundayNextWeek) return false;
+        }
       }
 
       return true;
@@ -271,18 +305,26 @@ window.productionModule = {
             </button>
           </div>
 
-          <!-- Filtros de Urgência -->
+          <!-- Filtros de Urgência e Gestão de Entregas (Imagem 3) -->
           <div class="flex items-center gap-1.5 flex-wrap">
-            <button onclick="productionModule.setUrgencyFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}">
+            <button onclick="productionModule.setUrgencyFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}">
               Todos
             </button>
-            <button onclick="productionModule.setUrgencyFilter('atrasado')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'atrasado' ? 'bg-rose-600 text-white' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100'}">
+            <button onclick="productionModule.setUrgencyFilter('atrasado')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'atrasado' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100'}">
               🚨 Atrasados (${countAtrasados})
             </button>
-            <button onclick="productionModule.setUrgencyFilter('hoje')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'hoje' ? 'bg-amber-600 text-white' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'}">
+            <button onclick="productionModule.setUrgencyFilter('hoje')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'hoje' ? 'bg-amber-600 text-white shadow-sm' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'}">
               ⏰ Vence Hoje (${countHoje})
             </button>
-            <button onclick="productionModule.setUrgencyFilter('noprazo')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'noprazo' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'}">
+            <button onclick="productionModule.setUrgencyFilter('esta_semana')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${this.filterUrgency === 'esta_semana' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100'}" title="Pedidos com entrega prevista de Segunda a Domingo desta semana">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Pedidos da Semana (${countEstaSemana})</span>
+            </button>
+            <button onclick="productionModule.setUrgencyFilter('semana_que_vem')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${this.filterUrgency === 'semana_que_vem' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'}" title="Pedidos com entrega prevista da próxima Segunda ao Domingo subsequente">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Semana que Vem (${countSemanaQueVem})</span>
+            </button>
+            <button onclick="productionModule.setUrgencyFilter('noprazo')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'noprazo' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'}">
               ✅ No Prazo
             </button>
           </div>

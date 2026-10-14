@@ -98,6 +98,27 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Regra de Ouro (100% On-line Sine Qua Non), Gestão Semanal & Menu Destaque (v4.9.8)
+- **Regra de Ouro (100% On-line Sine Qua Non - Imagem 1):**
+  - Desmontagem integral do modo e mensagens de "Modo Retaguarda".
+  - O Grafsis opera exclusivamente **100% ON-LINE** e com acesso direto ao banco de dados Supabase na nuvem.
+  - Caso o banco de dados esteja inacessível, pausado ou com falha de conexão, o sistema informa imediatamente que está **INOPERANTE** e exibe tela de bloqueio e diagnóstico para evitar operações com dados desatualizados.
+- **Indicadores Conectado / Desconectado (Imagem 2):**
+  - Aviso no Painel Master de Configurações exibindo expressamente `'100% conectado'` em verde ou `'desconectado'` em vermelho conforme o estado em tempo real da conexão com a nuvem.
+  - Badge no topo sincronizado (`100% CONECTADO` / `DESCONECTADO`).
+- **Gestão Semanal de Entregas e Produção no Mural de Serviços (Imagem 3):**
+  - Novos botões de filtro de gestão operacional:
+    * **Pedidos da Semana:** Filtra todos os pedidos com prazo de entrega de Segunda-feira a Domingo da semana corrente, com contador dinâmico.
+    * **Semana que Vem:** Filtra pedidos com prazo de entrega da próxima Segunda-feira ao Domingo subsequente, permitindo planejamento antecipado de produção e compras de materiais.
+- **Menu Superior Padronizado e com Mais Destaque (Imagem 4):**
+  - Todos os botões da barra superior foram padronizados com altura uniforme (`h-10` / 40px), cantos arredondados (`rounded-xl`) e alinhamento geométrico perfeito.
+  - Agrupamento cromático:
+    * **Grupo 1 (Ação Principal):** Botão `+ Operação` em azul vibrante de destaque.
+    * **Grupo 2 (Navegação):** Botões `Dashboard`, `Clientes`, `Operação / Pedido`, `Mural de serviços` e `Catálogo` com cor padronizada no grupo (índigo/slate) e estado ativo elegante.
+    * **Grupo 3 (Ferramentas & Status):** Status de conexão, alternador Dia/Noite, Calculadora m², Notificações e Perfil, todos com a mesma altura e proporção.
+
+---
+
 ## 🔄 Manual Mestre: Padronização Canônica, Auditoria, Segurança & Sync Multidispositivo (v4.9.7)
 - **Motor de Cabeçalho e Rodapé Padronizado (Seção 04)**:
   - Documentos comerciais (Pedidos de Venda, Orçamentos Comerciais, Propostas de Pré-Venda e O.S.) agora possuem layout padronizado:

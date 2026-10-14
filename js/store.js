@@ -1159,25 +1159,130 @@ class GrafsisStore {
     return survey;
   }
 
+  async checkCloudHealth() {
+    if (!this.supabaseClient) {
+      this.cloudConnected = false;
+      this.updateSyncBadge(false);
+      this.showInoperableNoticeIfNeeded('Supabase não inicializado ou credenciais ausentes.');
+      return false;
+    }
+    try {
+      const selectPromise = this.supabaseClient.from('clientes').select('count', { count: 'exact', head: true });
+      const res = await (this.runWithTimeout ? this.runWithTimeout(selectPromise, 4000) : selectPromise);
+      if (res && res.error) {
+        const msg = String(res.error.message || res.error);
+        this.cloudConnected = false;
+        this.updateSyncBadge(false);
+        this.showInoperableNoticeIfNeeded(msg);
+        return false;
+      }
+      this.cloudConnected = true;
+      this.updateSyncBadge(true);
+      this.hideInoperableNotice();
+      return true;
+    } catch (err) {
+      const msg = String(err.message || err);
+      this.cloudConnected = false;
+      this.updateSyncBadge(false);
+      this.showInoperableNoticeIfNeeded(msg);
+      return false;
+    }
+  }
+
+  showInoperableNoticeIfNeeded(errMsg = '') {
+    let overlay = document.getElementById('offline-blocking-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'offline-blocking-overlay';
+      overlay.className = 'fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300';
+      overlay.innerHTML = `
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 text-center shadow-2xl border border-rose-300 dark:border-rose-900 space-y-5 animate-in fade-in zoom-in duration-200">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-3xl sm:text-4xl mx-auto shadow-inner">
+            ⚠️
+          </div>
+          <div class="space-y-1.5">
+            <span class="inline-block px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300">
+              Regra de Ouro • Condição Sine Qua Non
+            </span>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+              SISTEMA INOPERANTE
+            </h2>
+            <p class="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400">
+              Sem Conexão Ativa com o Banco de Dados Cloud (Supabase)
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed pt-2">
+              O Grafsis opera estritamente <strong>100% ON-LINE</strong>. Por segurança dos dados e garantia de integridade corporativa, as operações ficam bloqueadas até que o acesso à base de dados na nuvem seja restabelecido.
+            </p>
+          </div>
+          <div class="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-left text-xs space-y-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 text-xs">
+              <span>🔍 Diagnóstico Técnico:</span>
+            </div>
+            <p id="inoperable-err-msg" class="text-[11px] font-mono text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 p-2 rounded-lg border border-rose-200 dark:border-rose-800 break-all">
+              ${window.escapeHtml(errMsg || 'Projeto Supabase pausado ou inacessível (Timeout / 522 / Network Error)')}
+            </p>
+            <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1 text-[11px] pt-1">
+              <li>Verifique no painel do Supabase se o projeto está <strong>pausado</strong> e reative-o.</li>
+              <li>Verifique sua conexão com a internet.</li>
+              <li>Acesse as Configurações caso precise atualizar a URL ou Anon Key.</li>
+            </ul>
+          </div>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+            <button onclick="window.store.handleManualSyncClick()" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black tracking-wide shadow-md shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              Tentar Reconectar Agora
+            </button>
+            <button onclick="app.navigate('settings'); window.store.hideInoperableNotice();" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+              ⚙️ Ir para Configurações
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    } else {
+      const errEl = document.getElementById('inoperable-err-msg');
+      if (errEl && errMsg) {
+        errEl.textContent = errMsg;
+      }
+    }
+  }
+
+  hideInoperableNotice() {
+    const overlay = document.getElementById('offline-blocking-overlay');
+    if (overlay) overlay.remove();
+  }
+
   initSupabase() {
     const config = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : this.getSettings();
     if (config.url && config.key && window.supabase && window.supabase.createClient) {
       try {
         this.supabaseClient = window.supabase.createClient(config.url, config.key);
-        console.log('[Supabase] Cliente conectado com sucesso:', config.url);
-        this.updateSyncBadge(true);
-        // Sincroniza imediatamente ao iniciar
-        setTimeout(() => this.syncAllWithCloud(), 100);
+        console.log('[Supabase] Cliente configurado:', config.url);
+        
+        // Verifica a conexão real imediatamente
+        this.checkCloudHealth().then(isOnline => {
+          if (isOnline) {
+            setTimeout(() => this.syncAllWithCloud(), 100);
+          }
+        });
 
         // Auto-sincronizacao ao focar na janela (ao alternar entre abas ou celular/PC)
         if (!this._focusListenerAttached) {
           this._focusListenerAttached = true;
-          window.addEventListener('focus', () => this.syncAllWithCloud());
+          window.addEventListener('focus', () => {
+            this.checkCloudHealth().then(isOnline => {
+              if (isOnline) this.syncAllWithCloud();
+            });
+          });
         }
 
-        // Auto-sincronizacao periodica em segundo plano (a cada 20 segundos)
+        // Auto-verificação periodica em segundo plano (a cada 20 segundos)
         if (!this._syncInterval) {
-          this._syncInterval = setInterval(() => this.syncAllWithCloud(), 20000);
+          this._syncInterval = setInterval(() => {
+            this.checkCloudHealth().then(isOnline => {
+              if (isOnline) this.syncAllWithCloud();
+            });
+          }, 20000);
         }
 
         // Supabase Realtime (detecta alteracoes instantaneas entre PC e celular)
@@ -1188,7 +1293,9 @@ class GrafsisStore {
               .channel('public-sync')
               .on('postgres_changes', { event: '*', schema: 'public' }, () => {
                 console.log('[Supabase Realtime] Mudanca detectada na nuvem, sincronizando...');
-                this.syncAllWithCloud();
+                this.checkCloudHealth().then(isOnline => {
+                  if (isOnline) this.syncAllWithCloud();
+                });
               })
               .subscribe();
           } catch (rtErr) {
@@ -1203,13 +1310,13 @@ class GrafsisStore {
       this.updateSyncBadge(false);
     }
   }
+
   async handleManualSyncClick() {
     const badge = document.getElementById('cloud-sync-status');
-    const originalHtml = badge ? badge.innerHTML : '';
     
     if (badge) {
       badge.innerHTML = `
-        <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-600 text-white border border-blue-700 shadow-md transition-all scale-95" disabled>
+        <button type="button" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-blue-600 text-white border border-blue-700 shadow-md transition-all scale-95" disabled>
           <svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           Sincronizando Bancos...
         </button>
@@ -1220,11 +1327,23 @@ class GrafsisStore {
       if (!this.supabaseClient) {
         await this.initSupabase();
       }
+      
+      const isOnline = await this.checkCloudHealth();
+      if (!isOnline) {
+        if (badge) {
+          badge.innerHTML = `
+            <button onclick="window.store.handleManualSyncClick()" type="button" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm border border-rose-700">
+              <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
+              DESCONECTADO (Inoperante)
+            </button>
+          `;
+        }
+        return;
+      }
+
       await this.syncAllWithCloud(true);
 
       const prodCount = (this.getProducts() || []).length;
-      const clientCount = (this.getClients() || []).length;
-      const orderCount = (this.getOrders() || []).length;
 
       // Reorganiza e recarrega a página ativa imediatamente
       if (window.app && window.app.currentTab) {
@@ -1241,47 +1360,56 @@ class GrafsisStore {
 
       if (badge) {
         badge.innerHTML = `
-          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white border border-emerald-700 shadow-md transition-all">
+          <button type="button" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white border border-emerald-700 shadow-md transition-all">
             <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            Nuvem Sincronizada! ✓ (${prodCount} produtos)
+            100% CONECTADO ✓
           </button>
         `;
       }
     } catch (e) {
       console.warn('[Sync Click] Erro ao sincronizar:', e);
-      if (badge) {
-        badge.innerHTML = `
-          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-sm">
-            Erro ao conectar
-          </button>
-        `;
-      }
+      this.cloudConnected = false;
+      this.updateSyncBadge(false);
+      this.showInoperableNoticeIfNeeded(e.message || String(e));
     }
 
     setTimeout(() => {
-      this.updateSyncBadge(!!this.supabaseClient);
-    }, 3000);
+      this.updateSyncBadge(!!this.cloudConnected);
+    }, 2500);
   }
 
   updateSyncBadge(connected) {
+    this.cloudConnected = !!connected;
     const badge = document.getElementById('cloud-sync-status');
     if (badge) {
       if (connected) {
         badge.innerHTML = `
-          <button onclick="window.store.handleManualSyncClick()" title="Nuvem Supabase Conectada e Sincronizada em Tempo Real. Clique para sincronizar agora" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-sm cursor-pointer group">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse group-hover:scale-125 transition-transform"></span>
-            <span class="font-black text-[11px]">ON-LINE (Nuvem Ativa)</span>
+          <button onclick="window.store.handleManualSyncClick()" title="Nuvem Supabase Conectada e Sincronizada em Tempo Real. Clique para sincronizar agora" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-xs cursor-pointer group select-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse group-hover:scale-125 transition-transform"></span>
+            <span class="font-black text-[11px] tracking-wide uppercase text-emerald-800">100% CONECTADO</span>
             <span class="text-xs transition-transform group-hover:rotate-180">↻</span>
           </button>
         `;
       } else {
         badge.innerHTML = `
-          <button onclick="window.store.handleManualSyncClick()" title="Servidor Supabase Inacessível (Gateway 504/Offline). Retaguarda Local Ativa! Clique para tentar reconectar agora" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer group">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            <span class="font-black text-[11px]">OFF-LINE (Retaguarda Ativa)</span>
+          <button onclick="window.store.handleManualSyncClick()" title="Base de Dados Desconectada (Sistema Inoperante). Clique para tentar reconectar agora" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 active:scale-95 transition-all shadow-xs cursor-pointer group select-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
+            <span class="font-black text-[11px] tracking-wide uppercase text-rose-700">DESCONECTADO</span>
             <span class="text-xs group-hover:rotate-180 transition-transform">↻</span>
           </button>
         `;
+      }
+    }
+
+    // Atualização em tempo real do aviso da Imagem 2 (Painel de Configurações)
+    const settingsBadge = document.getElementById('settings-connection-status-badge');
+    if (settingsBadge) {
+      if (connected) {
+        settingsBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm bg-emerald-500 text-white border border-emerald-400';
+        settingsBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span><span>100% conectado</span>';
+      } else {
+        settingsBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm bg-rose-600 text-white border border-rose-500';
+        settingsBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white"></span><span>desconectado</span>';
       }
     }
   }
@@ -1589,9 +1717,12 @@ class GrafsisStore {
     if (!this.supabaseClient) return;
     try {
       const selectPromise = this.supabaseClient.from(tableName).select('*');
-      const { data, error } = await this.runWithTimeout(selectPromise, 3500);
+      const { data, error } = await this.runWithTimeout(selectPromise, 4000);
       if (error) {
         console.warn(`[Supabase] Erro ao buscar ${tableName}:`, error.message);
+        this.cloudConnected = false;
+        this.updateSyncBadge(false);
+        this.showInoperableNoticeIfNeeded(error.message);
         return;
       }
       if (data && Array.isArray(data)) {
@@ -1652,7 +1783,10 @@ class GrafsisStore {
         this.saveLocal(storageKey, merged);
       }
     } catch (err) {
-      console.warn(`[Supabase] Falha pull ${tableName} (mantendo dados locais):`, err.message || err);
+      console.warn(`[Supabase] Falha pull ${tableName}:`, err.message || err);
+      this.cloudConnected = false;
+      this.updateSyncBadge(false);
+      this.showInoperableNoticeIfNeeded(err.message || String(err));
     }
   }
 

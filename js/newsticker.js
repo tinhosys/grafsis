@@ -1,6 +1,6 @@
 /* ==============================================================================
    GRAFSIS - Monitor de Notícias On-Line & RSS Feed Ticker Dinâmico
-   Versão 4.9.7.4 - Feed Oficial Roxo News (https://roxo.news/feed/),
+   Versão 4.9.8 - Feed Oficial Roxo News (https://roxo.news/feed/),
    Layout Flex Nativo de Rodapé Widescreen, Motor Contínuo Multi-Ciclo Seamless
    via requestAnimationFrame com getBoundingClientRect, Categorias em Destaque
    e Redirecionamento no Clique.

@@ -74,7 +74,7 @@
       flex-shrink: 0 !important;
     }
   </style>
-  <link rel="stylesheet" href="css/styles.css?v=4.9.7.4">
+  <link rel="stylesheet" href="css/styles.css?v=4.9.8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -127,17 +127,17 @@
           <span id="header-company-subtext" class="hidden"></span>
         </div>
 
-        <!-- Botão de Destaque Oficial: + Operação (Imagem 4) -->
-        <button id="btn-header-new-order" onclick="app.openNewOrderModal()" class="hidden md:flex items-center gap-2 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-md shadow-blue-500/25 transition-all transform hover:scale-[1.02] border border-blue-500 cursor-pointer select-none" title="Abrir Nova Venda / Orçamento (+ Operação)">
+        <!-- GRUPO 1: Botão de Destaque Oficial: + Operação (Imagem 4) -->
+        <button id="btn-header-new-order" onclick="app.openNewOrderModal()" class="hidden md:flex items-center gap-2 h-10 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-md shadow-blue-500/25 transition-all transform hover:scale-[1.02] border border-blue-500 cursor-pointer select-none shrink-0" title="Abrir Nova Venda / Orçamento (+ Operação)">
           <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
           <span>+ Operação</span>
         </button>
 
-        <!-- Links Horizontais de Navegação Superior (Exatamente como na Imagem) -->
-        <nav class="hidden md:flex items-center gap-1 sm:gap-2 lg:gap-3 ml-2 h-full">
+        <!-- GRUPO 2: Navegação Superior (Todos botões h-10, mesma cor no grupo, alinhados e organizados) -->
+        <nav class="hidden md:flex items-center gap-1.5 lg:gap-2 ml-2">
           <!-- 1. Dashboard -->
-          <button onclick="app.navigate('dashboard')" class="top-nav-link px-3 py-2 text-sm text-[#334155] dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/70 rounded-md font-medium transition flex items-center border-b-2 border-transparent" data-tab="dashboard">
-            <svg class="w-[18px] h-[18px] mr-2 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <button onclick="app.navigate('dashboard')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="dashboard">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect width="7" height="9" x="3" y="3" rx="1"/>
               <rect width="7" height="5" x="14" y="3" rx="1"/>
               <rect width="7" height="9" x="14" y="12" rx="1"/>
@@ -147,8 +147,8 @@
           </button>
 
           <!-- 2. Clientes -->
-          <button onclick="app.navigate('clients')" class="top-nav-link px-3 py-2 text-sm text-blue-600 dark:text-blue-400 font-bold border-b-2 border-blue-600 flex items-center transition" data-tab="clients">
-            <svg class="w-[18px] h-[18px] mr-2 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <button onclick="app.navigate('clients')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-600 text-white shadow-sm border border-indigo-500 shrink-0 cursor-pointer" data-tab="clients">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 21a8 8 0 0 0-16 0"/>
               <circle cx="10" cy="8" r="5"/>
               <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>
@@ -157,8 +157,8 @@
           </button>
 
           <!-- 3. Operação / Pedido -->
-          <button onclick="app.navigate('sales')" class="top-nav-link px-3 py-2 text-sm text-[#334155] dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/70 rounded-md font-medium transition flex items-center border-b-2 border-transparent" data-tab="sales">
-            <svg class="w-[18px] h-[18px] mr-2 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <button onclick="app.navigate('sales')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="sales">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
               <path d="M12 11h4"/>
@@ -170,8 +170,8 @@
           </button>
 
           <!-- 4. Mural de serviços -->
-          <button onclick="app.navigate('production')" class="top-nav-link px-3 py-2 text-sm text-[#334155] dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/70 rounded-md font-medium transition flex items-center border-b-2 border-transparent" data-tab="production">
-            <svg class="w-[18px] h-[18px] mr-2 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <button onclick="app.navigate('production')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="production">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
               <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/>
               <rect x="6" y="14" width="12" height="8" rx="1"/>
@@ -180,30 +180,30 @@
           </button>
 
           <!-- 5. Catálogo (Produtos/Serviços) -->
-          <button onclick="app.navigate('products')" class="top-nav-link px-3 py-2 text-sm text-[#334155] dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/70 rounded-md font-medium transition flex items-center border-b-2 border-transparent" data-tab="products">
-            <svg class="w-[18px] h-[18px] mr-2 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <button onclick="app.navigate('products')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="products">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m7.5 4.27 9 5.15"/>
               <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
               <path d="m3.3 7 8.7 5 8.7-5"/>
               <path d="M12 22V12"/>
             </svg>
-            <span>Catálogo (Produtos/Serviços)</span>
+            <span>Catálogo</span>
           </button>
         </nav>
       </div>
 
-      <!-- Lado Direito: Notificações com Badge Inteligente e Foto de Perfil com Menu -->
-      <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Status de Nuvem Supabase / Manifesto Online -->
+      <!-- GRUPO 3: Ferramentas & Status (Todos botões h-10, organizados e alinhados) -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- Status de Nuvem Supabase / Manifesto Online (100% CONECTADO / DESCONECTADO) -->
         <div id="cloud-sync-status" class="flex items-center"></div>
 
         <!-- Botão Alternador Modo Claro / Escuro (Dia ☀️ / Noite 🌙) -->
-        <button id="btn-theme-toggle" onclick="app.toggleTheme()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50/80 text-amber-800 hover:bg-amber-100 transition-all shadow-sm cursor-pointer select-none" title="Alternar entre Modo Dia (Claro) e Modo Noite (Escuro)">
+        <button id="btn-theme-toggle" onclick="app.toggleTheme()" class="h-10 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/80 dark:bg-slate-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-slate-700 transition-all shadow-xs cursor-pointer select-none" title="Alternar entre Modo Dia (Claro) e Modo Noite (Escuro)">
           <span id="theme-icon-sun" class="flex items-center gap-1 text-xs font-bold text-amber-500">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             <span class="hidden xl:inline text-[11px] font-black">Dia</span>
           </span>
-          <span id="theme-slider-track" class="w-7 h-3.5 bg-slate-300 rounded-full relative p-0.5 transition-colors hidden sm:inline-block">
+          <span id="theme-slider-track" class="w-7 h-3.5 bg-slate-300 dark:bg-slate-600 rounded-full relative p-0.5 transition-colors hidden sm:inline-block">
             <span id="theme-slider-knob" class="block w-2.5 h-2.5 bg-white rounded-full shadow transition-transform"></span>
           </span>
           <span id="theme-icon-moon" class="flex items-center gap-1 text-xs font-bold text-indigo-400 opacity-40">
@@ -213,20 +213,20 @@
         </button>
 
         <!-- Botão Calculadora m² -->
-        <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold border border-emerald-200 transition shadow-sm" title="Calculadora de Área e Preço por Metro Quadrado">
+        <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 h-10 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition shadow-xs cursor-pointer" title="Calculadora de Área e Preço por Metro Quadrado">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-          Calculadora m²
+          <span>Calculadora m²</span>
         </button>
 
-        <!-- Ícone Notificação com Regra Inteligente: Vermelho (Expiração <= 3 dias úteis) ou Amarelo (Entregas Vencidas) -->
-        <button id="btn-header-notification" onclick="app.openNotificationsModal()" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition relative" title="Central de Notificações e Prazos">
+        <!-- Ícone Notificação -->
+        <button id="btn-header-notification" onclick="app.openNotificationsModal()" class="h-10 w-10 flex items-center justify-center p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition relative cursor-pointer" title="Central de Notificações e Prazos">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
           <span id="header-notification-badge" class="hidden absolute top-1.5 right-1.5 min-w-4 h-4 px-1 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm"></span>
         </button>
 
-        <!-- Foto de Perfil do Operador com Login e Perfil Visíveis (Imagem 4) -->
-        <div class="relative pl-1 sm:pl-2 border-l border-slate-200">
-          <button onclick="app.toggleUserMenu()" class="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition" title="Meu Perfil">
+        <!-- Foto de Perfil do Operador com Login e Perfil Visíveis -->
+        <div class="relative pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-700">
+          <button onclick="app.toggleUserMenu()" class="h-10 flex items-center gap-2 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer" title="Meu Perfil">
             <div class="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 flex items-center justify-center">
               <img id="top-user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-full h-full object-cover">
             </div>
@@ -267,7 +267,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v4.9.7)
+              Notas de Versão (v4.9.8)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -388,7 +388,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.7 (Ver Notas)
+              Versão 4.9.8 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -812,7 +812,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.7</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -820,15 +820,25 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.7 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Manual Mestre: Padronização Canônica, Auditoria, Segurança & Sync</span>
+            <h4 class="font-bold text-slate-800">Versão 4.9.8 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">100% On-line Sine Qua Non, Gestão Semanal & Menu Destaque</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Motor de Cabeçalho e Rodapé Padronizado (Seção 04):</strong> Emissão padronizada de Pedidos, Orçamentos, Pré-Vendas e O.S. com logomarca e dados da gráfica à esquerda/topo, título inequívoco e numeração à direita, bloco próprio e estruturado para o Destinatário (Cliente), e rodapé oficial com fuso de Brasília e timestamp de emissão.</li>
-            <li><strong>Centralização e Normalização Cadastral Canônica (Seção 03):</strong> Tratamento de cliente como fonte única de verdade (`cliente_id`), formatação canônica de endereços (sem vírgulas ou duplicações), telefones com DDD normalizado e formatação de CPF/CNPJ.</li>
-            <li><strong>Auditoria e Sincronização Real do Repositório Multi-Dispositivo (Seção 06):</strong> Arquivos e links do Google Drive agora persistem e sincronizam entre múltiplos dispositivos (celular/desktop) via `metaPayload` na nuvem Supabase, com proteção de quota no `localStorage`.</li>
-            <li><strong>Segurança e Sanitização XSS Estrita (Seção 05):</strong> Sanitização global com `escapeHtml`, validação estrita de URLs externas (rejeição de `javascript:` e inseguras) e uploads de anexos limitados a 15MB com bloqueio preventivo de arquivos executáveis e rejeição granular.</li>
-            <li><strong>Alerta Visual de Cadastro Pendente no Kanban (Seção 06):</strong> O fallback visual não mascara divergências cadastrais; pedidos com clientes sem cadastro formal exibem a tag `⚠️ Cadastro Pendente`.</li>
+            <li><strong>Regra de Ouro (100% On-line Sine Qua Non):</strong> Desmontagem total de mensagens de "Modo Retaguarda". O sistema opera estritamente conectado à base de dados na nuvem (Supabase). Caso inacessível, avisa e bloqueia com estado de Sistema Inoperante até a restauração da conexão.</li>
+            <li><strong>Indicadores Conectado / Desconectado:</strong> Badges no topo e no Painel Master exibindo "100% conectado" (verde) ou "desconectado" (vermelho).</li>
+            <li><strong>Filtros de Gestão no Mural de Serviços:</strong> Novos botões de gestão da produção e entregas: "Pedidos da Semana" (Segunda a Domingo) e "Semana que Vem" (Segunda a Domingo subsequente).</li>
+            <li><strong>Menu Superior Padronizado:</strong> Todos os botões com tamanho unificado (h-10 / 40px), alinhamento perfeito e grupos de cores consistentes para Ação (+ Operação), Navegação (Dashboard, Clientes, Operação, Mural, Catálogo) e Ferramentas/Status.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.7</h4>
+            <span class="text-xs text-slate-400 font-bold">Manual Mestre: Padronização Canônica, Auditoria, Segurança & Sync</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Motor de Cabeçalho e Rodapé Padronizado:</strong> Emissão padronizada de Pedidos, Orçamentos, Pré-Vendas e O.S. com dados da gráfica, título, destinatário estruturado e rodapé oficial.</li>
+            <li><strong>Centralização e Normalização Cadastral Canônica:</strong> Tratamento de cliente como fonte única de verdade (`cliente_id`) e formatação canônica de endereços e telefones.</li>
+            <li><strong>Auditoria e Sincronização do Repositório:</strong> Sincronização de fotos e Google Drive via nuvem.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
@@ -960,17 +970,17 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.7.4) -->
-  <script src="js/config.js?v=4.9.7.4"></script>
-  <script src="js/auth.js?v=4.9.7.4"></script>
-  <script src="js/store.js?v=4.9.7.4"></script>
-  <script src="js/clients.js?v=4.9.7.4"></script>
-  <script src="js/suppliers.js?v=4.9.7.4"></script>
-  <script src="js/products.js?v=4.9.7.4"></script>
-  <script src="js/sales.js?v=4.9.7.4"></script>
-  <script src="js/production.js?v=4.9.7.4"></script>
-  <script src="js/finance.js?v=4.9.7.4"></script>
-  <script src="js/newsticker.js?v=4.9.7.4"></script>
-  <script src="js/app.js?v=4.9.7.4"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.8) -->
+  <script src="js/config.js?v=4.9.8"></script>
+  <script src="js/auth.js?v=4.9.8"></script>
+  <script src="js/store.js?v=4.9.8"></script>
+  <script src="js/clients.js?v=4.9.8"></script>
+  <script src="js/suppliers.js?v=4.9.8"></script>
+  <script src="js/products.js?v=4.9.8"></script>
+  <script src="js/sales.js?v=4.9.8"></script>
+  <script src="js/production.js?v=4.9.8"></script>
+  <script src="js/finance.js?v=4.9.8"></script>
+  <script src="js/newsticker.js?v=4.9.8"></script>
+  <script src="js/app.js?v=4.9.8"></script>
 </body>
 </html>

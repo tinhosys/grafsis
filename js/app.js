@@ -285,13 +285,13 @@ window.app = {
       }
     });
 
-    // Atualização da Top Navbar (com indicador sublinhado azul ativo e ícones Lucide)
+    // Atualização da Top Navbar (Grupo 2 - Botões de navegação destacados, cores unificadas e tamanho padronizado h-10)
     document.querySelectorAll('.top-nav-link').forEach(link => {
       const isTarget = link.getAttribute('data-tab') === tab;
       if (isTarget) {
-        link.className = 'top-nav-link px-3 py-2 text-sm text-blue-600 dark:text-blue-400 font-bold border-b-2 border-blue-600 flex items-center transition';
+        link.className = 'top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-600 text-white shadow-sm border border-indigo-500 shrink-0 cursor-pointer';
       } else {
-        link.className = 'top-nav-link px-3 py-2 text-sm text-[#334155] dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/70 rounded-md font-medium transition flex items-center border-b-2 border-transparent';
+        link.className = 'top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer';
       }
     });
 
@@ -1606,14 +1606,14 @@ window.app = {
             <div>
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Banco de Dados Cloud</span>
               <div class="text-base font-black text-slate-800 mt-1 flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full ${window.store.supabaseClient ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span>
-                <span>${window.store.supabaseClient ? 'Supabase Conectado' : 'Modo Offline / Local'}</span>
+                <span class="w-2.5 h-2.5 rounded-full ${window.store.cloudConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}"></span>
+                <span>${window.store.cloudConnected ? 'Supabase Conectado' : 'Supabase Desconectado'}</span>
               </div>
               <span class="text-[10px] text-slate-500 mt-1 block truncate max-w-[150px]" title="${config.url || ''}">
                 ${config.url ? config.url.replace('https://', '') : 'Não configurado'}
               </span>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0 border border-blue-100">
+            <div class="w-12 h-12 rounded-xl ${window.store.cloudConnected ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-rose-50 text-rose-600 border border-rose-100'} flex items-center justify-center text-xl shrink-0">
               🗄️
             </div>
           </div>
@@ -1634,19 +1634,22 @@ window.app = {
             </div>
           </div>
 
-          <!-- CARD 4: INTEGRIDADE DO SISTEMA -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
+          <!-- CARD 4: INTEGRIDADE DO SISTEMA / STATUS DE CONEXÃO (IMAGEM 2) -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between relative overflow-hidden">
             <div>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Integridade dos Serviços</span>
-              <div class="text-base font-black text-emerald-600 mt-1 flex items-center gap-1">
-                <span>100% Saudável</span>
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Integridade / Conexão</span>
+              <div class="mt-1 flex items-center gap-1.5">
+                <span id="settings-connection-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm ${window.store.cloudConnected ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-rose-600 text-white border border-rose-500'}">
+                  <span class="w-2 h-2 rounded-full bg-white ${window.store.cloudConnected ? 'animate-pulse' : ''}"></span>
+                  <span>${window.store.cloudConnected ? '100% conectado' : 'desconectado'}</span>
+                </span>
               </div>
               <span class="text-[10px] text-slate-500 mt-1 block">
-                6 subsistemas operando OK
+                ${window.store.cloudConnected ? 'Base de dados 100% online' : 'Sistema inoperante sem banco'}
               </span>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0 border border-purple-100">
-              ⚡
+            <div class="w-12 h-12 rounded-xl ${window.store.cloudConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'} flex items-center justify-center text-xl shrink-0">
+              ${window.store.cloudConnected ? '⚡' : '⚠️'}
             </div>
           </div>
         </div>
@@ -2018,29 +2021,18 @@ window.app = {
 
   async testSupabaseConnection() {
     if (!window.store.supabaseClient) {
-      alert('Supabase desconectado. Verifique se preencheu a URL e a Anon Key e salvou.');
+      alert('❌ SISTEMA INOPERANTE: Supabase desconectado.\n\nPreencha a URL e a Anon Key nas configurações e clique em "Salvar Parâmetros" para autenticar.');
       return;
     }
     try {
-      const selectPromise = window.store.supabaseClient.from('clientes').select('count', { count: 'exact', head: true });
-      const res = await (window.store.runWithTimeout ? window.store.runWithTimeout(selectPromise, 4000) : selectPromise);
-      if (res && res.error) {
-        const errMsg = String(res.error.message || res.error);
-        if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Timeout') || errMsg.includes('522') || errMsg.includes('500')) {
-          alert('⚠️ Servidor Supabase temporariamente inacessível (conexão ou projeto na nuvem pausado).\n\n🛡️ MODO RETAGUARDA LOCAL DO GRAFSIS ESTÁ 100% ATIVO:\nVocê pode continuar cadastrando clientes, criando pedidos e usando o sistema normalmente. Todas as suas operações ficam salvas com segurança no computador e serão enviadas para a nuvem automaticamente assim que ela restabelecer conexão.');
-        } else {
-          alert('Informação de Conexão Supabase:\n' + errMsg + '\n\nO Modo Retaguarda Local continua ativo e seguro.');
-        }
+      const isHealthy = await window.store.checkCloudHealth();
+      if (!isHealthy) {
+        alert('❌ SISTEMA INOPERANTE: Não foi possível acessar a base de dados Supabase na nuvem.\n\nRegra de Ouro: O Grafsis opera exclusivamente 100% ON-LINE e integrado ao banco de dados.\n\nVerifique se o seu projeto Supabase está ATIVO ou se precisa ser reativado (Resume/Restore) no painel.');
       } else {
-        alert('✅ Conexão com o Supabase efetuada com SUCESSO!\nA nuvem está pronta e sincronizada para uso entre múltiplos computadores.');
+        alert('✅ 100% CONECTADO!\n\nConexão com o banco de dados Supabase efetuada com SUCESSO!\nA base de dados na nuvem está 100% operacional e sincronizada.');
       }
     } catch (e) {
-      const errMsg = String(e.message || e);
-      if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('Timeout') || errMsg.includes('522')) {
-        alert('⚠️ Servidor Supabase temporariamente inacessível (conexão ou projeto na nuvem pausado).\n\n🛡️ MODO RETAGUARDA LOCAL DO GRAFSIS ESTÁ 100% ATIVO:\nVocê pode continuar cadastrando clientes, criando pedidos e usando o sistema normalmente. Todas as suas operações ficam salvas com segurança no computador e serão sincronizadas automaticamente assim que a nuvem restabelecer.');
-      } else {
-        alert('Aviso do Servidor: ' + errMsg + '\n\nO Modo Retaguarda Local continua ativo.');
-      }
+      alert('❌ SISTEMA INOPERANTE: Erro na conexão com o Supabase:\n' + (e.message || e));
     }
   },
 
