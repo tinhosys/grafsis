@@ -357,6 +357,60 @@ window.salesModule = {
     badge.className = `text-xs font-black px-2.5 py-1 ${this.getPhaseBadgeClass(op)} rounded-lg border uppercase transition-colors`;
   },
 
+  getPhaseChangeTimeFormatted(order) {
+    if (!order) return 'Novo (ao salvar)';
+    if (order.historico && Array.isArray(order.historico) && order.historico.length > 0) {
+      const last = order.historico[order.historico.length - 1];
+      if (last && last.data) {
+        const d = new Date(last.data);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+      }
+    }
+    const fallbackDate = order.data_modificacao || order.updated_at || order.data_venda || order.created_at;
+    if (fallbackDate) {
+      const d = new Date(fallbackDate);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+    }
+    return new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  },
+
+  showInlineProgress(title, percent, isComplete = false) {
+    const container = document.getElementById('inline-action-progress-container');
+    if (!container) return;
+    container.classList.remove('hidden');
+    const titleEl = document.getElementById('inline-progress-title');
+    if (titleEl) titleEl.innerText = title;
+    const pctEl = document.getElementById('inline-progress-percent');
+    if (pctEl) pctEl.innerText = Math.round(percent) + '%';
+    const barEl = document.getElementById('inline-progress-bar');
+    if (barEl) barEl.style.width = Math.min(100, Math.max(0, percent)) + '%';
+    const spinner = document.getElementById('inline-progress-spinner');
+    const check = document.getElementById('inline-progress-check');
+    if (isComplete) {
+      if (spinner) spinner.classList.add('hidden');
+      if (check) check.classList.remove('hidden');
+      setTimeout(() => {
+        if (container) {
+          container.classList.add('opacity-0');
+          setTimeout(() => {
+            container.classList.add('hidden');
+            container.classList.remove('opacity-0');
+            if (barEl) barEl.style.width = '0%';
+            if (spinner) spinner.classList.remove('hidden');
+            if (check) check.classList.add('hidden');
+          }, 300);
+        }
+      }, 3500);
+    } else {
+      if (spinner) spinner.classList.remove('hidden');
+      if (check) check.classList.add('hidden');
+    }
+  },
+
   handleOperationTypeChange(select) {
     const op = select.value;
     if ((op === 'permuta' || op === 'patrocinio') && !this.canManagePermutaPatrocinio()) {
@@ -364,6 +418,10 @@ window.salesModule = {
       select.value = 'venda';
     }
     this.updatePhaseBadge(select.value);
+    const phaseTimeEl = document.getElementById('display-order-phase-time-val');
+    if (phaseTimeEl) {
+      phaseTimeEl.innerText = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
     this.updateFormState();
   },
 
@@ -545,6 +603,7 @@ window.salesModule = {
     const activeDisplayId = document.getElementById('current-display-id')?.value;
     const currentOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) ||
                          (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
+    const isSavedOrder = !!currentOrder;
     // Regra: "depois que salvar a operação, mantenha, mas só trave depois que registrar"
     const isRegisteredOrder = currentOrder && (
       currentOrder.registrado === true ||
@@ -675,16 +734,16 @@ window.salesModule = {
     const btnEmitirPedido = document.getElementById('btn-emitir-pedido');
     const btnEmitirOS = document.getElementById('btn-emitir-os');
 
-    // 1. Botão Cancelar: cancela = 'Cancelar Edição', deixe enable true quando tiver editando
+    // 1. Botão Cancelar: cancela = 'Cancelar Edição', deixe enable true quando tiver editando (Cor estilizada Imagem 5)
     if (btnCancelar) {
-      btnCancelar.innerHTML = `<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Cancelar Edição`;
+      btnCancelar.innerHTML = `<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Cancelar Edição`;
       if (this.isEditingActive) {
         btnCancelar.disabled = false;
-        btnCancelar.className = "w-full h-12 text-sm font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnCancelar.className = "w-full h-12 text-sm font-bold text-rose-800 bg-rose-100 hover:bg-rose-200 border-2 border-rose-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
         btnCancelar.title = "Cancelar alterações e restaurar dados originais";
       } else {
         btnCancelar.disabled = true;
-        btnCancelar.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
+        btnCancelar.className = "w-full h-12 text-sm font-bold text-rose-400 bg-rose-50/60 border border-rose-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
         btnCancelar.title = "Botão Cancelar Edição fica ativo somente durante a edição de dados";
       }
     }
@@ -1321,17 +1380,20 @@ window.salesModule = {
                     <textarea name="observacoes" rows="2" class="w-full p-2 border rounded-lg text-sm bg-white">${order ? (order.observacoes || '') : ''}</textarea>
                   </div>
 
-                  <!-- IDENTIFICAÇÃO E STATUS DA OPERAÇÃO (MUDADO CONFORME IMAGEM 2) -->
+                  <!-- IDENTIFICAÇÃO E STATUS DA OPERAÇÃO (MUDADO CONFORME IMAGEM 4) -->
                   <div class="pt-2 border-t border-slate-200" id="secao-status-producao">
                     <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-sm">
                       <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-blue-600 animate-pulse"></span>
                         <div>
                           <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Identificação & Status</div>
-                          <div class="text-sm font-black text-slate-800 flex items-center gap-2 flex-wrap">
+                          <div class="text-sm font-black text-slate-800 flex items-center gap-1.5">
                             <span>Operação <strong id="display-order-numero-tag" class="font-mono text-blue-700">#${displayId}</strong></span>
-                            <span class="text-slate-300">&bull;</span>
-                            <span class="text-slate-600 font-medium text-xs">Fluxo controlado pelo Kanban da Produção</span>
+                          </div>
+                          <!-- Data e hora da mudança de fase colocada abaixo da Operação (Imagem 4) -->
+                          <div id="display-order-phase-time" class="text-xs text-slate-500 font-semibold mt-0.5 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Fase alterada em: <strong id="display-order-phase-time-val" class="text-slate-700">${this.getPhaseChangeTimeFormatted(order)}</strong></span>
                           </div>
                         </div>
                       </div>
@@ -1439,9 +1501,9 @@ window.salesModule = {
               <div class="pt-6 mt-4 border-t bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                   <!-- LINHA SUPERIOR (3 BOTÕES) -->
-                  <!-- 1. Cancelar Edição -->
-                  <button type="button" id="btn-cancel-action" onclick="salesModule.handleCancelEdit()" class="w-full h-12 text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Cancelar alterações e voltar">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  <!-- 1. Cancelar Edição (Com cor Rose/Vinho bem definida conforme Imagem 5) -->
+                  <button type="button" id="btn-cancel-action" onclick="salesModule.handleCancelEdit()" class="w-full h-12 text-sm font-bold text-rose-800 bg-rose-100 hover:bg-rose-200 border-2 border-rose-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Cancelar alterações e voltar">
+                    <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     Cancelar Edição
                   </button>
 
@@ -1489,6 +1551,26 @@ window.salesModule = {
                     <svg class="w-4 h-4 text-orange-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                     Emitir O.S.
                   </button>
+
+                  <!-- BARRA DE PROGRESSO OPERACIONAL (MARCAÇÃO ROSA IMAGEM 5) -->
+                  <div id="inline-action-progress-container" class="hidden col-span-1 sm:col-span-3 mt-2 pt-3 border-t border-slate-200 transition-all duration-300">
+                    <div class="flex items-center justify-between text-xs font-bold mb-1.5">
+                      <span id="inline-progress-label" class="flex items-center gap-2 text-slate-800">
+                        <svg id="inline-progress-spinner" class="w-4 h-4 text-emerald-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg id="inline-progress-check" class="w-4 h-4 text-emerald-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span id="inline-progress-title" class="font-bold">Gravando operação no sistema...</span>
+                      </span>
+                      <span id="inline-progress-percent" class="font-mono text-emerald-700 font-black text-xs">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden shadow-inner">
+                      <div id="inline-progress-bar" class="h-full bg-gradient-to-r from-blue-600 via-emerald-500 to-emerald-600 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -3179,6 +3261,8 @@ window.salesModule = {
       `;
     }
 
+    this.showInlineProgress('Salvando operação...', 35, false);
+
     // Modal com barra de progresso animada e feedback visual
     const progressModalId = 'modal-save-progress-indicator';
     document.getElementById(progressModalId)?.remove();
@@ -3364,9 +3448,14 @@ window.salesModule = {
         submitBtn.setAttribute('onclick', `salesModule.saveOrder(event, '${saved.id}', '${saved.numero}')`);
       }
 
-      // Sincroniza badge de Fase Atual e campos sem travar
+      // Sincroniza badge de Fase Atual, carimbo de data/hora e campos sem travar
       this.updatePhaseBadge(op);
+      const phaseTimeEl = document.getElementById('display-order-phase-time-val');
+      if (phaseTimeEl) {
+        phaseTimeEl.innerText = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
       this.updateFormState();
+      this.showInlineProgress(`Operação #${saved.numero} salva com sucesso!`, 100, true);
 
       setTimeout(() => {
         const modal = document.getElementById(progressModalId);
@@ -3472,7 +3561,11 @@ window.salesModule = {
       `• Valor Final: R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n\n` +
       `Deseja prosseguir e registrar esta operação no sistema?`;
 
-    if (!confirm(confirmMsg)) {
+    const confirmed = window.grafsisConfirm
+      ? await window.grafsisConfirm({ title: 'GrafSiS', message: confirmMsg, confirmText: 'Registrar', cancelText: 'Cancelar' })
+      : confirm(confirmMsg);
+
+    if (!confirmed) {
       return;
     }
 
@@ -3482,6 +3575,8 @@ window.salesModule = {
       submitBtn.disabled = true;
       submitBtn.innerText = 'Gravando...';
     }
+
+    this.showInlineProgress('Registrando operação oficial no sistema...', 30, false);
 
     try {
 
@@ -3615,6 +3710,37 @@ window.salesModule = {
         submitBtn.innerHTML = originalBtnText || `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar Operação`;
       }
 
+      // MANTÉM NA PÁGINA ATUAL (REQUISITO DA IMAGEM 5)
+      this.currentEditingOrderId = saved.id;
+      this.isEditingActive = false;
+
+      const displayIdLabel = document.getElementById('display-order-id-label');
+      if (displayIdLabel) displayIdLabel.innerText = '#' + saved.numero;
+      const displayNumeroTag = document.getElementById('display-order-numero-tag');
+      if (displayNumeroTag) displayNumeroTag.innerText = '#' + saved.numero;
+      const curDisplayInput = document.getElementById('current-display-id');
+      if (curDisplayInput) curDisplayInput.value = saved.numero;
+
+      const saveBtn = document.getElementById('btn-save-draft');
+      if (saveBtn) {
+        saveBtn.setAttribute('onclick', `salesModule.saveOrderQuick(event, '${saved.id}', '${saved.numero}')`);
+        saveBtn.disabled = false;
+      }
+      if (submitBtn) {
+        submitBtn.setAttribute('onclick', `salesModule.saveOrder(event, '${saved.id}', '${saved.numero}')`);
+      }
+
+      const phaseTimeEl = document.getElementById('display-order-phase-time-val');
+      if (phaseTimeEl) {
+        phaseTimeEl.innerText = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      // Sincroniza badge de Fase Atual e trava os campos da operação registrada
+      this.updatePhaseBadge(op);
+      this.updateFormState();
+
+      this.showInlineProgress(`Operação #${saved.numero} registrada e oficializada com sucesso!`, 100, true);
+
       if (options && options.autoPrintAfter) {
         try {
           if (options.autoPrintAfter === 'os') {
@@ -3626,13 +3752,15 @@ window.salesModule = {
           }
         } catch (printErr) {
           console.warn('[GRAFSIS] Falha ao disparar impressão automática:', printErr);
-          alert(`Operação #${saved.numero} registrada e gravada com sucesso no sistema!\n\n(Aviso: permita pop-ups no navegador para abrir a impressão automaticamente).`);
+          if (window.grafsisAlert) {
+            window.grafsisAlert(`Operação #${saved.numero} registrada e gravada com sucesso no sistema!\n\n(Aviso: permita pop-ups no navegador para abrir a impressão automaticamente).`, 'GrafSiS');
+          }
         }
       } else {
-        alert(`Operação #${saved.numero} registrada e gravada com sucesso no sistema!`);
+        if (window.grafsisAlert) {
+          window.grafsisAlert(`Operação #${saved.numero} registrada e gravada com sucesso no sistema!`, 'GrafSiS');
+        }
       }
-
-      this.render();
     } catch (err) {
       console.error('[GRAFSIS] Erro ao salvar operação:', err);
       alert('Erro ao gravar operação no sistema: ' + (err.message || err));

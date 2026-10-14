@@ -618,7 +618,11 @@ window.productionModule = {
 
     const msg = `MUDANÇA DE FASE\n\nID: #${order.numero}\nCliente: ${clientName}\nData do Pedido: ${dataPedido}\nPrazo de Entrega: ${prazo}\n\nConfirma a mudança de fase:\nDe: "${oldPhaseName}"\nPara: "${newPhaseName}"?`;
     
-    if (confirm(msg)) {
+    const isConfirmed = window.grafsisConfirm 
+      ? await window.grafsisConfirm({ title: 'GrafSiS', message: msg, confirmText: 'OK', cancelText: 'Cancelar' })
+      : confirm(msg);
+
+    if (isConfirmed) {
       if (sourceEl) {
         sourceEl.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
         sourceEl.style.transform = 'scale(0.5) translateY(-50px)';

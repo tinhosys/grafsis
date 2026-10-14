@@ -4,6 +4,100 @@
    Painel do Proprietário sem Redundâncias, Perfil do Usuário e Login por CPF.
    ============================================================================== */
 
+window.grafsisConfirm = function({ title = 'GrafSiS', message = '', confirmText = 'OK', cancelText = 'Cancelar' } = {}) {
+  return new Promise((resolve) => {
+    const modalId = 'grafsis-custom-confirm-modal';
+    document.getElementById(modalId)?.remove();
+
+    const formattedMsg = String(message)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn select-none">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${title}</h3>
+            </div>
+            <button type="button" id="${modalId}-close" class="text-slate-400 hover:text-white text-xl font-black leading-none cursor-pointer">&times;</button>
+          </div>
+          <div class="p-6 text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium max-h-[70vh] overflow-y-auto">
+            ${formattedMsg}
+          </div>
+          <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+            <button type="button" id="${modalId}-cancel" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer">
+              ${cancelText}
+            </button>
+            <button type="button" id="${modalId}-ok" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer">
+              ${confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const finish = (result) => {
+      document.getElementById(modalId)?.remove();
+      resolve(result);
+    };
+
+    document.getElementById(`${modalId}-ok`)?.addEventListener('click', () => finish(true));
+    document.getElementById(`${modalId}-cancel`)?.addEventListener('click', () => finish(false));
+    document.getElementById(`${modalId}-close`)?.addEventListener('click', () => finish(false));
+  });
+};
+
+window.grafsisAlert = function(message = '', title = 'GrafSiS') {
+  return new Promise((resolve) => {
+    const modalId = 'grafsis-custom-alert-modal';
+    document.getElementById(modalId)?.remove();
+
+    const formattedMsg = String(message)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn select-none">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${title}</h3>
+            </div>
+            <button type="button" id="${modalId}-close" class="text-slate-400 hover:text-white text-xl font-black leading-none cursor-pointer">&times;</button>
+          </div>
+          <div class="p-6 text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium max-h-[70vh] overflow-y-auto">
+            ${formattedMsg}
+          </div>
+          <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+            <button type="button" id="${modalId}-ok" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const finish = () => {
+      document.getElementById(modalId)?.remove();
+      resolve();
+    };
+
+    document.getElementById(`${modalId}-ok`)?.addEventListener('click', finish);
+    document.getElementById(`${modalId}-close`)?.addEventListener('click', finish);
+  });
+};
+
 window.app = {
   currentTab: 'production',
 

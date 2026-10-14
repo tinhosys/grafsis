@@ -1326,7 +1326,7 @@ class GrafsisStore {
     
     if (badge) {
       badge.innerHTML = `
-        <button type="button" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-blue-600 text-white border border-blue-700 shadow-md transition-all scale-95" disabled>
+        <button type="button" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-blue-600 text-white border border-blue-700 shadow-md transition-all scale-95" disabled>
           <svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           Sincronizando Bancos...
         </button>
@@ -1342,7 +1342,7 @@ class GrafsisStore {
       if (!isOnline) {
         if (badge) {
           badge.innerHTML = `
-            <button onclick="window.store.handleManualSyncClick()" type="button" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm border border-rose-700">
+            <button onclick="window.store.handleManualSyncClick()" type="button" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm border border-rose-700">
               <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
               DESCONECTADO (Inoperante)
             </button>
@@ -1370,7 +1370,7 @@ class GrafsisStore {
 
       if (badge) {
         badge.innerHTML = `
-          <button type="button" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white border border-emerald-700 shadow-md transition-all">
+          <button type="button" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white border border-emerald-700 shadow-md transition-all">
             <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
             100% CONECTADO ✓
           </button>
@@ -1397,7 +1397,7 @@ class GrafsisStore {
     if (badge) {
       if (connected) {
         badge.innerHTML = `
-          <button onclick="window.store.handleManualSyncClick()" title="Nuvem Supabase Conectada e Sincronizada em Tempo Real. Clique para sincronizar agora" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-xs cursor-pointer group select-none">
+          <button onclick="window.store.handleManualSyncClick()" title="Nuvem Supabase Conectada e Sincronizada em Tempo Real. Clique para sincronizar agora" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 active:scale-95 transition-all shadow-xs cursor-pointer group select-none">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse group-hover:scale-125 transition-transform"></span>
             <span class="font-black text-[11px] tracking-wide uppercase text-emerald-800">100% CONECTADO</span>
             <span class="text-xs transition-transform group-hover:rotate-180">↻</span>
@@ -1405,7 +1405,7 @@ class GrafsisStore {
         `;
       } else {
         badge.innerHTML = `
-          <button onclick="window.store.handleManualSyncClick()" title="Base de Dados Desconectada (Sistema Inoperante). Clique para tentar reconectar agora" class="h-10 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 active:scale-95 transition-all shadow-xs cursor-pointer group select-none">
+          <button onclick="window.store.handleManualSyncClick()" title="Base de Dados Desconectada (Sistema Inoperante). Clique para tentar reconectar agora" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 active:scale-95 transition-all shadow-xs cursor-pointer group select-none">
             <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
             <span class="font-black text-[11px] tracking-wide uppercase text-rose-700">DESCONECTADO</span>
             <span class="text-xs group-hover:rotate-180 transition-transform">↻</span>
