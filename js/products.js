@@ -205,15 +205,14 @@ window.productsModule = {
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Parâmetro de Cálculo *</label>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-semibold text-slate-600">Parâmetro de Cálculo *</label>
+                  <button type="button" onclick="productsModule.openUnitModal()" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer" title="Cadastrar nova unidade de medida">
+                    <span>+ Nova Unidade</span>
+                  </button>
+                </div>
                 <select name="tipo_cobranca" id="tipo_cobranca" onchange="productsModule.adjustUnit(this.value)" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                  <option value="m2" ${product && product.tipo_cobranca === 'm2' ? 'selected' : ''}>m² (Fracionado: Largura X x Altura Y)</option>
-                  <option value="unidade" ${product && product.tipo_cobranca === 'unidade' ? 'selected' : ''}>Unidade (Venda inteira / Peça)</option>
-                  <option value="servico" ${product && product.tipo_cobranca === 'servico' ? 'selected' : ''}>Serviço (Qtd x Valor do serviço)</option>
-                  <option value="diaria" ${product && product.tipo_cobranca === 'diaria' ? 'selected' : ''}>Diária (Locação / Estruturas)</option>
-                  <option value="hora" ${product && product.tipo_cobranca === 'hora' ? 'selected' : ''}>Hora (Máquina / Técnica / Serviço)</option>
-                  <option value="L" ${product && product.tipo_cobranca === 'L' ? 'selected' : ''}>L (Litro - Tintas e Líquidos)</option>
-                  <option value="linear" ${product && product.tipo_cobranca === 'linear' ? 'selected' : ''}>Metro Linear (Comprimento)</option>
+                  ${this.renderUnitOptions(product ? product.tipo_cobranca : 'm2')}
                 </select>
               </div>
 
@@ -265,10 +264,165 @@ window.productsModule = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
+  renderUnitOptions(selectedId = 'm2') {
+    const units = (window.store && window.store.getUnits) ? window.store.getUnits() : [];
+    return units.map(u => {
+      const isSel = String(u.id) === String(selectedId) || String(u.tipo_calculo) === String(selectedId);
+      return `<option value="${u.id}" data-type="${u.tipo_calculo || u.id}" data-unit="${u.sigla}" ${isSel ? 'selected' : ''}>${u.nome} [${u.sigla}]</option>`;
+    }).join('');
+  },
+
+  openUnitModal(unitToEdit = null) {
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    const userRole = (user && (user.role || user.tipo || user.perfil || '')).toUpperCase();
+    const isAdmin = userRole === 'ADMIN';
+
+    if (unitToEdit && !isAdmin) {
+      alert('Acesso Restrito: A edição e alteração de unidades de medida cadastradas só pode ser realizada pelo Admin do Sistema.');
+      return;
+    }
+
+    const modalId = 'unit-management-modal';
+    document.getElementById(modalId)?.remove();
+
+    const units = (window.store && window.store.getUnits) ? window.store.getUnits() : [];
+    const isEdit = Boolean(unitToEdit);
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-200">
+          <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+            <div>
+              <h2 class="text-base font-black text-slate-800">${isEdit ? 'Editar Unidade de Medida' : 'Gerenciar / Criar Unidade de Medida'}</h2>
+              <p class="text-xs text-slate-500">Criação permitida no cadastro; edição e exclusão exclusivas do Admin do Sistema.</p>
+            </div>
+            <button type="button" onclick="document.getElementById('${modalId}').remove()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+          </div>
+
+          <form id="unit-form" onsubmit="productsModule.saveUnitFromModal(event, '${isEdit ? unitToEdit.id : ''}')" class="mt-4 space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-700 uppercase">${isEdit ? 'Editar Unidade Selecionada' : 'Cadastrar Nova Unidade de Medida'}</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nome da Unidade *</label>
+                <input type="text" name="unit_nome" required value="${isEdit ? unitToEdit.nome : ''}" placeholder="Ex: Pacote (50un), Cento, Rolo..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Sigla / Símbolo *</label>
+                <input type="text" name="unit_sigla" required value="${isEdit ? unitToEdit.sigla : ''}" placeholder="Ex: pct, ct, rl, cx..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Comportamento de Cálculo *</label>
+                <select name="unit_tipo_calculo" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500">
+                  <option value="unidade" ${isEdit && unitToEdit.tipo_calculo === 'unidade' ? 'selected' : ''}>Unidade / Peça (Multiplica Quantidade x Preço)</option>
+                  <option value="m2" ${isEdit && unitToEdit.tipo_calculo === 'm2' ? 'selected' : ''}>Área m² (Largura X x Altura Y x Preço)</option>
+                  <option value="linear" ${isEdit && unitToEdit.tipo_calculo === 'linear' ? 'selected' : ''}>Metro Linear (Largura/Comprimento x Preço)</option>
+                  <option value="servico" ${isEdit && unitToEdit.tipo_calculo === 'servico' ? 'selected' : ''}>Serviço (Qtd x Preço)</option>
+                  <option value="hora" ${isEdit && unitToEdit.tipo_calculo === 'hora' ? 'selected' : ''}>Hora (Horas x Preço)</option>
+                  <option value="diaria" ${isEdit && unitToEdit.tipo_calculo === 'diaria' ? 'selected' : ''}>Diária (Dias x Preço)</option>
+                  <option value="L" ${isEdit && unitToEdit.tipo_calculo === 'L' ? 'selected' : ''}>Volume / Litro (Litros x Preço)</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              ${isEdit ? `<button type="button" onclick="productsModule.openUnitModal()" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg">Cancelar Edição</button>` : ''}
+              <button type="submit" class="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm">
+                ${isEdit ? 'Atualizar Unidade' : '+ Salvar Nova Unidade'}
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold text-slate-700 uppercase">Unidades Cadastradas</h4>
+              <span class="text-[10px] text-slate-500 font-mono">${isAdmin ? '● Admin: Edição Liberada' : '🔒 Edição restrita ao Admin'}</span>
+            </div>
+            <div class="max-h-52 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+              ${units.map(u => {
+                const uJson = JSON.stringify(u).replace(/"/g, '&quot;');
+                return `
+                  <div class="p-2.5 flex items-center justify-between text-xs hover:bg-slate-50 transition">
+                    <div>
+                      <span class="font-bold text-slate-800">${u.nome}</span>
+                      <span class="ml-1 text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded border border-slate-200">${u.sigla}</span>
+                      ${u.padrao ? '<span class="ml-1 text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded font-semibold">Padrão Sistema</span>' : '<span class="ml-1 text-[9px] bg-emerald-50 text-emerald-700 px-1 py-0.5 rounded font-semibold">Personalizada</span>'}
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      ${!u.padrao ? `
+                        ${isAdmin ? `
+                          <button type="button" onclick="productsModule.openUnitModal(${uJson})" class="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[11px] font-bold border border-amber-200">Editar</button>
+                          <button type="button" onclick="productsModule.deleteUnitConfirm('${u.id}')" class="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-[11px] font-bold border border-rose-200">Excluir</button>
+                        ` : `
+                          <button type="button" onclick="alert('Acesso Restrito: A edição de unidades de medida só pode ser realizada pelo Admin do Sistema.')" class="px-2 py-0.5 bg-slate-100 text-slate-400 rounded text-[11px] font-bold cursor-not-allowed" title="Somente Admin pode editar">🔒 Admin</button>
+                        `}
+                      ` : `
+                        <span class="text-[10px] text-slate-400 italic">Padrão</span>
+                      `}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  saveUnitFromModal(e, id) {
+    if (e && e.preventDefault) e.preventDefault();
+    const form = e.target;
+    const nome = form.unit_nome.value.trim();
+    const sigla = form.unit_sigla.value.trim();
+    const tipo = form.unit_tipo_calculo.value;
+
+    if (!nome) {
+      alert('Informe o nome da unidade de medida.');
+      return;
+    }
+
+    const saved = window.store.saveUnit({
+      id: id || undefined,
+      nome: nome,
+      sigla: sigla || 'un',
+      tipo_calculo: tipo
+    });
+
+    const tipoSelect = document.getElementById('tipo_cobranca');
+    if (tipoSelect) {
+      tipoSelect.innerHTML = this.renderUnitOptions(saved.id);
+      tipoSelect.value = saved.id;
+      this.adjustUnit(saved.id);
+    }
+
+    document.getElementById('unit-management-modal')?.remove();
+    alert(`Unidade de medida "${saved.nome}" gravada com sucesso!`);
+  },
+
+  deleteUnitConfirm(id) {
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    const userRole = (user && (user.role || user.tipo || user.perfil || '')).toUpperCase();
+    if (userRole !== 'ADMIN') {
+      alert('Acesso Restrito: Somente o Admin do Sistema pode excluir unidades de medida.');
+      return;
+    }
+    if (confirm('Deseja realmente remover esta unidade de medida?')) {
+      window.store.deleteUnit(id);
+      this.openUnitModal();
+      const tipoSelect = document.getElementById('tipo_cobranca');
+      if (tipoSelect) {
+        tipoSelect.innerHTML = this.renderUnitOptions('m2');
+      }
+    }
+  },
+
   adjustUnit(type) {
     const divLarguras = document.getElementById('div-larguras');
-    if(divLarguras) divLarguras.style.display = (type === 'm2' || type === 'linear') ? 'block' : 'none';
-    // Automático
+    const allUnits = (window.store && window.store.getUnits) ? window.store.getUnits() : [];
+    const unitObj = allUnits.find(u => u.id === type || u.tipo_calculo === type);
+    const calcType = unitObj ? unitObj.tipo_calculo : type;
+    if(divLarguras) divLarguras.style.display = (calcType === 'm2' || calcType === 'linear') ? 'block' : 'none';
   },
 
   handlePhotoUpload(input) {
@@ -321,6 +475,11 @@ window.productsModule = {
     else if (tipo === 'diaria') unit = 'dia';
     else if (tipo === 'hora') unit = 'h';
     else if (tipo === 'L') unit = 'L';
+    const allUnits = (window.store && window.store.getUnits) ? window.store.getUnits() : [];
+    const matchedUnit = allUnits.find(u => u.id === tipo || u.tipo_calculo === tipo);
+    if (matchedUnit && matchedUnit.sigla) {
+      unit = matchedUnit.sigla;
+    }
 
     const productData = {
       id: id || undefined,

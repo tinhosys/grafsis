@@ -320,12 +320,50 @@ window.salesModule = {
     this.updateFormState();
   },
 
+  getPhaseLabel(op) {
+    const map = {
+      'venda': 'Venda',
+      'pre-venda': 'Pré-Venda',
+      'prevenda': 'Pré-Venda',
+      'orcamento': 'Orçamento',
+      'permuta': 'Permuta',
+      'patrocinio': 'Patrocínio'
+    };
+    return map[op] || (op ? String(op).toUpperCase() : 'ORÇAMENTO');
+  },
+
+  getPhaseBadgeClass(op) {
+    switch (op) {
+      case 'venda':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'pre-venda':
+      case 'prevenda':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+      case 'permuta':
+        return 'bg-teal-100 text-teal-800 border-teal-300';
+      case 'patrocinio':
+        return 'bg-purple-100 text-purple-800 border-purple-300';
+      case 'orcamento':
+      default:
+        return 'bg-amber-100 text-amber-800 border-amber-300';
+    }
+  },
+
+  updatePhaseBadge(op) {
+    const badge = document.getElementById('badge-fase-atual');
+    if (!badge) return;
+    const label = this.getPhaseLabel(op);
+    badge.innerText = label.toUpperCase();
+    badge.className = `text-xs font-black px-2.5 py-1 ${this.getPhaseBadgeClass(op)} rounded-lg border uppercase transition-colors`;
+  },
+
   handleOperationTypeChange(select) {
     const op = select.value;
     if ((op === 'permuta' || op === 'patrocinio') && !this.canManagePermutaPatrocinio()) {
       alert('Operação restrita: Permuta e Patrocínio só podem ser autorizados pelos perfis Gerente ou Proprietário.');
       select.value = 'venda';
     }
+    this.updatePhaseBadge(select.value);
     this.updateFormState();
   },
 
@@ -374,6 +412,7 @@ window.salesModule = {
     const clientId = clientSelect ? clientSelect.value : '';
     const opSelect = document.querySelector('select[name="tipo_operacao"]');
     const op = opSelect ? opSelect.value : 'venda';
+    this.updatePhaseBadge(op);
 
     const hasClient = Boolean(clientId);
 
@@ -409,7 +448,7 @@ window.salesModule = {
     if (opSelect) opSelect.disabled = false;
     const itemElements = document.querySelectorAll('#secao-itens-pedido input, #secao-itens-pedido select, #secao-itens-pedido button');
     itemElements.forEach(el => {
-      if (el.id !== 'item-type') el.disabled = false;
+      if (el.id !== 'item-type' && el.id !== 'item-type-display') el.disabled = false;
     });
 
     const prodElements = document.querySelectorAll('#secao-producao-validacoes input, #secao-producao-validacoes textarea');
@@ -506,10 +545,18 @@ window.salesModule = {
     const activeDisplayId = document.getElementById('current-display-id')?.value;
     const currentOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) ||
                          (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
-    const isSavedOrder = !!currentOrder;
+    // Regra: "depois que salvar a operação, mantenha, mas só trave depois que registrar"
+    const isRegisteredOrder = currentOrder && (
+      currentOrder.registrado === true ||
+      currentOrder.registrado === 'sim' ||
+      currentOrder.status_registro === 'registrado' ||
+      ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'].includes(currentOrder.status_fase) ||
+      Boolean(currentOrder.data_aceite) ||
+      Boolean(currentOrder.aprovado_cliente)
+    );
     const isVendaPatrocinioPermuta = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
     const isLockedByApproval = this.isOrderLockedByApproval && !this.isEditingActive;
-    const isLockedOperation = (isSavedOrder && isVendaPatrocinioPermuta && !this.isEditingActive) || isLockedByApproval || (this.isReadOnlyFinancial && !this.isEditingActive);
+    const isLockedOperation = (isRegisteredOrder && isVendaPatrocinioPermuta && !this.isEditingActive) || isLockedByApproval || (this.isReadOnlyFinancial && !this.isEditingActive);
 
     if (isLockedOperation) {
       if (opSelect) opSelect.disabled = true;
@@ -707,6 +754,24 @@ window.salesModule = {
     return yy + String(maxSeq + 1).padStart(4, '0');
   },
 
+  getTypeDisplayName(type, unitSigla = '') {
+    const units = (window.store && window.store.getUnits) ? window.store.getUnits() : [];
+    const found = units.find(u => u.id === type || u.tipo_calculo === type);
+    if (found) {
+      return `${found.nome}${found.sigla ? ' [' + found.sigla + ']' : ''}`;
+    }
+    const defaultLabels = {
+      'm2': 'm² (X x Y)',
+      'unidade': 'Unidade',
+      'servico': 'Serviço',
+      'diaria': 'Diária',
+      'hora': 'Hora',
+      'L': 'L (Litro)',
+      'linear': 'Linear'
+    };
+    return defaultLabels[type] || (unitSigla ? `${type} (${unitSigla})` : type);
+  },
+
   handleProdSelect(selectEl) {
     if (!selectEl) return;
     const prodId = selectEl.value;
@@ -716,14 +781,19 @@ window.salesModule = {
     const opt = selectEl.options[selectEl.selectedIndex];
     const price = prod ? (prod.preco_base ?? 0) : parseFloat(opt?.getAttribute('data-price') || 0);
     const type = prod ? (prod.tipo_cobranca || 'm2') : (opt?.getAttribute('data-type') || 'm2');
+    const unit = prod ? (prod.unidade_medida || '') : (opt?.getAttribute('data-unit') || '');
 
     const priceInput = document.getElementById('item-price');
     if (priceInput) {
       priceInput.value = parseFloat(price).toFixed(2);
     }
-    const typeSelect = document.getElementById('item-type');
-    if (typeSelect) {
-      typeSelect.value = type;
+    const typeHidden = document.getElementById('item-type');
+    if (typeHidden) {
+      typeHidden.value = type;
+    }
+    const typeDisplay = document.getElementById('item-type-display');
+    if (typeDisplay) {
+      typeDisplay.value = this.getTypeDisplayName(type, unit);
     }
     const descInput = document.getElementById('item-desc');
     if (descInput) {
@@ -828,6 +898,10 @@ window.salesModule = {
     
     document.getElementById('item-desc').value = it.descricao || '';
     document.getElementById('item-type').value = it.tipo_calculo || 'm2';
+    const typeDisplay = document.getElementById('item-type-display');
+    if (typeDisplay) {
+      typeDisplay.value = this.getTypeDisplayName(it.tipo_calculo || 'm2', it.unidade_medida);
+    }
     document.getElementById('item-price').value = it.preco_base || '0.00';
     document.getElementById('item-width').value = it.largura_x || '0.00';
     document.getElementById('item-height').value = it.comprimento_y || '0.00';
@@ -1101,15 +1175,8 @@ window.salesModule = {
                     </div>
                     <div class="col-span-6 sm:col-span-3">
                       <label class="block font-semibold mb-1 text-slate-700">Parâmetro de Cálculo</label>
-                      <select id="item-type" onchange="salesModule.toggleDimensionInputs(); salesModule.calcPiecePrice();" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold" disabled>
-                        <option value="m2">m² (X x Y)</option>
-                        <option value="unidade">Unidade</option>
-                        <option value="servico">Serviço</option>
-                        <option value="diaria">Diária</option>
-                        <option value="hora">Hora</option>
-                        <option value="L">L (Litro)</option>
-                        <option value="linear">Linear</option>
-                      </select>
+                      <input type="text" id="item-type-display" readonly disabled value="m² (X x Y)" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold text-slate-700 cursor-not-allowed select-none shadow-inner" title="Pré-definido no cadastro do produto (não editável aqui)">
+                      <input type="hidden" id="item-type" value="m2">
                     </div>
                     <div class="col-span-6 sm:col-span-2">
                       <label class="block font-semibold mb-1 text-slate-700 flex items-center justify-between" id="item-price-label">
@@ -1126,11 +1193,7 @@ window.salesModule = {
                     </div>
                   </div>
 
-                  <div>
-                    <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
-                    <input type="text" id="item-desc" placeholder="Ex: Homem-Aranha, Superman, Candidato Fulano..." class="w-full p-2 border border-slate-300 rounded bg-white">
-                  </div>
-
+                  <!-- LINHA DE MEDIDAS, QUANTIDADE, PREÇOS E BOTÃO INSERIR ITEM -->
                   <div class="grid grid-cols-12 gap-2 items-end">
                     <div class="col-span-2" id="div-width">
                       <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Largura X (m)</label>
@@ -1153,15 +1216,22 @@ window.salesModule = {
                       <div id="item-subtotal-price" class="w-full p-2 font-mono text-green-700 font-bold bg-green-50 border border-green-100 rounded flex items-center h-[38px] text-[11px] truncate">0.00</div>
                     </div>
                     <div class="col-span-12 sm:col-span-3 mt-2 sm:mt-0 flex gap-2">
-                      <div class="relative w-10 h-[38px] flex-shrink-0" title="Anexar Imagem / Arte do Item (Max 2MB)">
-                        <input type="file" id="item-arte-upload" accept="image/png, image/jpeg, image/jpg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="salesModule.handleItemArteUpload(this)">
-                        <div id="item-arte-btn" class="w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                      <!-- Imagem 1: Ícone de Upload (Nuvem com Seta para Cima) -->
+                      <div class="relative w-10 h-[38px] flex-shrink-0" title="Upload de Arte / Imagem do Item (Clique para anexar)">
+                        <input type="file" id="item-arte-upload" accept="image/png, image/jpeg, image/jpg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="salesModule.handleItemArteUpload(this)" title="Fazer Upload da Imagem ou Arte do Item">
+                        <div id="item-arte-btn" class="w-full h-full bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-blue-600 transition-colors shadow-xs">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         </div>
                         <input type="hidden" id="item-arte-url" value="">
                       </div>
                       <button type="button" onclick="salesModule.addItemToOrder()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap">+ INSERIR ITEM</button>
                     </div>
+                  </div>
+
+                  <!-- Imagem 1: Descrição / Detalhes * (abaixo da linha de medidas e inserção) -->
+                  <div>
+                    <label class="block font-semibold mb-1 text-slate-700">Descricao / Detalhes *</label>
+                    <input type="text" id="item-desc" placeholder="Ex: Homem-Aranha, Superman, Candidato Fulano..." class="w-full p-2 border border-slate-300 rounded bg-white">
                   </div>
 
                   <!-- PREVIEW DA IMAGEM SUBIDA NO ITEM (IMAGEM QUE FOI SUBIDA) -->
@@ -1259,7 +1329,7 @@ window.salesModule = {
                         <div>
                           <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Identificação & Status</div>
                           <div class="text-sm font-black text-slate-800 flex items-center gap-2 flex-wrap">
-                            <span>Operação <strong class="font-mono text-blue-700">#${displayId}</strong></span>
+                            <span>Operação <strong id="display-order-numero-tag" class="font-mono text-blue-700">#${displayId}</strong></span>
                             <span class="text-slate-300">&bull;</span>
                             <span class="text-slate-600 font-medium text-xs">Fluxo controlado pelo Kanban da Produção</span>
                           </div>
@@ -1267,7 +1337,7 @@ window.salesModule = {
                       </div>
                       <div class="text-right">
                         <span class="text-[10px] font-bold uppercase text-slate-400 block">Fase Atual</span>
-                        <span class="text-xs font-black px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg border border-amber-300 uppercase">${order ? (order.status_fase || 'Orçamento') : 'Orçamento'}</span>
+                        <span id="badge-fase-atual" class="text-xs font-black px-2.5 py-1 ${this.getPhaseBadgeClass(initialOp)} rounded-lg border uppercase">${this.getPhaseLabel(initialOp).toUpperCase()}</span>
                       </div>
                     </div>
                   </div>
@@ -1891,8 +1961,8 @@ window.salesModule = {
     if (uploadInput) uploadInput.value = '';
     const btn = document.getElementById('item-arte-btn');
     if (btn) {
-      btn.className = 'w-full h-full bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-500 transition-colors';
-      btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>`;
+      btn.className = 'w-full h-full bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-blue-600 transition-colors shadow-xs';
+      btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>`;
     }
     const prevContainer = document.getElementById('item-arte-preview-container');
     if (prevContainer) prevContainer.classList.add('hidden');
@@ -2857,6 +2927,10 @@ window.salesModule = {
     document.getElementById('item-width').value = '0.00';
     document.getElementById('item-height').value = '0.00';
     document.getElementById('item-qty').value = '1';
+    const typeHidden = document.getElementById('item-type');
+    if (typeHidden) typeHidden.value = 'm2';
+    const typeDisplay = document.getElementById('item-type-display');
+    if (typeDisplay) typeDisplay.value = 'm² (X x Y)';
     
     // LIMPA A ARTE DA MEMÓRIA E DO PREVIEW COMPLETAMENTE PARA O PRÓXIMO LAYOUT
     this.removeItemArte();
@@ -2880,6 +2954,10 @@ window.salesModule = {
     document.getElementById('item-width').value = '0.00';
     document.getElementById('item-height').value = '0.00';
     document.getElementById('item-qty').value = '1';
+    const typeHiddenR = document.getElementById('item-type');
+    if (typeHiddenR) typeHiddenR.value = 'm2';
+    const typeDisplayR = document.getElementById('item-type-display');
+    if (typeDisplayR) typeDisplayR.value = 'm² (X x Y)';
     this.removeItemArte();
     this.toggleDimensionInputs();
     this.calcPiecePrice();
@@ -3095,8 +3173,39 @@ window.salesModule = {
     const originalText = saveBtn ? saveBtn.innerHTML : '';
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.innerHTML = `<span>Salvando...</span>`;
+      saveBtn.innerHTML = `
+        <svg class="w-4 h-4 animate-spin text-white shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span>Salvando...</span>
+      `;
     }
+
+    // Modal com barra de progresso animada e feedback visual
+    const progressModalId = 'modal-save-progress-indicator';
+    document.getElementById(progressModalId)?.remove();
+
+    const progressHtml = `
+      <div id="${progressModalId}" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 transition-all">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full p-5 text-center transform scale-100 transition-all">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center relative">
+            <svg id="save-progress-spinner" class="w-7 h-7 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <svg id="save-progress-check" class="w-7 h-7 hidden text-emerald-600 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h3 id="save-progress-title" class="text-sm font-black text-slate-800 dark:text-white">Salvando Operação...</h3>
+          <p id="save-progress-desc" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Gravando itens e atualizando dados da operação</p>
+          
+          <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden mt-3.5">
+            <div id="save-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 45%;"></div>
+          </div>
+          <span id="save-progress-percent" class="text-[10px] font-bold text-slate-400 mt-1 block">45%</span>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', progressHtml);
 
     try {
       const orders = window.store.getOrders();
@@ -3118,6 +3227,7 @@ window.salesModule = {
         const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
         const isAdvancedSale = oldOrder.tipo_operacao === 'venda' && (oldOrder.status_fase !== 'orcamento' && oldOrder.status_fase !== 'prevenda');
         if (isAdvancedSale && !isManagerOrOwner) {
+          document.getElementById(progressModalId)?.remove();
           alert('Acesso Restrito: Vendas finalizadas com produção liberada só podem ter valores ou itens alterados por Gerente ou Proprietário.');
           return;
         }
@@ -3163,7 +3273,7 @@ window.salesModule = {
       }
 
       const { subtotal, discount, finalTotal } = this.recalcTotals();
-      const op = form.tipo_operacao ? form.tipo_operacao.value : 'orcamento';
+      const op = form.tipo_operacao ? form.tipo_operacao.value : (oldOrder ? (oldOrder.tipo_operacao || oldOrder.tipo) : 'venda');
       const rawEntrada = document.getElementById("order-valor-entrada")?.value || document.getElementById("order-valor-recebido")?.value || '0';
       const cleanEntrada = String(rawEntrada).trim().replace(/\./g, '').replace(',', '.');
       const valorEntrada = parseFloat(cleanEntrada) || 0;
@@ -3172,7 +3282,7 @@ window.salesModule = {
 
       let historico = oldOrder?.historico ? JSON.parse(JSON.stringify(oldOrder.historico)) : [];
       historico.push({
-        fase: 'orcamento',
+        fase: op,
         data: new Date().toISOString(),
         usuario: window.app?.currentUser?.nome || 'Operador'
       });
@@ -3187,11 +3297,13 @@ window.salesModule = {
         tipo_operacao: op,
         tipo: op,
         vendedor: window.app?.currentUser?.nome || "Vendedor",
-        status_fase: 'orcamento',
+        status_fase: (oldOrder && oldOrder.status_fase && ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'].includes(oldOrder.status_fase)) ? oldOrder.status_fase : op,
+        registrado: (oldOrder && (oldOrder.registrado === true || oldOrder.registrado === 'sim')) ? true : false,
+        status_registro: (oldOrder && (oldOrder.registrado === true || oldOrder.registrado === 'sim')) ? 'registrado' : 'salvo',
         previsao_entrega: form.previsao_entrega?.value || null,
         validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : 10,
         data_validade: form.data_validade ? form.data_validade.value : null,
-        percentual_operacao: 100,
+        percentual_operacao: form.percentual_operacao ? (parseFloat(form.percentual_operacao.value) || 100) : 100,
         data_aceite: form.data_aceite?.value || null,
         autorizo_producao: form.autorizo_producao?.value || '',
         conferencia_arte: form.conferencia_arte?.value || '',
@@ -3211,20 +3323,65 @@ window.salesModule = {
       };
 
       const saved = await window.store.saveOrder(orderData);
-      this.currentEditingOrderId = null;
+
+      // Atualiza progresso para 100%
+      const bar = document.getElementById('save-progress-bar');
+      if (bar) bar.style.width = '100%';
+      const pctEl = document.getElementById('save-progress-percent');
+      if (pctEl) pctEl.innerText = '100%';
+      const titleEl = document.getElementById('save-progress-title');
+      if (titleEl) titleEl.innerText = `Operação #${saved.numero} Salva!`;
+      const descEl = document.getElementById('save-progress-desc');
+      if (descEl) descEl.innerText = 'Alterações gravadas. Mantendo você na mesma tela...';
+
+      const spinnerEl = document.getElementById('save-progress-spinner');
+      const checkEl = document.getElementById('save-progress-check');
+      if (spinnerEl) spinnerEl.classList.add('hidden');
+      if (checkEl) checkEl.classList.remove('hidden');
+
+      // MANTÉM NA MESMA TELA:
+      this.currentEditingOrderId = saved.id;
+      const displayIdLabel = document.getElementById('display-order-id-label');
+      if (displayIdLabel) displayIdLabel.innerText = '#' + saved.numero;
+      const displayNumeroTag = document.getElementById('display-order-numero-tag');
+      if (displayNumeroTag) displayNumeroTag.innerText = '#' + saved.numero;
+      const curDisplayInput = document.getElementById('current-display-id');
+      if (curDisplayInput) curDisplayInput.value = saved.numero;
 
       if (saveBtn) {
+        saveBtn.setAttribute('onclick', `salesModule.saveOrderQuick(event, '${saved.id}', '${saved.numero}')`);
         saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText;
+        saveBtn.innerHTML = `
+          <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          <span>Salvo!</span>
+        `;
+        setTimeout(() => {
+          if (saveBtn) saveBtn.innerHTML = originalText;
+        }, 2500);
+      }
+      const submitBtn = document.getElementById('btn-submit-order');
+      if (submitBtn) {
+        submitBtn.setAttribute('onclick', `salesModule.saveOrder(event, '${saved.id}', '${saved.numero}')`);
       }
 
-      alert(`Operação #${saved.numero} salva com sucesso no sistema!`);
-      this.render();
+      // Sincroniza badge de Fase Atual e campos sem travar
+      this.updatePhaseBadge(op);
+      this.updateFormState();
+
+      setTimeout(() => {
+        const modal = document.getElementById(progressModalId);
+        if (modal) {
+          modal.classList.add('opacity-0');
+          setTimeout(() => modal.remove(), 250);
+        }
+      }, 1000);
+
     } catch (err) {
+      document.getElementById(progressModalId)?.remove();
       console.error('[GRAFSIS] Erro ao salvar operação rápida:', err);
       alert('Erro ao salvar operação: ' + (err.message || err));
     } finally {
-      if (saveBtn) {
+      if (saveBtn && saveBtn.disabled) {
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
       }
@@ -3388,6 +3545,8 @@ window.salesModule = {
         tipo: op,
         vendedor: window.app?.currentUser?.nome || "Vendedor",
         status_fase: newPhase,
+        registrado: true,
+        status_registro: 'registrado',
         previsao_entrega: form.previsao_entrega?.value || null,
         validade_proposta_dias: form.validade_proposta_dias ? (parseInt(form.validade_proposta_dias.value) || 10) : null,
         data_validade: form.data_validade ? form.data_validade.value : null,

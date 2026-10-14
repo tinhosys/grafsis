@@ -26,7 +26,8 @@ const STORAGE_KEYS = {
   FINANCE: 'grafsis_finance',
   SETTINGS: 'grafsis_settings',
   TENANTS: 'grafsis_tenants',
-  AUDIT: 'grafsis_audit_log'
+  AUDIT: 'grafsis_audit_log',
+  UNITS: 'grafsis_units'
 };
 
 const DEFAULT_TENANTS = [
@@ -2119,6 +2120,65 @@ class GrafsisStore {
     const suppliers = this.getSuppliers().filter(s => s.id !== id);
     this.saveLocal(STORAGE_KEYS.SUPPLIERS, suppliers);
     await this.deleteCloudRecord('fornecedores', id);
+  }
+
+  // Unidades de Medida / Parâmetros de Cálculo
+  getUnits() {
+    const defaultUnits = [
+      { id: 'm2', nome: 'm² (Fracionado: Largura X x Altura Y)', sigla: 'm²', tipo_calculo: 'm2', padrao: true },
+      { id: 'unidade', nome: 'Unidade (Venda inteira / Peça)', sigla: 'un', tipo_calculo: 'unidade', padrao: true },
+      { id: 'servico', nome: 'Serviço (Qtd x Valor do serviço)', sigla: 'serv', tipo_calculo: 'servico', padrao: true },
+      { id: 'diaria', nome: 'Diária (Locação / Estruturas)', sigla: 'dia', tipo_calculo: 'diaria', padrao: true },
+      { id: 'hora', nome: 'Hora (Máquina / Técnica / Serviço)', sigla: 'h', tipo_calculo: 'hora', padrao: true },
+      { id: 'L', nome: 'L (Litro - Tintas e Líquidos)', sigla: 'L', tipo_calculo: 'L', padrao: true },
+      { id: 'linear', nome: 'Metro Linear (Comprimento)', sigla: 'm', tipo_calculo: 'linear', padrao: true }
+    ];
+    let custom = this.getLocal(STORAGE_KEYS.UNITS) || [];
+    if (!Array.isArray(custom)) custom = [];
+    
+    const merged = [...defaultUnits];
+    custom.forEach(u => {
+      const existingIdx = merged.findIndex(m => m.id === u.id);
+      if (existingIdx >= 0) {
+        merged[existingIdx] = { ...merged[existingIdx], ...u };
+      } else {
+        merged.push(u);
+      }
+    });
+    return merged;
+  }
+
+  saveUnit(unit) {
+    if (!unit || !unit.nome) return null;
+    let custom = this.getLocal(STORAGE_KEYS.UNITS) || [];
+    if (!Array.isArray(custom)) custom = [];
+    
+    const id = unit.id || ('u_' + Date.now().toString(36));
+    const cleanUnit = {
+      id: id,
+      nome: unit.nome.trim(),
+      sigla: (unit.sigla || 'un').trim(),
+      tipo_calculo: unit.tipo_calculo || 'unidade',
+      padrao: false,
+      updated_at: new Date().toISOString()
+    };
+    
+    const idx = custom.findIndex(u => u.id === id);
+    if (idx >= 0) {
+      custom[idx] = cleanUnit;
+    } else {
+      custom.push(cleanUnit);
+    }
+    this.saveLocal(STORAGE_KEYS.UNITS, custom);
+    return cleanUnit;
+  }
+
+  deleteUnit(id) {
+    let custom = this.getLocal(STORAGE_KEYS.UNITS) || [];
+    if (!Array.isArray(custom)) custom = [];
+    custom = custom.filter(u => u.id !== id);
+    this.saveLocal(STORAGE_KEYS.UNITS, custom);
+    return true;
   }
 
   // Produtos
