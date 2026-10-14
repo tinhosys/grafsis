@@ -1589,6 +1589,10 @@ window.salesModule = {
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
         ${this.activeRepositoryItems.map((item, idx) => {
           const isDrive = item.tipo === 'drive';
+          const safeNome = window.escapeHtml ? window.escapeHtml(item.nome || 'Arquivo') : (item.nome || 'Arquivo');
+          const safeData = window.escapeHtml ? window.escapeHtml(item.data || 'Hoje') : (item.data || 'Hoje');
+          const safeTamanho = window.escapeHtml ? window.escapeHtml(item.tamanho || 'Compactada') : (item.tamanho || 'Compactada');
+          const safeUrl = window.escapeHtml ? window.escapeHtml(item.url || '') : (item.url || '');
           return `
             <div class="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-2.5 flex flex-col justify-between shadow-sm hover:shadow-md transition group relative overflow-hidden">
               <div class="h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center relative">
@@ -1598,28 +1602,28 @@ window.salesModule = {
                     <span class="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300">Google Drive</span>
                   </div>
                 ` : `
-                  <img src="${item.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="${item.nome || 'Foto'}">
+                  <img src="${safeUrl}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="${safeNome}">
                 `}
                 
                 <!-- Overlay de Ações Rápidas -->
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <button type="button" onclick="salesModule.viewRepositoryItem(${idx})" class="p-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold hover:bg-slate-100 transition shadow" title="Visualizar ampliado">
+                  <button type="button" onclick="salesModule.viewRepositoryItem(${idx})" class="p-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold hover:bg-slate-100 transition shadow cursor-pointer" title="Visualizar ampliado">
                     🔍
                   </button>
-                  <button type="button" onclick="salesModule.deleteRepositoryItem(${idx}, '${orderId}')" class="p-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow" title="Excluir arquivo">
+                  <button type="button" onclick="salesModule.deleteRepositoryItem(${idx}, '${orderId}')" class="p-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow cursor-pointer" title="Excluir arquivo">
                     🗑️
                   </button>
                 </div>
               </div>
 
               <div class="mt-2 space-y-0.5">
-                <span class="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate block" title="${item.nome || 'Arquivo'}">${item.nome || 'Arquivo'}</span>
+                <span class="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate block" title="${safeNome}">${safeNome}</span>
                 <div class="flex items-center justify-between text-[10px] text-slate-400">
-                  <span>${item.data || 'Hoje'}</span>
+                  <span>${safeData}</span>
                   ${isDrive ? `
-                    <a href="${item.url}" target="_blank" class="text-blue-600 dark:text-cyan-400 font-bold hover:underline">Abrir Link &rarr;</a>
+                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-cyan-400 font-bold hover:underline">Abrir Link &rarr;</a>
                   ` : `
-                    <span class="font-mono">${item.tamanho || 'Compactada'}</span>
+                    <span class="font-mono">${safeTamanho}</span>
                   `}
                 </div>
               </div>
@@ -1635,7 +1639,23 @@ window.salesModule = {
     const files = Array.from(input.files);
     input.value = '';
 
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'application/pdf'];
+    const blockedExtensions = ['exe', 'bat', 'cmd', 'sh', 'vbs', 'js', 'html', 'htm', 'php', 'ps1', 'scr', 'jar', 'msi', 'com'];
+    const maxSizeBytes = 15 * 1024 * 1024; // 15MB
+
+    const rejectedFiles = [];
+
     for (const file of files) {
+      const ext = (file.name || '').split('.').pop().toLowerCase();
+      if (blockedExtensions.includes(ext) || (!allowedMimes.includes(file.type) && !file.type.startsWith('image/'))) {
+        rejectedFiles.push(`"${file.name}" (formato/extensão não permitida para preservação de segurança)`);
+        continue;
+      }
+      if (file.size > maxSizeBytes) {
+        rejectedFiles.push(`"${file.name}" (tamanho excede o limite máximo de 15MB)`);
+        continue;
+      }
+
       try {
         let finalUrl = '';
         if (file.type.startsWith('image/')) {
@@ -1651,9 +1671,10 @@ window.salesModule = {
 
         if (finalUrl) {
           if (!this.activeRepositoryItems) this.activeRepositoryItems = [];
+          const cleanName = (file.name || 'Anexo').replace(/[^\w\s\.-]/gi, '_');
           this.activeRepositoryItems.push({
-            id: 'repo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-            nome: file.name || 'Foto_' + new Date().toLocaleTimeString('pt-BR'),
+            id: 'repo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            nome: cleanName,
             tipo: file.type.startsWith('image/') ? 'imagem' : 'documento',
             data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             url: finalUrl,
@@ -1663,6 +1684,10 @@ window.salesModule = {
       } catch (err) {
         console.error('[GRAFSIS] Erro ao adicionar anexo ao repositório:', err);
       }
+    }
+
+    if (rejectedFiles.length > 0) {
+      alert(`⚠️ Upload Inválido / Limite Excedido:\n\nOs seguintes arquivos foram rejeitados:\n• ${rejectedFiles.join('\n• ')}\n\nOs demais anexos válidos foram processados e mantidos íntegros.`);
     }
 
     const container = document.getElementById('repo-items-container');
@@ -1683,18 +1708,30 @@ window.salesModule = {
   },
 
   promptRepositoryDriveLink(orderId) {
-    const url = prompt('Cole o link da pasta ou arquivo no Google Drive:');
-    if (!url || !url.trim()) return;
+    const rawUrl = prompt('Cole o link da pasta ou arquivo no Google Drive:');
+    if (!rawUrl || !rawUrl.trim()) return;
+    const url = rawUrl.trim();
 
-    const nome = prompt('Identificação do link (ex: Pasta Fotos Fachada / Arquivos CDR):', 'Google Drive - Pasta do Pedido') || 'Google Drive';
+    if (!window.isValidWebUrl(url)) {
+      alert('Link inválido: O endereço deve ser uma URL web válida iniciando com "https://" ou "http://". Protocolos inseguros ou comandos foram bloqueados.');
+      return;
+    }
+
+    if (!window.isGoogleDriveUrl(url)) {
+      const proceed = confirm(`⚠️ Atenção: O link informado não parece pertencer ao Google Drive (drive.google.com).\n\nCertifique-se de que este link possui as devidas permissões de acesso compartilhadas para que os operadores da oficina e o cliente possam acessá-lo.\n\nDeseja vincular este link mesmo assim?`);
+      if (!proceed) return;
+    }
+
+    const rawNome = prompt('Identificação do link (ex: Pasta Fotos Fachada / Arquivos CDR):', 'Google Drive - Pasta do Pedido') || 'Google Drive';
+    const nome = (rawNome.trim() || 'Google Drive').slice(0, 80);
 
     if (!this.activeRepositoryItems) this.activeRepositoryItems = [];
     this.activeRepositoryItems.push({
-      id: 'repo_drive_' + Date.now(),
-      nome: nome.trim(),
+      id: 'repo_drive_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      nome: nome,
       tipo: 'drive',
       data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      url: url.trim(),
+      url: url,
       tamanho: 'Nuvem'
     });
 
@@ -2155,17 +2192,21 @@ window.salesModule = {
     const conf = (window.store?.getSettings ? window.store.getSettings() : {}) || {};
     const companyName = tenant.razao_social || tenant.nome_fantasia || conf.empresa_nome || 'GRAFSIS';
     const companyCNPJ = tenant.cnpj || conf.empresa_cnpj || '00.000.000/0001-00';
-    const companyAddress = [tenant.endereco || tenant.logradouro, tenant.numero, tenant.bairro].filter(Boolean).join(', ') || conf.empresa_endereco || 'Endereço não informado';
+    const companyAddress = window.formatCleanAddress ? window.formatCleanAddress(tenant) : ([tenant.endereco || tenant.logradouro, tenant.numero, tenant.bairro].filter(Boolean).join(', ') || conf.empresa_endereco || 'Endereço não informado');
     const companyCityUf = [tenant.cidade || conf.empresa_cidade || 'Ji-Paraná', tenant.uf || 'RO'].filter(Boolean).join(' - ');
-    const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || conf.empresa_telefone || '(69) 99922-1336';
+    const companyPhone = window.formatCanonicalPhone ? window.formatCanonicalPhone(tenant.celular_whatsapp || tenant.telefone_fixo || conf.empresa_telefone || '(69) 99922-1336') : (tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336');
     const companyLogo = tenant.logo_url || conf.empresa_logo || '';
-    const logoHtml = companyLogo ? `<img src="${companyLogo}" style="max-width: 140px; max-height: 70px; margin: 0 auto 8px auto; display: block; object-fit: contain;">` : '';
+    const logoHtml = companyLogo ? `<img src="${companyLogo}" style="max-width: 140px; max-height: 70px; margin: 0 auto 8px auto; display: block; object-fit: contain;" alt="Logo">` : '';
 
     const clientId = savedOrder.cliente_id || document.querySelector('select[name="cliente_id"]')?.value;
-    const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || {};
-    const clientName = client.nome || savedOrder.cliente_nome || 'Consumidor Final';
-    const clientDoc = client.cpf_cnpj || '';
-    const clientPhone = client.telefone_whatsapp || '';
+    const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || null;
+    const hasValidClient = !!(client && client.id);
+    const clientName = client ? client.nome : (savedOrder.cliente_nome || 'Consumidor Final');
+    const clientDoc = client ? (client.cpf_cnpj || '') : '';
+    const clientPhone = client ? (client.telefone_whatsapp || client.telefone || '') : '';
+    const safeClientName = window.escapeHtml ? window.escapeHtml(clientName) : clientName;
+    const formattedClientDoc = clientDoc ? (window.formatCpfCnpj ? window.formatCpfCnpj(clientDoc) : clientDoc) : '';
+    const formattedClientPhone = clientPhone ? (window.formatCanonicalPhone ? window.formatCanonicalPhone(clientPhone) : clientPhone) : '';
 
     const total = parseFloat(savedOrder.valor_final || savedOrder.valor_total || 0);
     const subtotal = parseFloat(savedOrder.valor_total || total);
@@ -2189,11 +2230,12 @@ window.salesModule = {
     const itemsListHtml = items.map((it, idx) => {
       const qtd = it.quantidade || 1;
       const desc = it.descricao || it.produto_nome || 'Produto/Serviço';
+      const safeDesc = window.escapeHtml ? window.escapeHtml(desc) : desc;
       const tam = it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : (it.tipo_calculo === 'linear' ? `${it.comprimento_y}m linear` : 'Unidade');
       const vUnit = Number(it.preco_unitario || it.preco_base || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       const subTot = Number(it.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       return `<div style="margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px dotted #ccc; text-align: left; font-size: 11px;">
-        <strong>${idx + 1} - </strong>Qtde: ${qtd}, ${desc}, Tam: ${tam}, V. Unit: R$ ${vUnit}, Subtotal: R$ ${subTot}
+        <strong>${idx + 1} - </strong>Qtde: ${qtd}, ${safeDesc}, Tam: ${tam}, V. Unit: R$ ${vUnit}, Subtotal: R$ ${subTot}
       </div>`;
     }).join('');
 
@@ -2201,7 +2243,8 @@ window.salesModule = {
     const colaboradorStr = `${currentUser.nome || currentUser.login || 'Colaborador'} (${currentUser.role || currentUser.cargo || 'Atendimento'})`;
 
     const receiptHtml = `
-      <html><head><title>Recibo - #${savedOrder.numero || orderIdStr}</title>
+      <!DOCTYPE html>
+      <html><head><meta charset="utf-8"><title>Recibo - #${savedOrder.numero || orderIdStr}</title>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; padding: 15px; text-align: center; color: #111; background: #fff; }
         .receipt { max-width: 380px; margin: 0 auto; border: 1px dashed #999; padding: 16px; border-radius: 8px; box-sizing: border-box; }
@@ -2212,6 +2255,7 @@ window.salesModule = {
         .bold { font-weight: bold; }
         h2 { margin: 4px 0 8px 0; font-size: 18px; letter-spacing: 1px; }
         p { margin: 3px 0; font-size: 12px; }
+        .pending-client-badge { display: inline-block; font-size: 10px; font-weight: bold; color: #b45309; background: #fef3c7; border: 1px solid #f59e0b; padding: 1px 6px; border-radius: 4px; margin-top: 2px; }
         @media print {
             body { padding: 0; }
             .receipt { border: none; padding: 0; max-width: 100%; width: 320px; }
@@ -2221,7 +2265,7 @@ window.salesModule = {
       <div class="receipt">
         ${logoHtml}
         <h2>RECIBO</h2>
-        <div class="bold" style="font-size:14px; text-transform: uppercase;">${companyName}</div>
+        <div class="bold" style="font-size:14px; text-transform: uppercase;">${window.escapeHtml ? window.escapeHtml(companyName) : companyName}</div>
         <div style="font-size: 11px;">CNPJ: ${companyCNPJ}</div>
         <div style="font-size: 11px;">${companyAddress}</div>
         <div style="font-size: 11px;">${companyCityUf}</div>
@@ -2229,8 +2273,9 @@ window.salesModule = {
         <div class="line"></div>
         <div class="text-left">
           <p><strong>Pedido ID:</strong> <span class="bold" style="font-size:13px; font-family: monospace;">#${savedOrder.numero || orderIdStr}</span></p>
-          <p><strong>Cliente:</strong> ${clientName}${clientDoc ? ' (' + clientDoc + ')' : ''}</p>
-          ${clientPhone ? `<p><strong>Telefone:</strong> ${clientPhone}</p>` : ''}
+          <p><strong>Cliente:</strong> ${safeClientName}${formattedClientDoc ? ' (' + formattedClientDoc + ')' : ''}</p>
+          ${!hasValidClient ? `<div class="pending-client-badge">⚠️ Cadastro Pendente (Consumidor Final)</div>` : ''}
+          ${formattedClientPhone ? `<p><strong>Telefone:</strong> ${formattedClientPhone}</p>` : ''}
           <p><strong>Data:</strong> ${dateStr}</p>
         </div>
         <div class="line"></div>
@@ -2240,12 +2285,12 @@ window.salesModule = {
         </div>
         <div class="line"></div>
         <div class="text-left">
-          <p style="line-height: 1.4;">Recebemos de <strong>${clientName}</strong>${clientDoc ? ' (' + clientDoc + ')' : ''}, a importância de:</p>
+          <p style="line-height: 1.4;">Recebemos de <strong>${safeClientName}</strong>${formattedClientDoc ? ' (' + formattedClientDoc + ')' : ''}, a importância de:</p>
           <h2 style="text-align:center; margin: 10px 0; color: #1e3a8a;">R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
           <p style="text-align:center; font-style: italic; font-size: 11px; margin-bottom: 8px;">(${valExtenso})</p>
           <p><strong>Referente:</strong> ${tipoPagtoTexto} do pedido ID <strong>#${savedOrder.numero || orderIdStr}</strong>.</p>
-          <p><strong>Forma Pagto:</strong> ${method}</p>
-          ${obs ? `<p><strong>Obs:</strong> ${obs}</p>` : ''}
+          <p><strong>Forma Pagto:</strong> ${window.escapeHtml ? window.escapeHtml(method) : method}</p>
+          ${obs ? `<p><strong>Obs:</strong> ${window.escapeHtml ? window.escapeHtml(obs) : obs}</p>` : ''}
         </div>
         <div class="line"></div>
         <div class="flex"><span class="bold">Subtotal:</span> <span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
@@ -2257,8 +2302,8 @@ window.salesModule = {
         <p style="font-size: 10px; margin-top: 8px; color: #555;">Cód. de Validação: ${codValidacao}</p>
         <div style="margin-top: 25px;">
           <p style="font-size: 11px; margin: 0;">_________________________________________</p>
-          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">${companyName}</p>
-          <p style="font-size: 11px; color: #444; margin: 2px 0;">Colaborador: ${colaboradorStr}</p>
+          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">${window.escapeHtml ? window.escapeHtml(companyName) : companyName}</p>
+          <p style="font-size: 11px; color: #444; margin: 2px 0;">Colaborador: ${window.escapeHtml ? window.escapeHtml(colaboradorStr) : colaboradorStr}</p>
         </div>
       </div>
       <script>window.print();</script>
@@ -2266,6 +2311,76 @@ window.salesModule = {
     `;
     this.openPrintDocument(receiptHtml);
   },
+
+  // MOTOR DE CABEÇALHO PADRONIZADO (MANUAL MESTRE GRAFSIS - SEÇÃO 04)
+  buildReportHeaderHtml(config = {}) {
+    const tenant = (window.store && window.store.getActiveTenant ? window.store.getActiveTenant() : null) || {};
+    const conf = (window.store?.getSettings ? window.store.getSettings() : {}) || {};
+    const companyName = config.companyName || tenant.nome_fantasia || tenant.razao_social || conf.empresa_nome || 'GRAFSIS COMUNICAÇÃO VISUAL';
+    const companyDoc = config.companyCnpj || tenant.cnpj || conf.empresa_cnpj || '';
+    const companyPhone = config.companyPhone || tenant.celular_whatsapp || tenant.telefone_fixo || conf.empresa_telefone || '';
+    const companyAddress = config.companyAddress || (window.formatCleanAddress ? window.formatCleanAddress(tenant) : ([tenant.endereco, tenant.numero, tenant.bairro, tenant.cidade, tenant.uf].filter(Boolean).join(', ')));
+    const companyLogo = config.companyLogo || tenant.logo_url || conf.empresa_logo || '';
+
+    const title = config.title || 'DOCUMENTO COMERCIAL';
+    const subtitle = config.subtitle || '';
+    const docNumber = config.docNumber ? `#${config.docNumber}` : '';
+    const statusBadge = config.statusBadge || '';
+    const emissionDate = config.emissionDate || new Date().toLocaleString('pt-BR');
+
+    const safeCompanyName = window.escapeHtml ? window.escapeHtml(companyName) : companyName;
+    const safeDoc = companyDoc ? (window.formatCpfCnpj ? window.formatCpfCnpj(companyDoc) : companyDoc) : '';
+    const safePhone = companyPhone ? (window.formatCanonicalPhone ? window.formatCanonicalPhone(companyPhone) : companyPhone) : '';
+    const safeAddr = window.escapeHtml ? window.escapeHtml(companyAddress) : companyAddress;
+    const safeTitle = window.escapeHtml ? window.escapeHtml(title) : title;
+    const safeSubtitle = window.escapeHtml ? window.escapeHtml(subtitle) : subtitle;
+    const safeDocNum = window.escapeHtml ? window.escapeHtml(docNumber) : docNumber;
+
+    return `
+      <div class="report-header-standard" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 2.5px solid #0284c7; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; max-width: 58%;">
+          ${companyLogo 
+            ? `<img src="${companyLogo}" style="max-height: 55px; max-width: 120px; object-fit: contain; border-radius: 6px; padding: 2px; border: 1px solid #cbd5e1;" alt="Logo Emissor">` 
+            : `<div style="width: 48px; height: 48px; border-radius: 8px; background: #0284c7; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px; flex-shrink: 0;">${(safeCompanyName || 'GS').slice(0,2).toUpperCase()}</div>`
+          }
+          <div>
+            <div style="font-size: 14px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: -0.3px;">${safeCompanyName}</div>
+            ${safeDoc ? `<div style="font-size: 10px; color: #475569; font-weight: 600;">CNPJ: ${safeDoc}</div>` : ''}
+            ${safeAddr ? `<div style="font-size: 9.5px; color: #64748b;">${safeAddr}</div>` : ''}
+            ${safePhone ? `<div style="font-size: 9.5px; color: #0284c7; font-weight: 600;">Suporte / Comercial: ${safePhone}</div>` : ''}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 17px; font-weight: 900; color: #0284c7; text-transform: uppercase; letter-spacing: -0.5px;">${safeTitle}</div>
+          ${safeSubtitle ? `<div style="font-size: 10px; color: #64748b; font-weight: bold;">${safeSubtitle}</div>` : ''}
+          ${safeDocNum ? `<div style="font-size: 18px; font-weight: 900; color: #0f172a; font-family: monospace; margin-top: 2px;">${safeDocNum}</div>` : ''}
+          ${statusBadge ? `<div style="margin-top: 3px;">${statusBadge}</div>` : ''}
+          <div style="font-size: 9.5px; color: #64748b; margin-top: 3px;"><strong>Emissão:</strong> ${emissionDate}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  // MOTOR DE RODAPÉ PADRONIZADO (MANUAL MESTRE GRAFSIS - SEÇÃO 04)
+  buildReportFooterHtml(config = {}) {
+    const emissionTimestamp = config.timestamp || new Date().toLocaleString('pt-BR');
+    const tenant = (window.store && window.store.getActiveTenant ? window.store.getActiveTenant() : null) || {};
+    const companyName = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS';
+    const customNotes = config.notes || '';
+    
+    return `
+      <div class="report-footer-standard" style="margin-top: 16px; border-top: 1px solid #cbd5e1; padding-top: 8px; font-size: 9.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong>${window.escapeHtml ? window.escapeHtml(companyName) : companyName}</strong> &bull; Sistema Grafsis &bull; Fuso: Horário de Brasília (BRT)
+          ${customNotes ? `<div style="margin-top: 2px; font-style: italic;">${window.escapeHtml ? window.escapeHtml(customNotes) : customNotes}</div>` : ''}
+        </div>
+        <div style="text-align: right; font-family: monospace;">
+          <span>Emitido em: ${emissionTimestamp}</span> &bull; <span>Via Oficial</span>
+        </div>
+      </div>
+    `;
+  },
+
   printOrder(type) {
     const orderIdStr = document.getElementById('current-display-id')?.value;
     const orders = window.store?.getOrders ? window.store.getOrders() : [];
@@ -2297,14 +2412,13 @@ window.salesModule = {
 
     const clientSelect = document.querySelector('select[name="cliente_id"]');
     const clientId = savedOrder.cliente_id || (clientSelect ? clientSelect.value : null);
-    const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || {};
-    const clientName = client.nome || savedOrder.cliente_nome || 'Consumidor Final';
-    const clientDoc = client.cpf_cnpj || '';
-    const clientPhone = client.telefone_whatsapp || '';
-    const clientEmail = client.email || '';
-    const clientAddress = [client.endereco, client.logradouro, client.numero, client.bairro].filter(Boolean).join(', ') || '';
-    const clientCity = [client.cidade, client.uf].filter(Boolean).join(' - ') || '';
-    const clientLogo = client.foto_url || '';
+    const client = (window.store && window.store.getClients().find(c => c.id === clientId)) || null;
+    const hasValidClient = !!(client && client.id);
+    const clientName = client ? client.nome : (savedOrder.cliente_nome || 'Consumidor Final');
+    const clientDoc = client ? (client.cpf_cnpj || '') : '';
+    const clientPhone = client ? (client.telefone_whatsapp || client.telefone || '') : '';
+    const clientEmail = client ? (client.email || '') : '';
+    const clientAddress = client ? (window.formatCleanAddress ? window.formatCleanAddress(client) : [client.endereco, client.numero, client.bairro, client.cidade, client.uf].filter(Boolean).join(', ')) : '';
 
     const dateStr = new Date(savedOrder.created_at || Date.now()).toLocaleString('pt-BR');
     const previsaoInput = document.getElementById('previsao_entrega')?.value || savedOrder.previsao_entrega || '';
@@ -2322,83 +2436,85 @@ window.salesModule = {
     const restante = Math.max(0, finalTotal - entrada);
     const metodoPagto = savedOrder.forma_pagamento || document.getElementById('order-metodo-pagto')?.value || 'A Combinar';
 
-    const tenant = (window.store && window.store.getActiveTenant()) || {};
-    const companyName = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS';
-    const companyCNPJ = tenant.cnpj || '';
-    const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336';
-    const companyLogo = tenant.logo_url || '';
-
     const opVal = (savedOrder.tipo_operacao || savedOrder.tipo || 'venda').toLowerCase();
     let title = 'Pedido de Venda';
-    if (type === 'os') {
-      title = 'Ordem de Serviço';
-    } else {
-      if (opVal === 'orcamento') title = 'Orçamento Comercial';
-      else if (opVal === 'pre-venda') title = 'Proposta de Pré-Venda';
-      else if (opVal === 'permuta') title = 'Pedido de Venda (Permuta)';
-      else if (opVal === 'patrocinio') title = 'Pedido de Venda (Patrocínio)';
-    }
+    if (opVal === 'orcamento') title = 'Orçamento Comercial';
+    else if (opVal === 'prevenda' || opVal === 'pre-venda') title = 'Proposta de Pré-Venda';
+    else if (opVal === 'permuta') title = 'Pedido de Venda (Permuta)';
+    else if (opVal === 'patrocinio') title = 'Pedido de Venda (Patrocínio)';
 
     const diasValidade = document.getElementById('dias-validade')?.value || '10';
     const dataValidadeInput = document.getElementById('data-validade')?.value || '';
     const validadeFormatada = dataValidadeInput ? new Date(dataValidadeInput + 'T12:00:00').toLocaleDateString('pt-BR') : '';
     const percentualOp = document.getElementById('operacao-percentual')?.value || '100';
 
-    const itemsHtml = this.activeItems.map((it, idx) => `
+    const itemsHtml = items.map((it, idx) => `
       <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 10px 8px; vertical-align: top;">${idx+1}</td>
-        <td style="padding: 10px 8px;">
+        <td style="padding: 9px 8px; vertical-align: top;">${idx+1}</td>
+        <td style="padding: 9px 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            ${it.arte_url ? `<img src="${it.arte_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1; flex-shrink: 0;">` : ''}
+            ${it.arte_url ? `<img src="${it.arte_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1; flex-shrink: 0;" alt="Arte">` : ''}
             <div>
-              <div style="font-weight: bold; color: #0f172a; font-size: 13px;">${it.produto_nome}</div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${it.descricao}</div>
+              <div style="font-weight: bold; color: #0f172a; font-size: 13px;">${window.escapeHtml ? window.escapeHtml(it.produto_nome || 'Produto') : (it.produto_nome || 'Produto')}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${window.escapeHtml ? window.escapeHtml(it.descricao || '') : (it.descricao || '')}</div>
             </div>
           </div>
         </td>
-        <td style="padding: 10px 8px; vertical-align: top; font-family: monospace; font-size: 12px;">${it.largura_x}m x ${it.comprimento_y}m</td>
-        <td style="padding: 10px 8px; text-align: center; vertical-align: top; font-weight: bold;">${it.quantidade}</td>
-        <td style="padding: 10px 8px; text-align: right; vertical-align: top; font-family: monospace;">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-        <td style="padding: 10px 8px; text-align: right; vertical-align: top; font-weight: bold; font-family: monospace; color: #0f172a;">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td style="padding: 9px 8px; vertical-align: top; font-family: monospace; font-size: 12px;">${it.largura_x || 0}m x ${it.comprimento_y || 0}m</td>
+        <td style="padding: 9px 8px; text-align: center; vertical-align: top; font-weight: bold;">${it.quantidade || 1}</td>
+        <td style="padding: 9px 8px; text-align: right; vertical-align: top; font-family: monospace;">R$ ${Number(it.preco_unitario || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td style="padding: 9px 8px; text-align: right; vertical-align: top; font-weight: bold; font-family: monospace; color: #0f172a;">R$ ${Number(it.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
       </tr>
     `).join('');
 
+    const phaseTag = `<span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">${savedOrder.status_fase || 'Registrado'}</span>`;
+
+    const reportHeaderHtml = this.buildReportHeaderHtml({
+      title,
+      docNumber: savedOrder.numero || orderIdStr,
+      statusBadge: phaseTag,
+      emissionDate: dateStr
+    });
+
+    const reportFooterHtml = this.buildReportFooterHtml({
+      timestamp: dateStr,
+      notes: (opVal === 'orcamento' || opVal === 'prevenda' || opVal === 'pre-venda') ? 'Proposta comercial sujeita a confirmação de disponibilidade de estoque e insumos.' : 'Documento gerado e validado operacionalmente no sistema Grafsis.'
+    });
+
+    const formattedClientDoc = clientDoc ? (window.formatCpfCnpj ? window.formatCpfCnpj(clientDoc) : clientDoc) : '';
+    const formattedClientPhone = clientPhone ? (window.formatCanonicalPhone ? window.formatCanonicalPhone(clientPhone) : clientPhone) : '';
+
     const pdfHtml = `
       <!DOCTYPE html>
-      <html>
+      <html lang="pt-BR">
       <head>
         <meta charset="utf-8">
-        <title>OP-${orderIdStr}</title>
+        <title>OP-${savedOrder.numero || orderIdStr}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.4; margin: 0; padding: 15px; font-size: 12px; }
-          .header-box { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 15px; border-bottom: 2px solid #0284c7; margin-bottom: 15px; }
-          .client-brand { display: flex; align-items: center; gap: 14px; max-width: 60%; }
-          .client-logo-img { max-height: 65px; max-width: 110px; object-fit: contain; border-radius: 8px; border: 1px solid #cbd5e1; padding: 2px; }
-          .client-logo-fallback { width: 55px; height: 55px; border-radius: 10px; background: #0284c7; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; }
-          .order-title { text-align: right; }
-          .order-title h1 { margin: 0; font-size: 19px; color: #0284c7; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
-          .order-title .meta { font-size: 11px; color: #64748b; margin-top: 3px; }
+          @page { size: A4; margin: 12mm 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.4; margin: 0; padding: 10px; font-size: 12px; }
           
-          .client-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 15px; display: grid; grid-cols: 1; font-size: 11px; }
-          .client-card-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+          /* Bloco Padronizado do Destinatário (Cliente) */
+          .client-box-standard { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+          .client-header-title { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
+          .client-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; font-size: 11px; }
 
-          table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
           th { background: #f1f5f9; padding: 8px; text-align: left; font-size: 10px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
           
-          .totals-bar { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-          .totals-table { width: 280px; font-size: 12px; }
+          .totals-bar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+          .totals-table { width: 290px; font-size: 12px; }
           .totals-table tr td { padding: 4px 6px; }
           .totals-table tr.final-row td { font-size: 16px; font-weight: 900; color: #15803d; border-top: 2px solid #15803d; padding-top: 6px; }
 
           /* Bloco Inferior: Informações do Pedido e Vistos de Produção / Aceite */
-          .validation-section { border-top: 2px dashed #cbd5e1; padding-top: 15px; margin-top: 15px; }
-          .order-info-strip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 11px; }
+          .validation-section { border-top: 2px dashed #cbd5e1; padding-top: 14px; margin-top: 14px; }
+          .order-info-strip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 11px; }
           
           .approval-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-          .approval-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #fff; min-height: 105px; display: flex; flex-col; justify-content: space-between; }
+          .approval-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #fff; min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; }
           .approval-title { font-weight: bold; font-size: 11px; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
-          .sig-line { border-top: 1px solid #94a3b8; margin-top: 30px; padding-top: 4px; text-align: center; font-size: 10px; color: #64748b; font-weight: 600; }
+          .sig-line { border-top: 1px solid #94a3b8; margin-top: 25px; padding-top: 4px; text-align: center; font-size: 10px; color: #64748b; font-weight: 600; }
 
           @media print {
             body { padding: 0; }
@@ -2407,30 +2523,26 @@ window.salesModule = {
         </style>
       </head>
       <body>
-        <!-- CABEÇALHO COM LOGO E DADOS DO CLIENTE + DADOS DA EMPRESA EMISSORA (Imagem 2) -->
-        <div class="header-box">
-          <div class="client-brand">
-            ${clientLogo 
-              ? `<img src="${clientLogo}" class="client-logo-img" alt="Logo Cliente">` 
-              : `<div class="client-logo-fallback">${(clientName || 'CL').slice(0,2).toUpperCase()}</div>`
-            }
-            <div>
-              <div style="font-size: 16px; font-weight: 900; color: #0f172a;">${clientName}</div>
-              ${clientDoc ? `<div style="font-size: 11px; color: #475569;"><strong>CPF/CNPJ:</strong> ${clientDoc}</div>` : ''}
-              ${clientAddress ? `<div style="font-size: 11px; color: #475569;"><strong>Endereço:</strong> ${clientAddress}</div>` : ''}
-              ${clientCity ? `<div style="font-size: 11px; color: #475569;"><strong>Cidade/UF:</strong> ${clientCity}</div>` : ''}
-              ${clientPhone ? `<div style="font-size: 11px; color: #0284c7;"><strong>WhatsApp/Tel:</strong> ${clientPhone}</div>` : ''}
-              ${clientEmail ? `<div style="font-size: 11px; color: #64748b;"><strong>E-mail:</strong> ${clientEmail}</div>` : ''}
-            </div>
-          </div>
+        <!-- CABEÇALHO PADRONIZADO (EMISSOR À ESQUERDA, TÍTULO E NÚMERO À DIREITA) -->
+        ${reportHeaderHtml}
 
-          <div class="order-title">
-            <h1>${title}</h1>
-            <div style="font-size: 18px; font-weight: 900; color: #0f172a; font-family: monospace;">#${orderIdStr}</div>
-            <div class="meta"><strong>Emissão:</strong> ${dateStr}</div>
-            <div class="meta" style="margin-top: 4px; font-weight: bold; color: #334155;">${companyName}</div>
-            ${companyCNPJ ? `<div class="meta">CNPJ: ${companyCNPJ}</div>` : ''}
-            ${companyPhone ? `<div class="meta">Suporte: ${companyPhone}</div>` : ''}
+        <!-- BLOCO PADRONIZADO DO DESTINATÁRIO (CLIENTE) -->
+        <div class="client-box-standard">
+          <div class="client-header-title">
+            <span>DADOS DO DESTINATÁRIO / CLIENTE</span>
+            ${!hasValidClient ? `<span style="color: #b45309; background: #fef3c7; border: 1px solid #f59e0b; padding: 1px 6px; border-radius: 4px;">⚠️ Cadastro Pendente</span>` : `<span style="color: #15803d; font-weight: bold;">Cadastro Regular</span>`}
+          </div>
+          <div class="client-grid">
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: #0f172a;">${window.escapeHtml ? window.escapeHtml(clientName) : clientName}</div>
+              ${formattedClientDoc ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;"><strong>CPF/CNPJ:</strong> ${formattedClientDoc}</div>` : ''}
+              ${clientAddress ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;"><strong>Endereço:</strong> ${clientAddress}</div>` : ''}
+            </div>
+            <div>
+              ${formattedClientPhone ? `<div style="font-size: 11px; color: #0284c7;"><strong>WhatsApp/Tel:</strong> ${formattedClientPhone}</div>` : ''}
+              ${clientEmail ? `<div style="font-size: 11px; color: #64748b; margin-top: 2px;"><strong>E-mail:</strong> ${window.escapeHtml ? window.escapeHtml(clientEmail) : clientEmail}</div>` : ''}
+              <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;"><strong>Vendedor:</strong> ${window.escapeHtml ? window.escapeHtml(savedOrder.vendedor || 'Comercial') : (savedOrder.vendedor || 'Comercial')}</div>
+            </div>
           </div>
         </div>
 
@@ -2476,12 +2588,12 @@ window.salesModule = {
           <!-- Tira com Prazos, Entrada e Saldo Restante -->
           <div class="order-info-strip">
             <div>
-              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">${(opVal === 'orcamento' || opVal === 'pre-venda') ? 'Validade da Proposta:' : 'Prazo de Entrega:'}</span>
-              <strong style="color: #0f172a; font-size: 13px;">${(opVal === 'orcamento' || opVal === 'pre-venda') ? (validadeFormatada ? validadeFormatada + ' (' + diasValidade + ' dias)' : diasValidade + ' dias') : previsaoFormatada}</strong>
+              <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">${(opVal === 'orcamento' || opVal === 'prevenda' || opVal === 'pre-venda') ? 'Validade da Proposta:' : 'Prazo de Entrega:'}</span>
+              <strong style="color: #0f172a; font-size: 13px;">${(opVal === 'orcamento' || opVal === 'prevenda' || opVal === 'pre-venda') ? (validadeFormatada ? validadeFormatada + ' (' + diasValidade + ' dias)' : diasValidade + ' dias') : previsaoFormatada}</strong>
             </div>
             <div>
               <span style="color: #64748b; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">${(opVal === 'permuta' || opVal === 'patrocinio') ? 'Operação / %:' : 'Forma de Pagto:'}</span>
-              <strong style="color: #0f172a;">${(opVal === 'permuta' || opVal === 'patrocinio') ? opVal.toUpperCase() + ' (' + percentualOp + '%)' : metodoPagto}</strong>
+              <strong style="color: #0f172a;">${(opVal === 'permuta' || opVal === 'patrocinio') ? opVal.toUpperCase() + ' (' + percentualOp + '%)' : window.escapeHtml ? window.escapeHtml(metodoPagto) : metodoPagto}</strong>
             </div>
             <div>
               <span style="color: #15803d; text-transform: uppercase; font-size: 9px; font-weight: bold; display: block;">Entrada / Sinal Pago:</span>
@@ -2518,7 +2630,7 @@ window.salesModule = {
               <div>
                 <div class="approval-title">
                   <span>2. Autorizo de Produção</span>
-                  <span style="font-size: 9px; color: #0284c7;">${autorizoProd ? autorizoProd : 'Visto'}</span>
+                  <span style="font-size: 9px; color: #0284c7;">${autorizoProd ? (window.escapeHtml ? window.escapeHtml(autorizoProd) : autorizoProd) : 'Visto'}</span>
                 </div>
                 <div style="font-size: 9.5px; color: #475569; line-height: 1.3;">
                   Liberado para fila de corte/impressão. Materiais disponíveis e ordem de execução confirmada.
@@ -2534,7 +2646,7 @@ window.salesModule = {
               <div>
                 <div class="approval-title">
                   <span>3. Conferência da Arte</span>
-                  <span style="font-size: 9px; color: #16a34a;">${confArte ? confArte : 'OK'}</span>
+                  <span style="font-size: 9px; color: #16a34a;">${confArte ? (window.escapeHtml ? window.escapeHtml(confArte) : confArte) : 'OK'}</span>
                 </div>
                 <div style="font-size: 9.5px; color: #475569; line-height: 1.3;">
                   [ ✔ ] Arquivo em CMYK<br>
@@ -2549,11 +2661,14 @@ window.salesModule = {
           </div>
         </div>
 
+        <!-- RODAPÉ PADRONIZADO (PAGINAÇÃO, FUSO E TIMESTAMP) -->
+        ${reportFooterHtml}
+
         <script>window.print();</script>
       </body>
       </html>
     `;
-    this.openPrintDocument(pdfHtml, 'OP-' + orderIdStr);
+    this.openPrintDocument(pdfHtml, 'OP-' + (savedOrder.numero || orderIdStr));
   },
   calcPiecePriceOLD() {
     const type = document.getElementById('item-type').value;
@@ -4511,7 +4626,9 @@ window.salesModule = {
     }
 
     const includeImages = options.includeImages !== undefined ? options.includeImages : true;
-    const client = (window.store && window.store.getClients().find(c => c.id === order.cliente_id)) || {
+    const client = (window.store && window.store.getClients().find(c => c.id === order.cliente_id)) || null;
+    const hasValidClient = !!(client && client.id);
+    const clientObj = client || {
       nome: order.cliente_nome || 'Cliente não informado',
       telefone_whatsapp: '',
       cpf_cnpj: '',
@@ -4522,9 +4639,9 @@ window.salesModule = {
 
     const tenant = (window.store && window.store.getActiveTenant()) || {};
     const companyName = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS COMUNICAÇÃO VISUAL';
-    const companyCNPJ = tenant.cnpj || '';
-    const companyPhone = tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336';
-    const companyAddress = [tenant.endereco || tenant.logradouro, tenant.numero, tenant.bairro, tenant.cidade, tenant.uf].filter(Boolean).join(', ') || 'Endereço não informado';
+    const companyCNPJ = tenant.cnpj ? (window.formatCpfCnpj ? window.formatCpfCnpj(tenant.cnpj) : tenant.cnpj) : '';
+    const companyPhone = window.formatCanonicalPhone ? window.formatCanonicalPhone(tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336') : (tenant.celular_whatsapp || tenant.telefone_fixo || '(69) 99922-1336');
+    const companyAddress = window.formatCleanAddress ? window.formatCleanAddress(tenant) : ([tenant.endereco || tenant.logradouro, tenant.numero, tenant.bairro, tenant.cidade, tenant.uf].filter(Boolean).join(', ') || 'Endereço não informado');
     const companyLogo = tenant.logo_url || '';
 
     const phaseNames = {
@@ -4541,7 +4658,9 @@ window.salesModule = {
 
     const dataPedido = order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR') : (order.data_criacao ? new Date(order.data_criacao).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR'));
     const prazoEntrega = order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'A Combinar';
-    const clientAddressStr = [client.endereco, client.numero, client.bairro, client.cidade, client.uf].filter(Boolean).join(', ');
+    const clientAddressStr = client ? (window.formatCleanAddress ? window.formatCleanAddress(client) : [client.endereco, client.numero, client.bairro, client.cidade, client.uf].filter(Boolean).join(', ')) : '';
+    const formattedClientDoc = clientObj.cpf_cnpj ? (window.formatCpfCnpj ? window.formatCpfCnpj(clientObj.cpf_cnpj) : clientObj.cpf_cnpj) : '';
+    const formattedClientPhone = clientObj.telefone_whatsapp ? (window.formatCanonicalPhone ? window.formatCanonicalPhone(clientObj.telefone_whatsapp) : clientObj.telefone_whatsapp) : '';
 
     const allItems = (order.itens && order.itens.length > 0) ? order.itens : (this.activeItems || []);
     const items = allItems.filter(it => it.liberado_os !== false);
@@ -4868,20 +4987,23 @@ window.salesModule = {
           <!-- DADOS DO CLIENTE, PRAZO E RESPONSÁVEIS -->
           <div class="data-bar">
             <div class="cell">
-              <span>Cliente / Empresa</span>
-              <strong>${client.nome}</strong>
-              <div style="font-size: 9.5px; color: #475569;">${client.cpf_cnpj ? client.cpf_cnpj + ' &bull; ' : ''}${client.telefone_whatsapp || ''}</div>
-              ${clientAddressStr ? `<div style="font-size: 9px; color: #64748b;">${clientAddressStr}</div>` : ''}
+              <span style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Cliente / Empresa</span>
+                ${!hasValidClient ? `<span style="color: #b45309; background: #fef3c7; border: 1px solid #f59e0b; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold;">⚠️ Cadastro Pendente</span>` : ''}
+              </span>
+              <strong>${window.escapeHtml ? window.escapeHtml(clientObj.nome) : clientObj.nome}</strong>
+              <div style="font-size: 9.5px; color: #475569;">${formattedClientDoc ? formattedClientDoc + ' &bull; ' : ''}${formattedClientPhone}</div>
+              ${clientAddressStr ? `<div style="font-size: 9px; color: #64748b;">${window.escapeHtml ? window.escapeHtml(clientAddressStr) : clientAddressStr}</div>` : ''}
             </div>
             <div class="cell">
               <span>Data do Pedido</span>
               <strong>${dataPedido}</strong>
-              <div style="font-size: 9px; color: #64748b;">Vendedor: ${order.vendedor || 'Comercial'}</div>
+              <div style="font-size: 9px; color: #64748b;">Vendedor: ${window.escapeHtml ? window.escapeHtml(order.vendedor || 'Comercial') : (order.vendedor || 'Comercial')}</div>
             </div>
             <div class="cell">
               <span>Prazo de Entrega</span>
               <strong style="color: #b91c1c; font-size: 13px;">${prazoEntrega}</strong>
-              <div style="font-size: 9px; color: #64748b;">Operador: ${order.operador || 'Oficina Geral'}</div>
+              <div style="font-size: 9px; color: #64748b;">Operador: ${window.escapeHtml ? window.escapeHtml(order.operador || 'Oficina Geral') : (order.operador || 'Oficina Geral')}</div>
             </div>
             <div class="cell">
               <span>Status & Volume</span>
@@ -4893,7 +5015,7 @@ window.salesModule = {
           <!-- OBSERVAÇÕES TÉCNICAS -->
           ${order.observacoes ? `
             <div class="obs-box">
-              <strong>Observações Técnicas / Instruções de Produção:</strong> ${order.observacoes}
+              <strong>Observações Técnicas / Instruções de Produção:</strong> ${window.escapeHtml ? window.escapeHtml(order.observacoes) : order.observacoes}
             </div>
           ` : ''}
 
@@ -4936,6 +5058,12 @@ window.salesModule = {
               <div class="line">Controle de Qualidade Final</div>
               <div>Data: ____/____/________</div>
             </div>
+          </div>
+
+          <!-- RODAPÉ CANÔNICO DA O.S. (FUSO, HORA E PADRÃO DE FÁBRICA) -->
+          <div style="margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 4px; font-size: 8.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+            <span>${window.escapeHtml ? window.escapeHtml(companyName) : companyName} &bull; O.S. Técnica de Fábrica (Sem Valores Monetários) &bull; Fuso: Horário de Brasília (BRT)</span>
+            <span style="font-family: monospace;">Emitido em: ${dataPedido} &bull; Grafsis Produção</span>
           </div>
         </div>
 

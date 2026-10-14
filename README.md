@@ -98,6 +98,28 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Manual Mestre: Padronização Canônica, Auditoria, Segurança & Sync Multidispositivo (v4.9.7)
+- **Motor de Cabeçalho e Rodapé Padronizado (Seção 04)**:
+  - Documentos comerciais (Pedidos de Venda, Orçamentos Comerciais, Propostas de Pré-Venda e O.S.) agora possuem layout padronizado:
+    * Logomarca da gráfica emissora à esquerda/topo com razão social/fantasia, CNPJ e endereço canônico.
+    * Título inequívoco do documento e número da operação (#OP) à direita com status e data/hora de emissão.
+    * Destinatário (Cliente) em bloco próprio estruturado com endereço canônico sem duplicações, telefone canônico e CPF/CNPJ.
+    * Rodapé oficial com fuso horário de Brasília (BRT), timestamp exato de emissão e identificação de via do sistema.
+- **Centralização Cadastral e Normalização Canônica (Seção 03)**:
+  - Cliente tratado estritamente como fonte única da verdade através de `cliente_id`.
+  - Helpers utilitários canônicos globais: `window.formatCleanAddress`, `window.formatCanonicalPhone` (garantindo DDD) e `window.formatCpfCnpj`.
+- **Auditoria e Sincronização Real do Repositório Multi-Dispositivo (Seção 06)**:
+  - Sincronização entre múltiplos dispositivos (celular/desktop) de fotos, prints e links do Google Drive via empacotamento no `metaPayload` do fallback `pedidos` no Supabase e desempacotamento no `pullTable`.
+  - Proteção de quota local (`localStorage`) com expurgo preventivo de data URLs antigas preservando links e metadados.
+- **Segurança da Informação e Sanitização Estrita (Seção 05)**:
+  - Sanitização de renderização contra Cross-Site Scripting (XSS) com `window.escapeHtml`.
+  - Validação estrita de URLs externas e links do Google Drive, bloqueando protocolos inseguros (`javascript:`, etc.).
+  - Upload de anexos limitado a 15MB com bloqueio preventivo de executáveis e scripts (.exe, .bat, .cmd, .sh, .vbs, .js) e rejeição granular informando o motivo sem afetar arquivos íntegros.
+- **Alerta Visual de Cadastro Pendente no Kanban (Seção 06)**:
+  - O fallback visual não mascara inconsistências cadastrais: pedidos sem vínculo formal exibem a badge `⚠️ Cadastro Pendente`.
+
+---
+
 ## 🔄 Repositório da Operação, Fotos/Prints, Google Drive & Mural de Serviços (v4.9.6)
 - **Repositório da Operação / Fotos & Prints (Marcação Verde)**:
   - Botão integrado na coluna esquerda do formulário do pedido para gestão centralizada de anexos do pedido.

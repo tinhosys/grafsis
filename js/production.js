@@ -360,6 +360,7 @@ window.productionModule = {
         order.cliente_id = client.id;
       }
     }
+    const hasValidClient = !!(client && client.id);
     const clientObj = client || { nome: order.cliente_nome || 'Cliente não vinculado' };
     const totalArea = (order.itens || []).reduce((acc, it) => acc + (it.tipo_calculo === 'm2' ? (Number(it.largura_x || 0) * Number(it.comprimento_y || 0) * Number(it.quantidade || 1)) : 0), 0);
 
@@ -442,9 +443,12 @@ window.productionModule = {
         </div>
 
         <!-- Nome do Cliente em Destaque e Fonte Maior -->
-        <h4 class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm mt-2 truncate" title="${safeClientNome}">
-          ${safeClientNome}
-        </h4>
+        <div class="mt-2 flex items-center justify-between gap-1">
+          <h4 class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm truncate" title="${safeClientNome}">
+            ${window.escapeHtml ? window.escapeHtml(safeClientNome) : safeClientNome}
+          </h4>
+          ${!hasValidClient ? `<span class="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700" title="Cliente sem vínculo cadastral formal no banco de dados">⚠️ Cadastro Pendente</span>` : ''}
+        </div>
         
         <!-- Descrição Técnica dos Materiais -->
         <div class="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">

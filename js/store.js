@@ -1320,6 +1320,14 @@ class GrafsisStore {
             if (copy.foto_url && copy.foto_url.length > 20000 && idx > 1) {
               delete copy.foto_url;
             }
+            if (Array.isArray(copy.repositorio_arquivos) && idx > 1) {
+              copy.repositorio_arquivos = copy.repositorio_arquivos.map(r => {
+                if (r && r.url && r.url.length > 25000 && r.tipo !== 'drive') {
+                  return { ...r, url: '' };
+                }
+                return r;
+              });
+            }
             return copy;
           });
           localStorage.setItem(key, JSON.stringify(sanitized));
@@ -1338,6 +1346,9 @@ class GrafsisStore {
               delete copy.foto_url;
               if (Array.isArray(copy.itens)) {
                 copy.itens = copy.itens.map(it => ({ ...it, arte_url: '' }));
+              }
+              if (Array.isArray(copy.repositorio_arquivos)) {
+                copy.repositorio_arquivos = copy.repositorio_arquivos.map(r => (r && r.tipo !== 'drive') ? { ...r, url: '' } : r);
               }
               return copy;
             });
@@ -1603,6 +1614,8 @@ class GrafsisStore {
                 if (parsed.autorizo_producao) item.autorizo_producao = parsed.autorizo_producao;
                 if (parsed.conferencia_arte) item.conferencia_arte = parsed.conferencia_arte;
                 if (parsed.obs_pagto) item.obs_pagto = parsed.obs_pagto;
+                if (parsed.repositorio_arquivos && Array.isArray(parsed.repositorio_arquivos)) item.repositorio_arquivos = parsed.repositorio_arquivos;
+                if (parsed.aprovado_cliente) item.aprovado_cliente = parsed.aprovado_cliente;
                 if (parsed.obs !== undefined) item.observacoes = parsed.obs;
               } catch (e) {}
             }
@@ -1753,6 +1766,8 @@ class GrafsisStore {
             autorizo_producao: clean.autorizo_producao || null,
             conferencia_arte: clean.conferencia_arte || null,
             obs_pagto: clean.obs_pagto || null,
+            repositorio_arquivos: clean.repositorio_arquivos || [],
+            aprovado_cliente: clean.aprovado_cliente || null,
             itens: clean.itens || [],
             historico: clean.historico || [],
             obs: clean.observacoes || ''

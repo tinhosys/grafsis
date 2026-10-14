@@ -241,7 +241,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v4.9.6)
+              Notas de Versão (v4.9.7)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -362,7 +362,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.6 (Ver Notas)
+              Versão 4.9.7 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -779,7 +779,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.6</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.7</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -787,14 +787,26 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.6 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Repositório da Operação, Fotos/Prints, Google Drive & Correção Mural de Serviços</span>
+            <h4 class="font-bold text-slate-800">Versão 4.9.7 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Manual Mestre: Padronização Canônica, Auditoria, Segurança & Sync</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Repositório da Operação (Fotos do Local, Prints & Google Drive):</strong> Adicionado botão na coluna esquerda do formulário de pedidos para arquivamento de fotos do local da instalação, fachadas, prints e rascunhos. Suporte para upload de múltiplos arquivos e captura direta pela câmera do celular com compactação preventiva via Canvas.</li>
-            <li><strong>Integração com Google Drive:</strong> Permite vincular pastas externas do Google Drive para armazenamento seguro de arquivos pesados (CDR, AI, PSD, vídeos) sem consumo de limite do navegador.</li>
-            <li><strong>Acesso Compartilhado Comercial & Produção:</strong> Os arquivos do repositório ficam marcados com o ID raiz da operação e podem ser consultados tanto no formulário de pedidos quanto na Ordem de Serviço Técnica (O.S.).</li>
-            <li><strong>Correção e Estabilização do Mural de Serviços:</strong> Corrigida exceção fatal de cliente nulo no render do Kanban, inicialização segura de abas e proteção de visualização em Desktop e Mobile.</li>
+            <li><strong>Motor de Cabeçalho e Rodapé Padronizado (Seção 04):</strong> Emissão padronizada de Pedidos, Orçamentos, Pré-Vendas e O.S. com logomarca e dados da gráfica à esquerda/topo, título inequívoco e numeração à direita, bloco próprio e estruturado para o Destinatário (Cliente), e rodapé oficial com fuso de Brasília e timestamp de emissão.</li>
+            <li><strong>Centralização e Normalização Cadastral Canônica (Seção 03):</strong> Tratamento de cliente como fonte única de verdade (`cliente_id`), formatação canônica de endereços (sem vírgulas ou duplicações), telefones com DDD normalizado e formatação de CPF/CNPJ.</li>
+            <li><strong>Auditoria e Sincronização Real do Repositório Multi-Dispositivo (Seção 06):</strong> Arquivos e links do Google Drive agora persistem e sincronizam entre múltiplos dispositivos (celular/desktop) via `metaPayload` na nuvem Supabase, com proteção de quota no `localStorage`.</li>
+            <li><strong>Segurança e Sanitização XSS Estrita (Seção 05):</strong> Sanitização global com `escapeHtml`, validação estrita de URLs externas (rejeição de `javascript:` e inseguras) e uploads de anexos limitados a 15MB com bloqueio preventivo de arquivos executáveis e rejeição granular.</li>
+            <li><strong>Alerta Visual de Cadastro Pendente no Kanban (Seção 06):</strong> O fallback visual não mascara divergências cadastrais; pedidos com clientes sem cadastro formal exibem a tag `⚠️ Cadastro Pendente`.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.6</h4>
+            <span class="text-xs text-slate-400 font-bold">Repositório da Operação, Fotos/Prints & Google Drive</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Repositório da Operação:</strong> Adicionado botão para arquivamento de fotos do local da instalação, fachadas, prints e rascunhos. Suporte para upload de múltiplos arquivos e captura direta pela câmera do celular com compactação preventiva via Canvas.</li>
+            <li><strong>Integração com Google Drive:</strong> Permite vincular pastas externas do Google Drive para arquivos pesados sem consumo de quota local.</li>
+            <li><strong>Mural de Serviços:</strong> Correção e estabilização de clientes no Kanban.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
@@ -916,16 +928,16 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.9.6"></script>
-  <script src="js/auth.js?v=4.9.6"></script>
-  <script src="js/store.js?v=4.9.6"></script>
-  <script src="js/clients.js?v=4.9.6"></script>
-  <script src="js/suppliers.js?v=4.9.6"></script>
-  <script src="js/products.js?v=4.9.6"></script>
-  <script src="js/sales.js?v=4.9.6"></script>
-  <script src="js/production.js?v=4.9.6"></script>
-  <script src="js/finance.js?v=4.9.6"></script>
-  <script src="js/newsticker.js?v=4.9.6"></script>
-  <script src="js/app.js?v=4.9.6"></script>
+  <script src="js/config.js?v=4.9.7"></script>
+  <script src="js/auth.js?v=4.9.7"></script>
+  <script src="js/store.js?v=4.9.7"></script>
+  <script src="js/clients.js?v=4.9.7"></script>
+  <script src="js/suppliers.js?v=4.9.7"></script>
+  <script src="js/products.js?v=4.9.7"></script>
+  <script src="js/sales.js?v=4.9.7"></script>
+  <script src="js/production.js?v=4.9.7"></script>
+  <script src="js/finance.js?v=4.9.7"></script>
+  <script src="js/newsticker.js?v=4.9.7"></script>
+  <script src="js/app.js?v=4.9.7"></script>
 </body>
 </html>
