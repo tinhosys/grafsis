@@ -171,6 +171,28 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Governança de Vendas, Chave Gerente, Botão Caixa & O.S. Condicional (v4.9.8.4)
+- **Registrar Operação com Crítica e Confirmação Explícita**:
+  - Botão azul padronizado como "Registrar Operação", executando crítica de integridade prévia (cliente obrigatório, ao menos 1 item cadastrado e previsão de entrega para operações comerciais) e exibindo diálogo de confirmação detalhado com tipo de operação, cliente, total de itens e valor final antes de efetivar a gravação.
+- **Regras Operacionais e Emissão de O.S. Condicional**:
+  - **Orçamento**: Modo somente gravação; não habilita emissão de O.S.; legenda do botão cinza: *"Emitir Orçamento"*.
+  - **Pré-Venda**: Modo somente gravação; não habilita emissão de O.S.; legenda do botão cinza: *"Emitir Pré-Venda"*.
+  - **Venda, Patrocínio e Permuta**: Habilitam a emissão de O.S. Técnica; campos travados contra edição acidental por padrão em registros já gravados.
+- **Chave ON/OFF de Edição de Gerente**:
+  - Chave seletora ON/OFF posicionada diretamente junto ao botão cinza (*"Emitir Venda"*, etc.) exclusiva para os perfis **Gerente** ou **Proprietário**, permitindo desbloquear a operação para ajustes e relocar ao término.
+- **Campos Habitados com Edição Contínua Preservada**:
+  - Mesmo quando a operação está travada, quatro elementos fundamentais permanecem sempre habilitados:
+    1. *Detalhes do Pedido* (observações do cliente/técnicas).
+    2. *Detalhes ou Descrição do Produto* (`#item-desc`).
+    3. *Prazo de Entrega* (dias úteis e data de previsão de entrega).
+    4. *Botão Caixa* (recebimentos, parcelas, cartões e recibos).
+- **Padronização dos Botões de Ação**:
+  - Botão Amarelo: `edita = 'Editar Operação'`.
+  - Botão Cancelar: `cancela = 'Cancelar Edição'`, com `enable true` dinâmico ativado durante a edição.
+  - Botão de Detalhes Financeiros: renomeado para **"Caixa"**, acompanhado do ícone canônico de baú de moedas em SVG.
+
+---
+
 ## 🔄 Governança Estrita, Trava de Proposta Aprovada & Auditoria (v4.9.5)
 - **Bloqueio Rigoroso de Proposta Aprovada**: Se o pedido já possui aprovação do cliente, todos os campos (cliente, itens, descontos, financeiro) ficam bloqueados por padrão, permanecendo editáveis exclusivamente a Linha Amarela (Prazos de Produção/Entrega) e Observações Técnicas.
 - **Governança dos 6 Botões Operacionais**:
