@@ -47,8 +47,28 @@
     html.portal-mode #app-layout { display: none !important; }
     html.portal-mode #public-portal-root { display: block !important; }
     html.portal-mode body { display: block !important; overflow-y: auto !important; height: auto !important; min-height: 100vh; }
+
+    /* Monitor de Notícias: Movimento Contínuo da Direita para a Esquerda (RTL) */
+    .news-ticker-track {
+      display: flex !important;
+      align-items: center !important;
+      white-space: nowrap !important;
+      will-change: transform !important;
+      animation: ticker-scroll-rtl 55s linear infinite !important;
+    }
+    .news-ticker-viewport:hover .news-ticker-track {
+      animation-play-state: paused !important;
+    }
+    @keyframes ticker-scroll-rtl {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+      100% {
+        transform: translate3d(-50%, 0, 0);
+      }
+    }
   </style>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=4.9.7.1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
