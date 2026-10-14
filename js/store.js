@@ -25,7 +25,8 @@ const STORAGE_KEYS = {
   ORDERS: 'grafsis_orders',
   FINANCE: 'grafsis_finance',
   SETTINGS: 'grafsis_settings',
-  TENANTS: 'grafsis_tenants'
+  TENANTS: 'grafsis_tenants',
+  AUDIT: 'grafsis_audit_log'
 };
 
 const DEFAULT_TENANTS = [
@@ -2201,6 +2202,44 @@ class GrafsisStore {
     const entries = this.getFinance().filter(e => e.id !== id);
     this.saveLocal(STORAGE_KEYS.FINANCE, entries);
     await this.deleteCloudRecord('financeiro_lancamentos', id);
+  }
+
+  // Livro de Auditoria & Ocorrências do Sistema (Acesso restrito: Proprietário e Admin)
+  getAuditLog() {
+    return this.getLocal(STORAGE_KEYS.AUDIT) || [];
+  }
+
+  async logOccurrence(occurrence) {
+    const logs = this.getAuditLog();
+    const currentUser = window.authModule ? window.authModule.getCurrentUser() : null;
+    const entry = {
+      id: grafsisUUID(),
+      data_hora: new Date().toISOString(),
+      tipo: occurrence.tipo || 'EDICAO_PEDIDO',
+      pedido_id: occurrence.pedido_id || null,
+      pedido_numero: occurrence.pedido_numero || null,
+      usuario_id: currentUser ? currentUser.id : null,
+      usuario_nome: currentUser ? (currentUser.nome || currentUser.operador || currentUser.login) : 'Operador',
+      usuario_perfil: currentUser ? (currentUser.role || currentUser.tipo || currentUser.perfil || 'DESCONHECIDO') : 'SISTEMA',
+      descricao: occurrence.descricao || '',
+      detalhes: occurrence.detalhes || null,
+      alteracoes: occurrence.alteracoes || null,
+      created_at: new Date().toISOString()
+    };
+    logs.unshift(entry);
+    // Limita aos 1000 registros mais recentes para proteger quota local
+    if (logs.length > 1000) logs.pop();
+    this.saveLocal(STORAGE_KEYS.AUDIT, logs);
+
+    // Se conectado ao Supabase Cloud, envia para persistência de auditoria
+    if (this.supabaseClient) {
+      try {
+        await this.pushRecord('ocorrencias_auditoria', entry);
+      } catch (err) {
+        console.warn('[GRAFSIS] Ocorrência gravada localmente, sincronização remota pendente:', err.message || err);
+      }
+    }
+    return entry;
   }
 
   // Configurações

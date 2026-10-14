@@ -2252,6 +2252,109 @@ window.app = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
+  /* ==============================================================================
+     LIVRO DE OCORRÊNCIAS & AUDITORIA DE PEDIDOS (Exclusivo: Proprietário e Admin)
+     ============================================================================== */
+  openAuditOccurrencesModal() {
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    const role = (user ? (user.role || user.tipo || user.perfil || '') : '').toUpperCase();
+    const isAuthorized = ['PROPRIETARIO', 'ADMIN'].includes(role);
+
+    if (!isAuthorized) {
+      alert('Acesso Restrito: O Livro de Ocorrências e Auditoria só pode ser acessado pelo Proprietário ou Admin do sistema.');
+      return;
+    }
+
+    const modalId = 'audit-occurrences-modal';
+    document.getElementById(modalId)?.remove();
+
+    const logs = window.store ? window.store.getAuditLog() : [];
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[90vh] flex flex-col">
+          <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/60">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl font-black">
+                🛡️
+              </div>
+              <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-amber-600">Governança & Rastreabilidade</span>
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">Livro de Ocorrências & Auditoria</h3>
+                <p class="text-xs text-slate-400">Registros imutáveis de edições, reaberturas e alterações em pedidos finalizados</p>
+              </div>
+            </div>
+            <button onclick="document.getElementById('${modalId}').remove()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              ✕
+            </button>
+          </div>
+
+          <div class="p-6 overflow-y-auto space-y-4 text-xs">
+            ${logs.length === 0 ? `
+              <div class="p-10 text-center text-slate-400 space-y-2">
+                <div class="text-4xl">📋</div>
+                <div class="font-bold text-sm text-slate-600 dark:text-slate-300">Nenhuma ocorrência registrada</div>
+                <p class="text-xs text-slate-400">Qualquer edição ou reabertura de pedido finalizado será registrada e auditada aqui.</p>
+              </div>
+            ` : `
+              <div class="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+                <table class="w-full text-left">
+                  <thead class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase text-[10px] font-black border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th class="p-3">Data / Hora</th>
+                      <th class="p-3">Pedido</th>
+                      <th class="p-3">Operador / Perfil</th>
+                      <th class="p-3">Tipo</th>
+                      <th class="p-3">Descrição da Ocorrência</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    ${logs.map(log => `
+                      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td class="p-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          ${new Date(log.data_hora).toLocaleString('pt-BR')}
+                        </td>
+                        <td class="p-3 font-mono font-black text-blue-600 dark:text-cyan-400 whitespace-nowrap">
+                          #${log.pedido_numero || log.pedido_id || '--'}
+                        </td>
+                        <td class="p-3 whitespace-nowrap">
+                          <strong class="text-slate-800 dark:text-slate-200 block">${log.usuario_nome}</strong>
+                          <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">${log.usuario_perfil}</span>
+                        </td>
+                        <td class="p-3 whitespace-nowrap">
+                          <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${
+                            log.tipo === 'REABERTURA_GERENTE' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                            (log.tipo === 'EDICAO_FINALIZADO' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')
+                          }">
+                            ${log.tipo}
+                          </span>
+                        </td>
+                        <td class="p-3 text-slate-700 dark:text-slate-300 text-[11px]">
+                          ${log.descricao}
+                          ${log.detalhes ? `<div class="mt-1 font-mono text-[10px] text-slate-400 bg-slate-50 dark:bg-slate-800 p-1.5 rounded">${typeof log.detalhes === 'string' ? log.detalhes : JSON.stringify(log.detalhes)}</div>` : ''}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+
+          <div class="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
+            <span class="text-slate-400">Total de ocorrências: <strong>${logs.length}</strong></span>
+            <button onclick="document.getElementById('${modalId}').remove()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
   openClientPortalModal() {
     let existing = document.getElementById('client-portal-modal');
     if (existing) existing.remove();
@@ -2685,14 +2788,18 @@ window.app = {
                   </p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nome do Responsável pela Aprovação *</label>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nome do Responsável *</label>
                     <input type="text" id="client-approver-name" value="${client.nome}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                   <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Telefone / WhatsApp para Contato</label>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Telefone / WhatsApp *</label>
                     <input type="text" id="client-approver-phone" value="${client.telefone_whatsapp || ''}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Senha Recebida no WhatsApp (4 dígitos) *</label>
+                    <input type="text" id="client-approver-pin" maxlength="4" placeholder="Ex: 1234" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/40 font-mono font-black text-center text-sm text-emerald-900 dark:text-emerald-200 tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500">
                   </div>
                 </div>
 
@@ -2739,27 +2846,41 @@ window.app = {
 
     const approverName = (document.getElementById('client-approver-name')?.value || '').trim() || 'Cliente';
     const approverPhone = (document.getElementById('client-approver-phone')?.value || '').trim();
+    const approverPin = (document.getElementById('client-approver-pin')?.value || '').trim();
 
-    if (!confirm(`Deseja realmente confirmar e aprovar a produção do Pedido #${order.numero}?`)) {
+    // Validação da senha de 4 dígitos enviada pelo WhatsApp
+    if (order.codigo_autorizacao && order.codigo_autorizacao !== approverPin) {
+      alert(`Senha incorreta! Digite a senha de 4 dígitos informada na mensagem enviada pelo WhatsApp para autorizar este pedido.`);
+      document.getElementById('client-approver-pin')?.focus();
+      return;
+    }
+
+    if (!confirm(`Deseja realmente confirmar e autorizar a produção do Pedido #${order.numero}?\n\nPor favor, permita o compartilhamento de localização do seu navegador se solicitado para carimbo de segurança.`)) {
       return;
     }
 
     const btn = document.getElementById('btn-confirm-approval');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span>⏳ Registrando aprovação na nuvem...</span>';
+      btn.innerHTML = '<span>⏳ Registrando aprovação com carimbo digital...</span>';
     }
 
     const finalizeApproval = async (geoCoords = null) => {
-      const nowIso = new Date().toISOString();
+      const now = new Date();
+      const nowIso = now.toISOString();
       const todayStr = nowIso.split('T')[0];
+      const horaExtensa = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
       order.data_aceite = todayStr;
-      order.autorizo_producao = `Sim (Aprovado Digitalmente por ${approverName} em ${new Date().toLocaleDateString('pt-BR')})`;
+      order.autorizo_producao = `Sim (Aprovado Digitalmente por ${approverName} às ${horaExtensa} em ${now.toLocaleDateString('pt-BR')})`;
       order.conferencia_arte = `Conferido e De Acordo (Portal Online - ${approverName})`;
       order.aprovado_cliente = {
         data: nowIso,
+        data_formatada: `${now.toLocaleDateString('pt-BR')} ${horaExtensa}`,
+        hora_segundos: horaExtensa,
         aprovador: approverName,
         telefone: approverPhone,
+        codigo_validado: approverPin || order.codigo_autorizacao || '',
         userAgent: navigator.userAgent,
         geo: geoCoords,
         termos_aceitos: true
@@ -2769,7 +2890,7 @@ window.app = {
       order.historico.push({
         fase: 'aprovacao',
         data: nowIso,
-        usuario: `Cliente (${approverName}) via Portal Público de Aprovação com aceite financeiro e de arte`
+        usuario: `Cliente (${approverName}) via Portal com senha (${approverPin || 'OK'}) e carimbo ${horaExtensa}${geoCoords ? ` [GPS: ${geoCoords.latitude?.toFixed(4)}, ${geoCoords.longitude?.toFixed(4)}]` : ''}`
       });
 
       // 1. Grava no cache / banco local
@@ -2791,7 +2912,7 @@ window.app = {
         }
       }
 
-      alert(`🎉 Parabéns! Sua aprovação foi confirmada com sucesso.\n\nO Pedido #${order.numero} foi liberado para nossa equipe de produção.`);
+      alert(`🎉 Parabéns! Sua autorização foi confirmada com sucesso às ${horaExtensa}.\n\nO Pedido #${order.numero} foi liberado para nossa equipe de produção.`);
       this.renderPublicClientApprovalPortal(window.location.hash);
     };
 
@@ -2807,7 +2928,7 @@ window.app = {
         () => {
           finalizeApproval(null);
         },
-        { timeout: 3500 }
+        { timeout: 4500, enableHighAccuracy: true }
       );
     } else {
       finalizeApproval(null);

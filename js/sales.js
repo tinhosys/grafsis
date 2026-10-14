@@ -500,51 +500,154 @@ window.salesModule = {
       }
     }
 
-    // 8. Botões de Ação Inferiores:
-    // PRÉ-VENDA: "Salvar Pré-Venda", "Emitir Pré-Venda", SEM O.S., SEM caixa
-    // ORÇAMENTO: "Salvar Orçamento", "Emitir Orçamento", SEM O.S., SEM caixa
-    // VENDA / PERMUTA / PATROCÍNIO: "Finalizar...", "Emitir Pedido", COM O.S.
+    // 8. Trava Estrita de Campos quando Proposta / Arte Aprovada (Imagem 1 & 2)
+    // Se a proposta já estiver aprovada e NÃO estiver em modo de edição ativo desbloqueado por Gerente,
+    // todos os campos ficam bloqueados, COM EXCEÇÃO da Linha Amarela (Entrega/Previsão) e Observações Técnicas.
+    const isLockedByApproval = this.isOrderLockedByApproval && !this.isEditingActive;
+
+    if (isLockedByApproval) {
+      if (opSelect) opSelect.disabled = true;
+      const clientSel = document.querySelector('select[name="cliente_id"]');
+      if (clientSel) clientSel.disabled = true;
+
+      // Trava seção de itens e inserção
+      const itemElements = document.querySelectorAll('#secao-itens-pedido input, #secao-itens-pedido select, #secao-itens-pedido button');
+      itemElements.forEach(el => el.disabled = true);
+
+      // Trava fechamento financeiro (desconto, entrada, forma pagto)
+      const finElements = document.querySelectorAll('#secao-fechamento-financeiro input, #secao-fechamento-financeiro button');
+      finElements.forEach(el => el.disabled = true);
+
+      // Trava campos de validade/percentual
+      const valElements = document.querySelectorAll('#top-col-validade input, #top-col-percentual input');
+      valElements.forEach(el => el.disabled = true);
+
+      // LIBERA EXCLUSIVAMENTE OS CAMPOS EM AMARELO:
+      // Entrega do Pedido (dias-entrega, previsao_entrega) e Observações Técnicas
+      if (diasEntrega) {
+        diasEntrega.disabled = false;
+        diasEntrega.className = "w-full p-2 border-2 border-amber-400 bg-amber-50 text-amber-950 font-bold rounded-lg text-sm shadow-sm";
+      }
+      if (prevEntrega) {
+        prevEntrega.disabled = false;
+        prevEntrega.className = "w-full p-2 border-2 border-amber-400 bg-amber-50 text-amber-950 font-bold rounded-lg text-sm shadow-sm";
+      }
+      const obsTextarea = document.querySelector('textarea[name="observacoes"]');
+      if (obsTextarea) {
+        obsTextarea.disabled = false;
+        obsTextarea.className = "w-full p-2 border-2 border-amber-300 bg-amber-50/50 rounded-lg text-sm font-medium text-slate-800";
+      }
+    } else if (this.isReadOnlyFinancial) {
+      // Pedido registrado/finalizado por vendedor: valores e itens travados, detalhes liberados
+      if (opSelect) opSelect.disabled = true;
+      const clientSel = document.querySelector('select[name="cliente_id"]');
+      if (clientSel) clientSel.disabled = true;
+      const itemElements = document.querySelectorAll('#secao-itens-pedido input, #secao-itens-pedido select, #secao-itens-pedido button');
+      itemElements.forEach(el => el.disabled = true);
+      const finElements = document.querySelectorAll('#secao-fechamento-financeiro input, #secao-fechamento-financeiro button');
+      finElements.forEach(el => el.disabled = true);
+    }
+
+    // 9. Governança e Paleta dos 6 Botões de Ação Inferiores (Imagem 2)
+    // 1. Cancelar (só ativo se estiver editando algo)
+    // 2. Edita (habilita modo de edição com permissão de Gerente/Proprietário)
+    // 3. Salva Operação (salva rascunho sem avançar para produção e sem emitir OS)
+    // 4. Finalizar Pedido (valida financeiro, avança fase e habilita OS)
+    // 5. Emitir Pedido (orçamento, pré-venda ou pedido)
+    // 6. Emitir O.S. (somente habilitado se o pedido estiver gravado e finalizado)
+    const btnCancelar = document.getElementById('btn-cancel-action') || document.querySelector('#secao-botoes-acoes button[onclick*="render"]');
+    const btnEdita = document.getElementById('btn-edit-order');
+    const btnSalvaOperacao = document.getElementById('btn-save-draft');
     const btnSubmit = document.getElementById('btn-submit-order');
     const btnEmitirPedido = document.getElementById('btn-emitir-pedido');
     const btnEmitirOS = document.getElementById('btn-emitir-os');
 
+    const orders = (window.store && window.store.getOrders()) || [];
+    const activeDisplayId = document.getElementById('current-display-id')?.value;
+    const currentOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) ||
+                         (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
+    const isSavedOrder = !!currentOrder;
+    const isOrderFinalized = isSavedOrder && currentOrder.status_fase && currentOrder.status_fase !== 'orcamento' && currentOrder.status_fase !== 'prevenda';
+
+    // 1. Botão Cancelar
+    if (btnCancelar) {
+      if (this.isEditingActive) {
+        btnCancelar.disabled = false;
+        btnCancelar.className = "w-full h-12 text-sm font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnCancelar.title = "Cancelar alterações em andamento e voltar à lista";
+      } else {
+        btnCancelar.disabled = true;
+        btnCancelar.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
+        btnCancelar.title = "Botão Cancelar fica ativo somente durante a edição de dados";
+      }
+    }
+
+    // 2. Botão Edita
+    if (btnEdita) {
+      if (isLockedByApproval || this.isReadOnlyFinancial || (isSavedOrder && !this.isEditingActive)) {
+        btnEdita.disabled = false;
+        btnEdita.className = "w-full h-12 text-sm font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 border border-amber-500 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnEdita.title = "Reabrir e editar dados da operação (Requer perfil Gerente/Proprietário se já finalizado/aprovado)";
+      } else {
+        btnEdita.disabled = false;
+        btnEdita.className = "w-full h-12 text-sm font-bold text-amber-950 bg-amber-300/80 hover:bg-amber-400 border border-amber-400 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+      }
+    }
+
+    // 3. Botão Salva Operação (Verde Esmeralda)
+    if (btnSalvaOperacao) {
+      btnSalvaOperacao.disabled = false;
+      btnSalvaOperacao.className = "w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+    }
+
+    // 4. Botão Finalizar Pedido (Azul Royal)
     if (btnSubmit) {
       btnSubmit.disabled = false;
       if (op === 'orcamento') {
-        btnSubmit.innerText = 'Salvar Orçamento';
-        btnSubmit.className = 'px-7 py-2.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md uppercase transition';
+        btnSubmit.innerText = isSavedOrder ? 'Atualizar Orçamento' : 'Salvar Orçamento';
+        btnSubmit.className = 'w-full h-12 text-sm font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase';
       } else if (op === 'pre-venda') {
-        btnSubmit.innerText = 'Salvar Pré-Venda';
-        btnSubmit.className = 'px-7 py-2.5 text-sm bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl shadow-md uppercase transition';
+        btnSubmit.innerText = isSavedOrder ? 'Atualizar Pré-Venda' : 'Salvar Pré-Venda';
+        btnSubmit.className = 'w-full h-12 text-sm font-black text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase';
       } else if (op === 'permuta') {
-        btnSubmit.innerText = 'Finalizar Permuta';
-        btnSubmit.className = 'px-7 py-2.5 text-sm bg-teal-600 hover:bg-teal-700 text-white font-black rounded-xl shadow-md uppercase transition';
+        btnSubmit.innerText = isSavedOrder ? 'Atualizar Permuta' : 'Finalizar Permuta';
+        btnSubmit.className = 'w-full h-12 text-sm font-black text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase';
       } else if (op === 'patrocinio') {
-        btnSubmit.innerText = 'Finalizar Patrocínio';
-        btnSubmit.className = 'px-7 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-md uppercase transition';
+        btnSubmit.innerText = isSavedOrder ? 'Atualizar Patrocínio' : 'Finalizar Patrocínio';
+        btnSubmit.className = 'w-full h-12 text-sm font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase';
       } else {
-        btnSubmit.innerText = 'Finalizar Pedido';
-        btnSubmit.className = 'px-7 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md uppercase transition';
+        btnSubmit.innerText = isSavedOrder ? 'Atualizar Pedido' : 'Finalizar Pedido';
+        btnSubmit.className = 'w-full h-12 text-sm font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase';
       }
     }
 
+    // 5. Botão Emitir Pedido
     if (btnEmitirPedido) {
       btnEmitirPedido.disabled = false;
       if (op === 'orcamento') {
-        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Orçamento`;
+        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Orçamento`;
       } else if (op === 'pre-venda') {
-        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Pré-Venda`;
+        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Pré-Venda`;
       } else {
-        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Pedido`;
+        btnEmitirPedido.innerHTML = `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir Pedido`;
       }
     }
 
+    // 6. Botão Emitir O.S. (Só habilitado após pedido finalizado)
     if (btnEmitirOS) {
       if (op === 'orcamento' || op === 'pre-venda') {
         btnEmitirOS.style.display = 'none';
       } else {
         btnEmitirOS.style.display = 'inline-flex';
-        btnEmitirOS.disabled = false;
+        if (isOrderFinalized) {
+          btnEmitirOS.disabled = false;
+          btnEmitirOS.className = "w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+          btnEmitirOS.title = "Emitir Ordem de Serviço Técnica em A4 Paisagem";
+        } else {
+          btnEmitirOS.disabled = true;
+          btnEmitirOS.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
+          btnEmitirOS.title = "A Emissão de O.S. requer que o pedido seja finalizado previamente";
+        }
       }
     }
   },
@@ -813,6 +916,9 @@ window.salesModule = {
     const isPermutaPatrocinio = (initialOp === 'permuta' || initialOp === 'patrocinio');
     const hasClientAcceptance = order && (order.data_aceite || order.aprovado_cliente);
 
+    this.isOrderLockedByApproval = isEdit && !!hasClientAcceptance;
+    this.isEditingActive = !isEdit;
+
     const formHtml = `
       <div class="space-y-4 max-w-6xl mx-auto pb-10">
         <div class="sticky top-0 z-40 bg-white/95 backdrop-blur rounded-xl w-full p-4 mb-4 shadow-sm border border-slate-200">
@@ -839,15 +945,23 @@ window.salesModule = {
           ${hasClientAcceptance ? `
             <div class="p-3.5 bg-emerald-600 text-white rounded-xl shadow-md border-2 border-emerald-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2 animate-fadeIn">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-white text-emerald-700 flex items-center justify-center font-black text-xl shrink-0 shadow-inner">✓</div>
+                <div class="w-10 h-10 rounded-full bg-white text-emerald-700 flex items-center justify-center font-black text-2xl shrink-0 shadow-inner">✓</div>
                 <div>
-                  <h4 class="font-black text-sm uppercase tracking-wide">ARTE E PROPOSTA APROVADA PELO CLIENTE</h4>
+                  <h4 class="font-black text-sm uppercase tracking-wide flex items-center gap-2">
+                    ARTE E PROPOSTA APROVADA PELO CLIENTE
+                    <span class="text-[10px] bg-emerald-800/80 px-2 py-0.5 rounded-full font-mono">CAMPOS TRAVADOS (EXCETO ENTREGA E OBS)</span>
+                  </h4>
                   <p class="text-xs text-emerald-100">Layout conferido, valores financeiros de acordo, prazo confirmado e liberação de produção autorizada.</p>
+                  <div class="flex items-center gap-2 mt-1.5 flex-wrap text-[11px]">
+                    <span class="bg-emerald-700 px-2.5 py-0.5 rounded font-mono font-bold">🔑 Senha Validada: ${order.aprovado_cliente?.codigo_validado || order.codigo_autorizacao || 'OK'}</span>
+                    ${order.aprovado_cliente?.geo ? `<span class="bg-emerald-700 px-2.5 py-0.5 rounded font-mono">📍 GPS: Lat ${order.aprovado_cliente.geo.latitude?.toFixed(4)}, Long ${order.aprovado_cliente.geo.longitude?.toFixed(4)}</span>` : ''}
+                    ${order.aprovado_cliente?.hora_segundos ? `<span class="bg-emerald-700 px-2.5 py-0.5 rounded font-mono">⏱️ Carimbo: ${order.aprovado_cliente.hora_segundos}</span>` : ''}
+                  </div>
                 </div>
               </div>
-              <div class="text-right text-xs font-mono bg-emerald-700/80 px-3 py-1.5 rounded-lg border border-emerald-500 text-emerald-100 shrink-0">
+              <div class="text-right text-xs font-mono bg-emerald-700/90 px-3 py-1.5 rounded-lg border border-emerald-500 text-emerald-100 shrink-0">
                 <strong>${order.aprovado_cliente?.aprovador || order.cliente_nome || 'Cliente'}</strong>
-                <span class="block text-[11px] opacity-90">${order.aprovado_cliente?.data ? new Date(order.aprovado_cliente.data).toLocaleString('pt-BR') : (order.data_aceite ? new Date(order.data_aceite).toLocaleDateString('pt-BR') : 'Aceite Confirmado')}</span>
+                <span class="block text-[11px] opacity-90">${order.aprovado_cliente?.data_formatada || (order.aprovado_cliente?.data ? new Date(order.aprovado_cliente.data).toLocaleString('pt-BR') : (order.data_aceite ? new Date(order.data_aceite).toLocaleDateString('pt-BR') : 'Aceite Confirmado'))}</span>
               </div>
             </div>
           ` : ''}
@@ -1849,6 +1963,11 @@ window.salesModule = {
 
     // Se for Ordem de Serviço, emite no formato A4 Paisagem Técnico sem valores financeiros (Imagem 2 & 3)
     if (type === 'os') {
+      const isBudgetOrPre = savedOrder.status_fase === 'orcamento' || savedOrder.status_fase === 'prevenda';
+      if (isBudgetOrPre) {
+        alert(`Operação negada: A Ordem de Serviço (O.S.) não pode ser emitida enquanto a operação estiver em fase de Orçamento ou Pré-Venda.\n\nPara avançar para a produção e emitir O.S., finalize o pedido clicando em "Finalizar Pedido".`);
+        return;
+      }
       this.printTechnicalWorkOrder(savedOrder.id, { includeImages: true });
       return;
     }
@@ -2354,10 +2473,14 @@ window.salesModule = {
           <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-3 text-right">
-            <div class="flex justify-end gap-1">
-              <button type="button" onclick="salesModule.editItem(${idx})" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Editar Item">&#9998;</button>
-              <button type="button" onclick="salesModule.removeItem(${idx})" class="text-rose-600 hover:bg-rose-50 p-1.5 rounded" title="Remover Item">&times;</button>
-            </div>
+            ${(this.isOrderLockedByApproval && !this.isEditingActive) || this.isReadOnlyFinancial ? `
+              <span class="text-[11px] font-bold text-slate-400 italic">Travado</span>
+            ` : `
+              <div class="flex justify-end gap-1">
+                <button type="button" onclick="salesModule.editItem(${idx})" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded cursor-pointer" title="Editar Item">&#9998;</button>
+                <button type="button" onclick="salesModule.removeItem(${idx})" class="text-rose-600 hover:bg-rose-50 p-1.5 rounded cursor-pointer" title="Remover Item">&times;</button>
+              </div>
+            `}
           </td>
         </tr>
       `).join('');
@@ -2904,28 +3027,68 @@ window.salesModule = {
     }
   },
 
-  handleEditAction(orderId) {
-    if (orderId) {
-      const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
-      const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
-      if (!isManagerOrOwner) {
-        alert('Acesso Restrito: Pedidos já registrados só podem ser editados por usuários com perfil Gerente ou Proprietário.');
-        return;
-      }
-      this.currentEditingOrderId = orderId;
+  async handleEditAction(orderId) {
+    const orders = (window.store && window.store.getOrders()) || [];
+    const activeDisplayId = document.getElementById('current-display-id')?.value || '';
+    const targetOrderId = orderId || this.currentEditingOrderId;
+    const order = (targetOrderId && orders.find(o => String(o.id) === String(targetOrderId) || String(o.numero) === String(targetOrderId))) ||
+                  (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
+
+    const isSaved = !!order;
+    const isApprovedOrAdvanced = isSaved && (!!order.data_aceite || !!order.aprovado_cliente || (order.tipo_operacao === 'venda' && order.status_fase !== 'orcamento' && order.status_fase !== 'prevenda'));
+
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    const userRole = user ? (user.tipo || user.perfil || user.role || '').toUpperCase() : '';
+    const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+
+    if (isApprovedOrAdvanced && !isManagerOrOwner) {
+      alert(`Acesso Restrito: Este pedido #${order?.numero || activeDisplayId} já possui aprovação do cliente ou está registrado/finalizado na produção.\n\nA reabertura para alteração de dados, itens ou valores é restrita exclusivamente a usuários com perfil Gerente ou Proprietário.`);
+      return;
     }
+
+    if (isSaved) {
+      this.currentEditingOrderId = order.id;
+    }
+
+    // Ativa o modo de edição no formulário
+    this.isEditingActive = true;
+    this.isReadOnlyFinancial = false;
+
+    // Registra ocorrência de auditoria no Livro de Ocorrências se o pedido já estava finalizado ou aprovado
+    if (isApprovedOrAdvanced && window.store && typeof window.store.logOccurrence === 'function') {
+      try {
+        await window.store.logOccurrence({
+          tipo: 'REABERTURA_GERENTE',
+          pedido_id: order.id,
+          pedido_numero: order.numero,
+          descricao: `Reabertura de pedido #${order.numero} autorizado pelo perfil ${userRole} (${user?.nome || 'Operador'}) para alteração de dados/itens.`,
+          detalhes: {
+            fase_anterior: order.status_fase,
+            aprovado_cliente: !!order.aprovado_cliente,
+            data_reabertura: new Date().toISOString()
+          }
+        });
+      } catch (logErr) {
+        console.warn('[handleEditAction] Falha ao registrar log de ocorrência:', logErr);
+      }
+    }
+
+    // Atualiza o estado da tela liberando os campos e atualizando os botões
+    this.updateFormState();
+    const tbody = document.getElementById('order-items-tbody');
+    if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+
     const clientSel = document.getElementById('order-cliente-select') || document.querySelector('select[name="cliente_id"]');
     const prodSel = document.getElementById('item-prod-select');
     if (prodSel) prodSel.focus();
     else if (clientSel) clientSel.focus();
-    
-    // Feedback visual
-    const displayId = document.getElementById('current-display-id')?.value || '';
+
+    // Feedback visual do modo de edição
     const badge = document.createElement('div');
-    badge.className = 'fixed bottom-4 right-4 z-50 bg-amber-500 text-amber-950 font-black px-4 py-2 rounded-xl shadow-lg border border-amber-600 animate-bounce text-sm';
-    badge.innerText = `Modo de Edição ativo no Pedido #${displayId || ''}!`;
+    badge.className = 'fixed bottom-4 right-4 z-50 bg-amber-500 text-amber-950 font-black px-4 py-2.5 rounded-xl shadow-xl border-2 border-amber-600 animate-bounce text-sm flex items-center gap-2';
+    badge.innerHTML = `<span>✏️ Modo de Edição Ativado: Pedido #${order?.numero || activeDisplayId || ''} liberado para alterações!</span>`;
     document.body.appendChild(badge);
-    setTimeout(() => badge.remove(), 2500);
+    setTimeout(() => badge.remove(), 3500);
   },
   quickView(orderId) {
     if (window.authModule && !window.authModule.can('canViewSaleValues')) {
@@ -3656,8 +3819,9 @@ window.salesModule = {
 
             <!-- Registro de Envios Anteriores -->
             ${order.link_enviado ? `
-              <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-[11px]">
-                <strong>Último envio registrado:</strong> ${new Date(order.link_enviado.data).toLocaleString('pt-BR')} para <strong>${order.link_enviado.telefone}</strong> (por ${order.link_enviado.usuario || 'Operador'})
+              <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-[11px] space-y-1">
+                <div><strong>Último envio registrado:</strong> ${new Date(order.link_enviado.data).toLocaleString('pt-BR')} para <strong>${order.link_enviado.telefone}</strong> (por ${order.link_enviado.usuario || 'Operador'})</div>
+                ${order.codigo_autorizacao ? `<div><strong>Senha / Código de Autorização:</strong> <span class="font-mono font-black text-xs px-2 py-0.5 bg-emerald-200 dark:bg-emerald-900 rounded">${order.codigo_autorizacao}</span> (informada ao cliente via WhatsApp)</div>` : ''}
               </div>
             ` : `
               <div class="text-[11px] text-slate-400 italic">
@@ -3671,11 +3835,11 @@ window.salesModule = {
             <div>
               <label class="block font-bold text-slate-800 dark:text-white mb-1">Telefone / WhatsApp do Destinatário *</label>
               <input type="text" id="share-target-phone" value="${clientPhone}" placeholder="Ex: (69) 99999-9999" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-              <span class="text-[10px] text-slate-400 mt-1 block">O número deve conter o DDD. O sistema formatará automaticamente para o link do WhatsApp.</span>
+              <span class="text-[10px] text-slate-400 mt-1 block">O número deve conter o DDD. O sistema formatará automaticamente para o link do WhatsApp com senha exclusiva de 4 dígitos.</span>
             </div>
 
             <div>
-              <label class="block font-bold text-slate-800 dark:text-white mb-1">Link de Aprovação Online e Sem Senha</label>
+              <label class="block font-bold text-slate-800 dark:text-white mb-1">Link de Aprovação Online e Sem Senha de Acesso</label>
               <div class="flex gap-2">
                 <input type="text" readonly id="share-target-link" value="${link}" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 font-mono text-[11px] text-slate-600 dark:text-slate-300 select-all">
                 <button type="button" onclick="navigator.clipboard.writeText('${link}'); alert('Link copiado!');" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 font-bold rounded-xl text-xs transition">
@@ -3689,7 +3853,7 @@ window.salesModule = {
         <!-- Ações do Modal -->
         <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col sm:flex-row gap-3">
           <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}')" class="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
-            <span>💬 Abrir WhatsApp e Registrar Envio</span>
+            <span>💬 Abrir WhatsApp, Gerar Senha (4 dígitos) e Registrar</span>
           </button>
           <button type="button" onclick="document.getElementById('${modalId}').remove()" class="py-3 px-5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition">
             Fechar
@@ -3720,13 +3884,19 @@ window.salesModule = {
     const currentUser = window.app?.currentUser?.nome || 'Operador';
     const nowIso = new Date().toISOString();
 
-    // Mensagem amigável com fechamento financeiro discricionário
+    // Gera senha aleatória de 4 dígitos para conferência do cliente
+    const randomPin = order.codigo_autorizacao || String(Math.floor(1000 + Math.random() * 9000));
+    order.codigo_autorizacao = randomPin;
+
+    // Mensagem amigável com fechamento financeiro discricionário e Senha de 4 dígitos
     const valorStr = Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
     const msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
       `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
-      `*Valor Total:* R$ ${valorStr}\n\n` +
-      `Por favor, acesse o link abaixo para visualizar a arte em alta resolução, conferir as medidas e autorizar a produção:\n` +
+      `*Valor Total:* R$ ${valorStr}\n` +
+      `*Sua Senha de Autorização:* *${randomPin}*\n\n` +
+      `Por favor, acesse o link abaixo para visualizar a arte, conferir as medidas e autorizar a produção:\n` +
       `👉 ${link}\n\n` +
+      `No momento de confirmar, informe a senha *${randomPin}* e certifique-se de autorizar a localização do dispositivo para registro seguro do aceite digital.\n\n` +
       `Você também poderá escolher a melhor opção de pagamento (Pix, Cartão de Crédito/Débito).\n` +
       `Qualquer dúvida estamos à disposição!`;
 
@@ -3734,14 +3904,15 @@ window.salesModule = {
     order.link_enviado = {
       telefone: rawPhone,
       data: nowIso,
-      usuario: currentUser
+      usuario: currentUser,
+      codigo: randomPin
     };
 
     order.historico = order.historico || [];
     order.historico.push({
       fase: order.status_fase || 'orcamento',
       data: nowIso,
-      usuario: `Link de liberação enviado via WhatsApp para ${rawPhone} por ${currentUser}`
+      usuario: `Link de liberação com senha (${randomPin}) enviado via WhatsApp para ${rawPhone} por ${currentUser}`
     });
 
     // Salva no banco local e nuvem
@@ -3758,7 +3929,7 @@ window.salesModule = {
     const waUrl = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');
 
-    alert(`✅ Envio do link registrado com sucesso!\n\nNúmero: ${rawPhone}\nData/Hora: ${new Date(nowIso).toLocaleString('pt-BR')}`);
+    alert(`✅ Envio do link registrado com sucesso!\n\nNúmero: ${rawPhone}\nSenha de 4 dígitos: ${randomPin}\nData/Hora: ${new Date(nowIso).toLocaleString('pt-BR')}`);
     document.getElementById('modal-approval-share-wrap')?.remove();
     this.render();
   },

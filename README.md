@@ -98,6 +98,25 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Governança Estrita, Trava de Proposta Aprovada & Auditoria (v4.9.5)
+- **Bloqueio Rigoroso de Proposta Aprovada**: Se o pedido já possui aprovação do cliente, todos os campos (cliente, itens, descontos, financeiro) ficam bloqueados por padrão, permanecendo editáveis exclusivamente a Linha Amarela (Prazos de Produção/Entrega) e Observações Técnicas.
+- **Governança dos 6 Botões Operacionais**:
+  - **Cancelar**: Ativo apenas durante a edição de dados.
+  - **Edita**: Habilita o modo de alteração; para pedidos já finalizados ou aprovados, exige perfil **Gerente** ou **Proprietário**, gerando evento no Livro de Ocorrências.
+  - **Salva Operação**: Guarda o rascunho sem avançar para produção e sem emitir O.S.
+  - **Finalizar Pedido**: Grava e oficializa a operação, permitindo avanço para produção e emissão de O.S.
+  - **Emitir Pedido**: Nomenclatura contextual (Orçamento, Pré-Venda ou Pedido).
+  - **Emitir O.S.**: Bloqueada para orçamentos ou pré-vendas não finalizados, liberada após finalização.
+- **Aceite Digital Seguro com Senha de 4 Dígitos & GPS**:
+  - Geração e envio pelo WhatsApp de senha aleatória de 4 dígitos exclusiva para o cliente.
+  - No portal de aprovação, o cliente digita essa senha e autoriza a localização do navegador, registrando data, hora com segundos, PIN validado e coordenadas de GPS.
+  - Exibição de conferência dessa senha e dados de carimbo no cabeçalho do pedido no sistema interno.
+- **Livro de Ocorrências e Auditoria do Sistema**:
+  - Registro auditável permanente de reaberturas e edições com sincronização na nuvem (`store.logOccurrence()`).
+  - Interface dedicada de auditoria restrita aos perfis **Proprietário** e **Admin**.
+
+---
+
 ## 🔄 Fluxo Relacional, Envio WhatsApp & Tarja Verde de Aceite (v4.9.4)
 - **Fluxo Relacional Resiliente (1 Cliente -> N Pedidos -> N Itens)**: Resolução relacional completa e tolerante a falhas na vinculação do cliente ao abrir e editar pedidos existentes (`#ID`), eliminando campos em branco e bloqueios indevidos na edição.
 - **Governança Estrita de Edição vs Reabertura**:
