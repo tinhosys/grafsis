@@ -48,11 +48,10 @@
     html.portal-mode #public-portal-root { display: block !important; }
     html.portal-mode body { display: block !important; overflow-y: auto !important; height: auto !important; min-height: 100vh; }
 
-    /* Monitor de Notícias Dinâmico: Estilização do Viewport e Track para Motor Contínuo */
-    @media (min-width: 768px) {
-      #news-ticker-bar {
-        left: 15rem !important; /* Começa imediatamente após a sidebar no desktop (240px) */
-      }
+    /* Monitor de Notícias Dinâmico: Estilização do Viewport e Track Contínuos */
+    #news-ticker-bar {
+      height: 38px !important;
+      min-height: 38px !important;
     }
     .news-ticker-viewport {
       flex: 1;
@@ -61,8 +60,6 @@
       height: 100%;
       display: flex;
       align-items: center;
-      mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
-      -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
     }
     .news-ticker-track {
       display: flex !important;
@@ -77,7 +74,7 @@
       flex-shrink: 0 !important;
     }
   </style>
-  <link rel="stylesheet" href="css/styles.css?v=4.9.7.3">
+  <link rel="stylesheet" href="css/styles.css?v=4.9.7.4">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -396,47 +393,46 @@
           </div>
         </footer>
       </main>
+    </div> <!-- Fim de Container Abaixo do Header: Sidebar + Conteúdo Principal -->
 
-      <!-- Barra Inferior: Monitor de Notícias Dinâmico On-Line (Imagem 5) -->
-      <div id="news-ticker-bar" class="w-full flex items-center justify-between px-3 text-xs select-none no-print">
-        <!-- Canto Esquerdo: Data e Hora Atuais em Tempo Real -->
-        <div class="flex items-center gap-2 pr-3 border-r border-slate-200 dark:border-slate-800 shrink-0 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Feed On-line"></span>
-          <span id="news-ticker-clock">--/--/---- --:--:--</span>
-        </div>
+    <!-- Barra Inferior: Monitor de Notícias Dinâmico On-Line (Fixa no Rodapé da Tela) -->
+    <div id="news-ticker-bar" class="w-full flex items-center justify-between px-3 text-xs select-none no-print border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1527] shrink-0 z-30">
+      <!-- Canto Esquerdo: Data e Hora Atuais em Tempo Real -->
+      <div class="flex items-center gap-2 pr-3 border-r border-slate-200 dark:border-slate-800 shrink-0 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Feed On-line"></span>
+        <span id="news-ticker-clock">--/--/---- --:--:--</span>
+      </div>
 
-        <!-- Destaques Roxo News Oficial -->
-        <a href="https://roxo.news/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 px-2.5 py-1 bg-purple-600/10 dark:bg-purple-950/50 hover:bg-purple-600/20 text-purple-700 dark:text-purple-300 rounded font-black text-[11px] shrink-0 border border-purple-500/20 transition select-none group mx-1" title="Acessar Portal Roxo News Oficial (https://roxo.news/)">
-          <span class="text-purple-600 dark:text-purple-400 font-bold group-hover:scale-110 transition-transform">⚡</span>
-          <span class="tracking-wide">Destaques</span>
-        </a>
+      <!-- Destaques Roxo News Oficial -->
+      <a href="https://roxo.news/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 px-2.5 py-1 bg-purple-600/10 dark:bg-purple-950/50 hover:bg-purple-600/20 text-purple-700 dark:text-purple-300 rounded font-black text-[11px] shrink-0 border border-purple-500/20 transition select-none group mx-1" title="Acessar Portal Roxo News Oficial (https://roxo.news/)">
+        <span class="text-purple-600 dark:text-purple-400 font-bold group-hover:scale-110 transition-transform">⚡</span>
+        <span class="tracking-wide">Destaques</span>
+      </a>
 
-        <!-- Centro: Ticker com rolagem contínua da direita para a esquerda -->
-        <div class="news-ticker-viewport mx-2">
-          <div id="news-ticker-track" class="news-ticker-track">
-            <span class="px-4 text-xs text-slate-400">Carregando notícias em tempo real...</span>
-          </div>
-        </div>
-
-        <!-- Canto Direito: Ações (Engrenagem para Gerente/Admin e Alfinete Fixador) -->
-        <div class="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
-          <button id="btn-ticker-config" onclick="newsTickerModule.openConfigModal()" class="hidden p-1 text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Configurar URL do Feed RSS (Gerente / Proprietário / Admin)">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          </button>
-          <button onclick="newsTickerModule.toggle()" class="px-2 py-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 text-[11px] font-bold" title="Ocultar Monitor de Notícias (Fixar/Alfinete)">
-            <span>📌</span>
-            <span class="hidden sm:inline">Ocultar</span>
-          </button>
+      <!-- Centro: Ticker com rolagem contínua da direita para a esquerda -->
+      <div class="news-ticker-viewport mx-2">
+        <div id="news-ticker-track" class="news-ticker-track">
+          <span class="px-4 text-xs text-slate-400">Carregando notícias em tempo real...</span>
         </div>
       </div>
 
-      <!-- Alfinete Flutuante quando a barra estiver oculta para restaurar -->
-      <button id="news-ticker-pin-tab" onclick="newsTickerModule.toggle()" class="hidden fixed bottom-2 right-4 z-40 px-3 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-full shadow-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center gap-1.5 cursor-pointer no-print" title="Exibir Monitor de Notícias em Tempo Real">
-        <span>📌</span>
-        <span>Notícias On-Line</span>
-      </button>
-
+      <!-- Canto Direito: Ações (Engrenagem para Gerente/Admin e Alfinete Fixador) -->
+      <div class="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
+        <button id="btn-ticker-config" onclick="newsTickerModule.openConfigModal()" class="hidden p-1 text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Configurar URL do Feed RSS (Gerente / Proprietário / Admin)">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+        <button onclick="newsTickerModule.toggle()" class="px-2 py-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 text-[11px] font-bold" title="Ocultar Monitor de Notícias (Fixar/Alfinete)">
+          <span>📌</span>
+          <span class="hidden sm:inline">Ocultar</span>
+        </button>
+      </div>
     </div>
+
+    <!-- Alfinete Flutuante quando a barra estiver oculta para restaurar -->
+    <button id="news-ticker-pin-tab" onclick="newsTickerModule.toggle()" class="hidden fixed bottom-2 right-4 z-40 px-3 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-full shadow-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center gap-1.5 cursor-pointer no-print" title="Exibir Monitor de Notícias em Tempo Real">
+      <span>📌</span>
+      <span>Notícias On-Line</span>
+    </button>
   </div> <!-- Fim de #app-layout -->
 
   <!-- Container Dedicado do Portal Público de Aprovação do Cliente (Sem Senha, Exclusivo por Pedido) -->

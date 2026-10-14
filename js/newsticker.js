@@ -1,8 +1,9 @@
 /* ==============================================================================
    GRAFSIS - Monitor de Notícias On-Line & RSS Feed Ticker Dinâmico
-   Versão 4.9.7.3 - Feed Oficial Roxo News (https://roxo.news/feed/),
-   Motor Contínuo Infinito Seamless Multi-Ciclo via requestAnimationFrame,
-   Categorias em Destaque, Redirecionamento Direto ao Artigo e Alinhamento Preciso no Desktop.
+   Versão 4.9.7.4 - Feed Oficial Roxo News (https://roxo.news/feed/),
+   Layout Flex Nativo de Rodapé Widescreen, Motor Contínuo Multi-Ciclo Seamless
+   via requestAnimationFrame com getBoundingClientRect, Categorias em Destaque
+   e Redirecionamento no Clique.
    ============================================================================== */
 
 window.newsTickerModule = {
@@ -12,7 +13,7 @@ window.newsTickerModule = {
   clockIntervalId: null,
   animationFrameId: null,
   scrollOffset: 0,
-  scrollSpeed: 0.85, // Velocidade suave e constante para excelente legibilidade (~50px/s)
+  scrollSpeed: 0.85, // Velocidade contínua e suave (~50px/s)
   isPaused: false,
   hoverListenersAttached: false,
   isHidden: false,
@@ -20,7 +21,7 @@ window.newsTickerModule = {
   STORAGE_FEED_KEY_PREFIX: 'grafsis_news_feed_',
   DEFAULT_FEED: 'https://roxo.news/feed/',
 
-  // Notícias Reais Pré-Carregadas do Roxo News (Garante ciclo amplo e execução imediata)
+  // Notícias Reais Pré-Carregadas do Roxo News (Execução Imediata e Fallback Rico)
   FALLBACK_NEWS: [
     {
       title: 'Fluminense x Palmeiras: confira onde assistir e as prováveis escalações',
@@ -206,16 +207,13 @@ window.newsTickerModule = {
   applyVisibility() {
     const bar = document.getElementById('news-ticker-bar');
     const pinTab = document.getElementById('news-ticker-pin-tab');
-    const mainScroll = document.getElementById('main-content-scroll');
 
     if (this.isHidden) {
       if (bar) bar.classList.add('hidden');
       if (pinTab) pinTab.classList.remove('hidden');
-      if (mainScroll) mainScroll.classList.remove('with-news-ticker');
     } else {
       if (bar) bar.classList.remove('hidden');
       if (pinTab) pinTab.classList.add('hidden');
-      if (mainScroll) mainScroll.classList.add('with-news-ticker');
       this.startMarqueeEngine();
     }
 
@@ -258,7 +256,7 @@ window.newsTickerModule = {
       if (!this.isHidden && track) {
         const firstCycle = track.querySelector('.news-cycle');
         if (firstCycle) {
-          const cycleWidth = firstCycle.offsetWidth;
+          const cycleWidth = firstCycle.getBoundingClientRect().width;
           if (cycleWidth > 50) {
             if (!this.isPaused) {
               this.scrollOffset += this.scrollSpeed;
@@ -426,7 +424,7 @@ window.newsTickerModule = {
       a.href = item.link || 'https://roxo.news/';
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.className = 'news-ticker-item inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-400 whitespace-nowrap group select-none transition-colors';
+      a.className = 'news-ticker-item inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-400 whitespace-nowrap group select-none transition-colors shrink-0';
       a.title = `Clique para ler matéria completa em Roxo News: ${item.title}`;
 
       // Badge de Categoria em Caixa Alta (estilo oficial Roxo News)

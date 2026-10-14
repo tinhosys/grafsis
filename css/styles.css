@@ -427,15 +427,7 @@ html.dark .badge-entregue { background-color: rgba(71, 85, 105, 0.3); color: #94
    ============================================================================== */
 
 /* Redeterminação do limite inferior do conteúdo com margem para a barra de notícias */
-#main-content-scroll.with-news-ticker {
-  padding-bottom: 3.5rem !important;
-}
-
 #news-ticker-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 38px;
   background-color: #ffffff;
   border-top: 1px solid #e2e8f0;
@@ -443,12 +435,6 @@ html.dark .badge-entregue { background-color: rgba(71, 85, 105, 0.3); color: #94
   align-items: center;
   z-index: 25;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
-}
-
-@media (min-width: 768px) {
-  #news-ticker-bar {
-    left: 15rem !important; /* Inicia após a sidebar (240px) no desktop */
-  }
 }
 
 html.dark #news-ticker-bar {
@@ -465,8 +451,6 @@ html.dark #news-ticker-bar {
   height: 100%;
   display: flex;
   align-items: center;
-  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
 }
 
 .news-ticker-track {
