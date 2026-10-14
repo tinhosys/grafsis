@@ -388,7 +388,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.8 (Ver Notas)
+              Versão 4.9.8.3 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -812,7 +812,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.3</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -820,11 +820,12 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.8 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Operação 100% On-line Exclusiva, Gestão Semanal & Menu Destaque</span>
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.3 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">100% On-line, Resiliência Nuvem & Gestão Semanal</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Operação 100% On-line Exclusiva:</strong> Desmontagem total de mensagens de "Modo Retaguarda". O sistema opera estritamente conectado à base de dados na nuvem (Supabase). Caso inacessível, avisa e bloqueia com estado de Sistema Inoperante até a restauração da conexão.</li>
+            <li><strong>Operação 100% On-line Exclusiva:</strong> Desmontagem total de mensagens de "Modo Retaguarda". O sistema opera estritamente conectado à base de dados na nuvem (Supabase).</li>
+            <li><strong>Resiliência e Tolerância Transcontinental:</strong> Timeouts ampliados para 12s-15s, absorvendo a distância dos servidores internacionais da nuvem (EUA) com retry automático e auto-fechamento do aviso assim que reconectar.</li>
             <li><strong>Indicadores Conectado / Desconectado:</strong> Badges no topo e no Painel Master exibindo "100% conectado" (verde) ou "desconectado" (vermelho).</li>
             <li><strong>Filtros de Gestão no Mural de Serviços:</strong> Novos botões de gestão da produção e entregas: "Pedidos da Semana" (Segunda a Domingo) e "Semana que Vem" (Segunda a Domingo subsequente).</li>
             <li><strong>Menu Superior Padronizado:</strong> Todos os botões com tamanho unificado (h-10 / 40px), alinhamento perfeito e grupos de cores consistentes para Ação (+ Operação), Navegação (Dashboard, Clientes, Operação, Mural, Catálogo) e Ferramentas/Status.</li>
