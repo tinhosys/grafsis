@@ -451,7 +451,7 @@ html.dark #news-ticker-bar {
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* Área de Rolagem do Ticker: Da Direita para a Esquerda (Contínuo & Fluido) */
+/* Área de Rolagem do Ticker: Da Direita para a Esquerda (Motor JS Contínuo & Fluido) */
 .news-ticker-viewport {
   flex: 1;
   overflow: hidden;
@@ -464,25 +464,11 @@ html.dark #news-ticker-bar {
 }
 
 .news-ticker-track {
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  width: max-content !important;
   will-change: transform;
-  /* Animação contínua da direita para a esquerda */
-  animation: ticker-scroll-rtl 55s linear infinite;
-}
-
-.news-ticker-viewport:hover .news-ticker-track {
-  animation-play-state: paused !important;
-}
-
-@keyframes ticker-scroll-rtl {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-50%, 0, 0);
-  }
 }
 
 .news-ticker-item {

@@ -48,27 +48,26 @@
     html.portal-mode #public-portal-root { display: block !important; }
     html.portal-mode body { display: block !important; overflow-y: auto !important; height: auto !important; min-height: 100vh; }
 
-    /* Monitor de Notícias: Movimento Contínuo da Direita para a Esquerda (RTL) */
+    /* Monitor de Notícias Dinâmico: Estilização do Viewport e Track para Motor Contínuo */
+    .news-ticker-viewport {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+    }
     .news-ticker-track {
-      display: flex !important;
+      display: inline-flex !important;
       align-items: center !important;
       white-space: nowrap !important;
+      width: max-content !important;
       will-change: transform !important;
-      animation: ticker-scroll-rtl 55s linear infinite !important;
-    }
-    .news-ticker-viewport:hover .news-ticker-track {
-      animation-play-state: paused !important;
-    }
-    @keyframes ticker-scroll-rtl {
-      0% {
-        transform: translate3d(0, 0, 0);
-      }
-      100% {
-        transform: translate3d(-50%, 0, 0);
-      }
     }
   </style>
-  <link rel="stylesheet" href="css/styles.css?v=4.9.7.1">
+  <link rel="stylesheet" href="css/styles.css?v=4.9.7.2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -955,17 +954,17 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação -->
-  <script src="js/config.js?v=4.9.7"></script>
-  <script src="js/auth.js?v=4.9.7"></script>
-  <script src="js/store.js?v=4.9.7"></script>
-  <script src="js/clients.js?v=4.9.7"></script>
-  <script src="js/suppliers.js?v=4.9.7"></script>
-  <script src="js/products.js?v=4.9.7"></script>
-  <script src="js/sales.js?v=4.9.7"></script>
-  <script src="js/production.js?v=4.9.7"></script>
-  <script src="js/finance.js?v=4.9.7"></script>
-  <script src="js/newsticker.js?v=4.9.7"></script>
-  <script src="js/app.js?v=4.9.7"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.7.2) -->
+  <script src="js/config.js?v=4.9.7.2"></script>
+  <script src="js/auth.js?v=4.9.7.2"></script>
+  <script src="js/store.js?v=4.9.7.2"></script>
+  <script src="js/clients.js?v=4.9.7.2"></script>
+  <script src="js/suppliers.js?v=4.9.7.2"></script>
+  <script src="js/products.js?v=4.9.7.2"></script>
+  <script src="js/sales.js?v=4.9.7.2"></script>
+  <script src="js/production.js?v=4.9.7.2"></script>
+  <script src="js/finance.js?v=4.9.7.2"></script>
+  <script src="js/newsticker.js?v=4.9.7.2"></script>
+  <script src="js/app.js?v=4.9.7.2"></script>
 </body>
 </html>

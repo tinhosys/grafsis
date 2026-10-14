@@ -1,8 +1,8 @@
 /* ==============================================================================
    GRAFSIS - Monitor de Notícias On-Line & RSS Feed Ticker Dinâmico
-   Versão 4.9.7 - Feed Oficial Roxo News (https://roxo.news/feed/),
-   Movimento Contínuo Fluido, Categorias em Destaque, Redirecionamento Direto ao Artigo
-   e Desobstrução Automática do Card de Suporte da Sidebar.
+   Versão 4.9.7.2 - Feed Oficial Roxo News (https://roxo.news/feed/),
+   Motor de Rolagem Ativo Contínuo via requestAnimationFrame (Loop Infinito da Direita para a Esquerda),
+   Categorias em Destaque, Redirecionamento no Clique e Desobstrução do Suporte WhatsApp.
    ============================================================================== */
 
 window.newsTickerModule = {
@@ -10,12 +10,17 @@ window.newsTickerModule = {
   newsItems: [],
   intervalId: null,
   clockIntervalId: null,
+  animationFrameId: null,
+  scrollOffset: 0,
+  scrollSpeed: 0.9, // Velocidade fluida (~55px/s a 60fps)
+  isPaused: false,
+  hoverListenersAttached: false,
   isHidden: false,
   STORAGE_PREF_KEY: 'grafsis_news_ticker_pinned',
   STORAGE_FEED_KEY_PREFIX: 'grafsis_news_feed_',
   DEFAULT_FEED: 'https://roxo.news/feed/',
 
-  // Notícias de Fallback Reais do Roxo News (Garante exibição instantânea sem tela vazia)
+  // Notícias Reais Pré-Carregadas do Roxo News (Execução Instantânea e Fallback Confiável)
   FALLBACK_NEWS: [
     {
       title: 'Fluminense x Palmeiras: confira onde assistir e as prováveis escalações',
@@ -64,6 +69,9 @@ window.newsTickerModule = {
     // Renderiza imediatamente as notícias de fallback enquanto a busca remota carrega
     this.newsItems = [...this.FALLBACK_NEWS];
     this.renderItems();
+
+    // Inicia o motor de movimento contínuo da direita para a esquerda
+    this.startMarqueeEngine();
 
     // Busca remota atualizada do feed Roxo News
     this.fetchNews();
@@ -197,6 +205,7 @@ window.newsTickerModule = {
         supportContainer.classList.remove('mb-2');
         supportContainer.classList.add('mb-11');
       }
+      this.startMarqueeEngine();
     }
 
     this.updateManageAccess();
@@ -211,6 +220,47 @@ window.newsTickerModule = {
     } else {
       btnCfg.classList.add('hidden');
     }
+  },
+
+  /* ==============================================================================
+     MOTOR DE MOVIMENTO CONTÍNUO (Loop Infinito da Direita para a Esquerda)
+     ============================================================================== */
+  startMarqueeEngine() {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    const track = document.getElementById('news-ticker-track');
+    const viewport = document.querySelector('.news-ticker-viewport');
+    if (!track || !viewport) return;
+
+    if (!this.hoverListenersAttached) {
+      viewport.addEventListener('mouseenter', () => { this.isPaused = true; });
+      viewport.addEventListener('mouseleave', () => { this.isPaused = false; });
+      viewport.addEventListener('touchstart', () => { this.isPaused = true; }, { passive: true });
+      viewport.addEventListener('touchend', () => { this.isPaused = false; });
+      this.hoverListenersAttached = true;
+    }
+
+    const tick = () => {
+      if (!this.isHidden && track) {
+        // Metade do conteúdo corresponde a um conjunto de notícias completo duplicado
+        const halfWidth = track.scrollWidth / 2;
+        if (halfWidth > 50) {
+          if (!this.isPaused) {
+            this.scrollOffset += this.scrollSpeed;
+            if (this.scrollOffset >= halfWidth) {
+              this.scrollOffset = 0; // Seamless loop infinito imperceptível
+            }
+            track.style.transform = `translate3d(-${this.scrollOffset}px, 0, 0)`;
+          }
+        }
+      }
+      this.animationFrameId = requestAnimationFrame(tick);
+    };
+
+    this.animationFrameId = requestAnimationFrame(tick);
   },
 
   async fetchNews() {
@@ -359,7 +409,7 @@ window.newsTickerModule = {
 
     const list = (this.newsItems && this.newsItems.length > 0) ? this.newsItems : this.FALLBACK_NEWS;
     
-    // Duplica a lista para permitir rolagem horizontal infinita e contínua sem engasgos
+    // Duplica a lista para permitir rolagem horizontal contínua infinita
     const renderList = [...list, ...list];
     track.innerHTML = '';
 
@@ -391,6 +441,9 @@ window.newsTickerModule = {
       a.appendChild(separator);
       track.appendChild(a);
     });
+
+    // Inicia ou recalcula o motor de rolagem com a nova lista de elementos
+    this.startMarqueeEngine();
   },
 
   openConfigModal() {
