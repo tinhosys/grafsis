@@ -1,8 +1,8 @@
 /* ==============================================================================
    GRAFSIS - Monitor de Notícias On-Line & RSS Feed Ticker Dinâmico
-   Versão 4.9.7.2 - Feed Oficial Roxo News (https://roxo.news/feed/),
-   Motor de Rolagem Ativo Contínuo via requestAnimationFrame (Loop Infinito da Direita para a Esquerda),
-   Categorias em Destaque, Redirecionamento no Clique e Desobstrução do Suporte WhatsApp.
+   Versão 4.9.7.3 - Feed Oficial Roxo News (https://roxo.news/feed/),
+   Motor Contínuo Infinito Seamless Multi-Ciclo via requestAnimationFrame,
+   Categorias em Destaque, Redirecionamento Direto ao Artigo e Alinhamento Preciso no Desktop.
    ============================================================================== */
 
 window.newsTickerModule = {
@@ -12,7 +12,7 @@ window.newsTickerModule = {
   clockIntervalId: null,
   animationFrameId: null,
   scrollOffset: 0,
-  scrollSpeed: 0.9, // Velocidade fluida (~55px/s a 60fps)
+  scrollSpeed: 0.85, // Velocidade suave e constante para excelente legibilidade (~50px/s)
   isPaused: false,
   hoverListenersAttached: false,
   isHidden: false,
@@ -20,7 +20,7 @@ window.newsTickerModule = {
   STORAGE_FEED_KEY_PREFIX: 'grafsis_news_feed_',
   DEFAULT_FEED: 'https://roxo.news/feed/',
 
-  // Notícias Reais Pré-Carregadas do Roxo News (Execução Instantânea e Fallback Confiável)
+  // Notícias Reais Pré-Carregadas do Roxo News (Garante ciclo amplo e execução imediata)
   FALLBACK_NEWS: [
     {
       title: 'Fluminense x Palmeiras: confira onde assistir e as prováveis escalações',
@@ -51,6 +51,26 @@ window.newsTickerModule = {
       title: 'Eleições 2026: Principais propostas econômicas em debate no Congresso Nacional',
       link: 'https://roxo.news/politica/',
       category: 'POLÍTICA'
+    },
+    {
+      title: 'Mercado financeiro eleva projeção de crescimento do PIB para o próximo trimestre',
+      link: 'https://roxo.news/economia/',
+      category: 'MERCADO'
+    },
+    {
+      title: 'Produção industrial avança puxada pelo setor de comunicação visual e gráfica',
+      link: 'https://roxo.news/economia/',
+      category: 'INDÚSTRIA'
+    },
+    {
+      title: 'Petrobras anuncia novos investimentos em sustentabilidade e eficiência energética',
+      link: 'https://roxo.news/economia/',
+      category: 'ENERGIA'
+    },
+    {
+      title: 'Inovação e automação digital impulsionam gráficas e prestadores de serviços no Brasil',
+      link: 'https://roxo.news/tecnologia/',
+      category: 'TECNOLOGIA'
     }
   ],
 
@@ -70,7 +90,7 @@ window.newsTickerModule = {
     this.newsItems = [...this.FALLBACK_NEWS];
     this.renderItems();
 
-    // Inicia o motor de movimento contínuo da direita para a esquerda
+    // Inicia o motor de movimento contínuo ininterrupto
     this.startMarqueeEngine();
 
     // Busca remota atualizada do feed Roxo News
@@ -187,24 +207,15 @@ window.newsTickerModule = {
     const bar = document.getElementById('news-ticker-bar');
     const pinTab = document.getElementById('news-ticker-pin-tab');
     const mainScroll = document.getElementById('main-content-scroll');
-    const supportContainer = document.getElementById('sidebar-support-container');
 
     if (this.isHidden) {
       if (bar) bar.classList.add('hidden');
       if (pinTab) pinTab.classList.remove('hidden');
       if (mainScroll) mainScroll.classList.remove('with-news-ticker');
-      if (supportContainer) {
-        supportContainer.classList.remove('mb-11');
-        supportContainer.classList.add('mb-2');
-      }
     } else {
       if (bar) bar.classList.remove('hidden');
       if (pinTab) pinTab.classList.add('hidden');
       if (mainScroll) mainScroll.classList.add('with-news-ticker');
-      if (supportContainer) {
-        supportContainer.classList.remove('mb-2');
-        supportContainer.classList.add('mb-11');
-      }
       this.startMarqueeEngine();
     }
 
@@ -223,7 +234,7 @@ window.newsTickerModule = {
   },
 
   /* ==============================================================================
-     MOTOR DE MOVIMENTO CONTÍNUO (Loop Infinito da Direita para a Esquerda)
+     MOTOR DE MOVIMENTO CONTÍNUO MULTI-CICLO (Loop Infinito da Direita para a Esquerda)
      ============================================================================== */
   startMarqueeEngine() {
     if (this.animationFrameId) {
@@ -245,15 +256,18 @@ window.newsTickerModule = {
 
     const tick = () => {
       if (!this.isHidden && track) {
-        // Metade do conteúdo corresponde a um conjunto de notícias completo duplicado
-        const halfWidth = track.scrollWidth / 2;
-        if (halfWidth > 50) {
-          if (!this.isPaused) {
-            this.scrollOffset += this.scrollSpeed;
-            if (this.scrollOffset >= halfWidth) {
-              this.scrollOffset = 0; // Seamless loop infinito imperceptível
+        const firstCycle = track.querySelector('.news-cycle');
+        if (firstCycle) {
+          const cycleWidth = firstCycle.offsetWidth;
+          if (cycleWidth > 50) {
+            if (!this.isPaused) {
+              this.scrollOffset += this.scrollSpeed;
+              if (this.scrollOffset >= cycleWidth) {
+                // Preserva o resto sub-pixel sem engasgos ou cortes
+                this.scrollOffset -= cycleWidth;
+              }
+              track.style.transform = `translate3d(-${this.scrollOffset}px, 0, 0)`;
             }
-            track.style.transform = `translate3d(-${this.scrollOffset}px, 0, 0)`;
           }
         }
       }
@@ -281,7 +295,7 @@ window.newsTickerModule = {
       }
 
       if (items && items.length > 0) {
-        this.newsItems = items.slice(0, 20);
+        this.newsItems = items.slice(0, 25);
         this.renderItems();
       } else if (!this.newsItems || this.newsItems.length === 0) {
         this.newsItems = [...this.FALLBACK_NEWS];
@@ -403,17 +417,11 @@ window.newsTickerModule = {
     }
   },
 
-  renderItems() {
-    const track = document.getElementById('news-ticker-track');
-    if (!track) return;
+  createCycleElement(items) {
+    const cycle = document.createElement('div');
+    cycle.className = 'news-cycle flex items-center shrink-0';
 
-    const list = (this.newsItems && this.newsItems.length > 0) ? this.newsItems : this.FALLBACK_NEWS;
-    
-    // Duplica a lista para permitir rolagem horizontal contínua infinita
-    const renderList = [...list, ...list];
-    track.innerHTML = '';
-
-    renderList.forEach(item => {
+    items.forEach(item => {
       const a = document.createElement('a');
       a.href = item.link || 'https://roxo.news/';
       a.target = '_blank';
@@ -439,10 +447,25 @@ window.newsTickerModule = {
       a.appendChild(badge);
       a.appendChild(txt);
       a.appendChild(separator);
-      track.appendChild(a);
+      cycle.appendChild(a);
     });
 
-    // Inicia ou recalcula o motor de rolagem com a nova lista de elementos
+    return cycle;
+  },
+
+  renderItems() {
+    const track = document.getElementById('news-ticker-track');
+    if (!track) return;
+
+    const list = (this.newsItems && this.newsItems.length > 0) ? this.newsItems : this.FALLBACK_NEWS;
+    track.innerHTML = '';
+
+    // Cria 3 ciclos idênticos consecutivos garantindo preenchimento contínuo e sem corte
+    track.appendChild(this.createCycleElement(list));
+    track.appendChild(this.createCycleElement(list));
+    track.appendChild(this.createCycleElement(list));
+
+    // Reinicia o motor contínuo com os novos blocos
     this.startMarqueeEngine();
   },
 
