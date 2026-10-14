@@ -1159,7 +1159,7 @@ class GrafsisStore {
     return survey;
   }
 
-  async checkCloudHealth() {
+  async checkCloudHealth(retry = true) {
     if (!this.supabaseClient) {
       this.cloudConnected = false;
       this.updateSyncBadge(false);
@@ -1168,23 +1168,29 @@ class GrafsisStore {
     }
     try {
       const selectPromise = this.supabaseClient.from('clientes').select('count', { count: 'exact', head: true });
-      const res = await (this.runWithTimeout ? this.runWithTimeout(selectPromise, 4000) : selectPromise);
+      const res = await (this.runWithTimeout ? this.runWithTimeout(selectPromise, 8000) : selectPromise);
       if (res && res.error) {
-        const msg = String(res.error.message || res.error);
-        this.cloudConnected = false;
-        this.updateSyncBadge(false);
-        this.showInoperableNoticeIfNeeded(msg);
-        return false;
+        throw res.error;
       }
       this.cloudConnected = true;
+      this.consecutiveFailures = 0;
       this.updateSyncBadge(true);
       this.hideInoperableNotice();
       return true;
     } catch (err) {
-      const msg = String(err.message || err);
-      this.cloudConnected = false;
-      this.updateSyncBadge(false);
-      this.showInoperableNoticeIfNeeded(msg);
+      if (retry) {
+        // Tolerância para oscilações ou jitter internacional: tenta uma segunda vez após 800ms
+        await new Promise(r => setTimeout(r, 800));
+        return this.checkCloudHealth(false);
+      }
+      this.consecutiveFailures = (this.consecutiveFailures || 0) + 1;
+      // Exige 2 falhas consecutivas de verificação com retry antes de bloquear a tela
+      if (this.consecutiveFailures >= 2) {
+        const msg = String(err.message || err);
+        this.cloudConnected = false;
+        this.updateSyncBadge(false);
+        this.showInoperableNoticeIfNeeded(msg);
+      }
       return false;
     }
   }
@@ -1225,7 +1231,7 @@ class GrafsisStore {
             </ul>
           </div>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
-            <button onclick="window.store.handleManualSyncClick()" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black tracking-wide shadow-md shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2">
+            <button id="inoperable-retry-btn" onclick="this.disabled=true; this.innerText='Reconectando...'; window.store.handleManualSyncClick()" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black tracking-wide shadow-md shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
               Tentar Reconectar Agora
             </button>
@@ -1263,23 +1269,28 @@ class GrafsisStore {
           }
         });
 
-        // Auto-sincronizacao ao focar na janela (ao alternar entre abas ou celular/PC)
+        // Auto-sincronizacao ao focar na janela com proteção de throttling (mínimo 15s entre checagens)
         if (!this._focusListenerAttached) {
           this._focusListenerAttached = true;
+          this._lastFocusCheck = 0;
           window.addEventListener('focus', () => {
-            this.checkCloudHealth().then(isOnline => {
-              if (isOnline) this.syncAllWithCloud();
-            });
+            const now = Date.now();
+            if (now - this._lastFocusCheck > 15000) {
+              this._lastFocusCheck = now;
+              this.checkCloudHealth().then(isOnline => {
+                if (isOnline) this.syncAllWithCloud();
+              });
+            }
           });
         }
 
-        // Auto-verificação periodica em segundo plano (a cada 20 segundos)
+        // Auto-verificação periodica em segundo plano (a cada 45 segundos para poupar conexão da nuvem)
         if (!this._syncInterval) {
           this._syncInterval = setInterval(() => {
             this.checkCloudHealth().then(isOnline => {
               if (isOnline) this.syncAllWithCloud();
             });
-          }, 20000);
+          }, 45000);
         }
 
         // Supabase Realtime (detecta alteracoes instantaneas entre PC e celular)
@@ -1309,6 +1320,7 @@ class GrafsisStore {
   }
 
   async handleManualSyncClick() {
+    this.consecutiveFailures = 0;
     const badge = document.getElementById('cloud-sync-status');
     
     if (badge) {
@@ -1325,7 +1337,7 @@ class GrafsisStore {
         await this.initSupabase();
       }
       
-      const isOnline = await this.checkCloudHealth();
+      const isOnline = await this.checkCloudHealth(true);
       if (!isOnline) {
         if (badge) {
           badge.innerHTML = `
@@ -1500,15 +1512,15 @@ class GrafsisStore {
       // (Garante que novos produtos/clientes criados neste computador subam para a nuvem imediatamente)
       await this.pushAllLocalRecords();
 
-      // 2. Puxar todos os registros da nuvem (Unifica e converge a base com os outros computadores)
-      await Promise.all([
-        this.pullTable('clientes', STORAGE_KEYS.CLIENTS),
-        this.pullTable('fornecedores', STORAGE_KEYS.SUPPLIERS),
-        this.pullTable('produtos', STORAGE_KEYS.PRODUCTS),
-        this.pullTable('pedidos', STORAGE_KEYS.ORDERS),
-        this.pullTable('financeiro_lancamentos', STORAGE_KEYS.FINANCE),
-        window.authModule ? window.authModule.syncUsersWithCloud(this.supabaseClient) : Promise.resolve()
-      ]);
+      // 2. Puxar todos os registros da nuvem sequencialmente (evita sobrecarga no pool de conexões do Supabase nano)
+      await this.pullTable('clientes', STORAGE_KEYS.CLIENTS);
+      await this.pullTable('produtos', STORAGE_KEYS.PRODUCTS);
+      await this.pullTable('pedidos', STORAGE_KEYS.ORDERS);
+      await this.pullTable('fornecedores', STORAGE_KEYS.SUPPLIERS);
+      await this.pullTable('financeiro_lancamentos', STORAGE_KEYS.FINANCE);
+      if (window.authModule && typeof window.authModule.syncUsersWithCloud === 'function') {
+        await window.authModule.syncUsersWithCloud(this.supabaseClient);
+      }
 
       // 3. Se for sincronização forçada ou manual, re-executa push para garantir convergência de IDs gerados
       if (force) {
@@ -1698,7 +1710,7 @@ class GrafsisStore {
       console.warn('[Supabase Sync] Erro no push local:', err);
     }
   }
-  async runWithTimeout(promise, timeoutMs = 3500) {
+  async runWithTimeout(promise, timeoutMs = 12000) {
     let timer;
     const timeoutPromise = new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error(`Timeout de comunicação com Supabase (${timeoutMs}ms)`)), timeoutMs);
@@ -1714,12 +1726,12 @@ class GrafsisStore {
     if (!this.supabaseClient) return;
     try {
       const selectPromise = this.supabaseClient.from(tableName).select('*');
-      const { data, error } = await this.runWithTimeout(selectPromise, 4000);
+      const { data, error } = await this.runWithTimeout(selectPromise, 15000);
       if (error) {
         console.warn(`[Supabase] Erro ao buscar ${tableName}:`, error.message);
-        this.cloudConnected = false;
-        this.updateSyncBadge(false);
-        this.showInoperableNoticeIfNeeded(error.message);
+        // Não bloqueia a interface imediatamente por conta de uma consulta lenta pontual;
+        // valida a conectividade geral com retry
+        this.checkCloudHealth();
         return;
       }
       if (data && Array.isArray(data)) {
@@ -1781,9 +1793,8 @@ class GrafsisStore {
       }
     } catch (err) {
       console.warn(`[Supabase] Falha pull ${tableName}:`, err.message || err);
-      this.cloudConnected = false;
-      this.updateSyncBadge(false);
-      this.showInoperableNoticeIfNeeded(err.message || String(err));
+      // Checa a conectividade geral antes de tomar qualquer ação destrutiva
+      this.checkCloudHealth();
     }
   }
 
@@ -1831,7 +1842,7 @@ class GrafsisStore {
       }
 
       const upsertPromise = this.supabaseClient.from(tableName).upsert(clean);
-      const { error } = await this.runWithTimeout(upsertPromise, 3500);
+      const { error } = await this.runWithTimeout(upsertPromise, 12000);
       if (error) {
         console.warn(`[Supabase] Erro ao enviar para ${tableName}:`, error.message);
 
@@ -1851,7 +1862,7 @@ class GrafsisStore {
             descricao: clean.descricao || null
           };
           const fallbackPromise = this.supabaseClient.from('produtos').upsert(baseProd);
-          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 12000);
           if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback de produtos:', fallbackRes.error.message);
           } else {
@@ -1874,7 +1885,7 @@ class GrafsisStore {
             categoria_produtos: clean.categoria_produtos || null
           };
           const fallbackPromise = this.supabaseClient.from('fornecedores').upsert(baseFornec);
-          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 12000);
           if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback de fornecedores:', fallbackRes.error.message);
           } else {
@@ -1920,7 +1931,7 @@ class GrafsisStore {
             updated_at: new Date().toISOString()
           };
           const fallbackPromise = this.supabaseClient.from('pedidos').upsert(baseOrder);
-          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 12000);
           if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback de pedidos:', fallbackRes.error.message);
           } else {
@@ -1948,7 +1959,7 @@ class GrafsisStore {
             updated_at: clean.updated_at || new Date().toISOString()
           };
           const fallbackPromise = this.supabaseClient.from('clientes').upsert(baseClient);
-          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 12000);
           if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback de clientes:', fallbackRes.error.message);
           } else {
@@ -1971,7 +1982,7 @@ class GrafsisStore {
             observacoes: clean.observacoes || null
           };
           const fallbackPromise = this.supabaseClient.from('financeiro_lancamentos').upsert(baseFin);
-          const fallbackRes = await this.runWithTimeout(fallbackPromise, 3500);
+          const fallbackRes = await this.runWithTimeout(fallbackPromise, 12000);
           if (fallbackRes && fallbackRes.error) {
             console.error('[Supabase Fallback] Falha no fallback financeiro:', fallbackRes.error.message);
           } else {

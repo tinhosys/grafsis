@@ -98,6 +98,15 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Resiliência de Conexão Nuvem & Tolerância a Latência Internacional (v4.9.8.2)
+- **Tolerância Transcontinental & Blindagem Anti-Oscilação:**
+  - Ajuste de timeouts de rede de 3,5s/4s para **12s/15s**, compatíveis com a rota internacional entre o Brasil e os servidores Supabase AWS em Oregon (`us-west-2`).
+  - **Mecanismo de Retry Inteligente:** A checagem de saúde da nuvem agora realiza retry automático antes de reportar falha, e exige 2 verificações consecutivas com erro antes de disparar o modal de bloqueio, eliminando falsos positivos por micro-quedas transitórias de ping.
+  - **Sincronização Sequencial Otimizada:** As tabelas são sincronizadas sequencialmente em vez de em rajada paralela, evitando saturação do pool de conexões da instância nano do Supabase.
+  - Intervalo de verificação em segundo plano calibrado para 45s com proteção de debounce ao alternar janelas.
+
+---
+
 ## 🔄 Operação 100% On-line Exclusiva, Gestão Semanal & Menu Destaque (v4.9.8)
 - **Operação 100% On-line Exclusiva (Imagem 1):**
   - Desmontagem integral do modo e mensagens de "Modo Retaguarda".
