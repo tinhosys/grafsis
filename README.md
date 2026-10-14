@@ -98,8 +98,8 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
-## 🔄 Regra de Ouro (100% On-line Sine Qua Non), Gestão Semanal & Menu Destaque (v4.9.8)
-- **Regra de Ouro (100% On-line Sine Qua Non - Imagem 1):**
+## 🔄 Operação 100% On-line Exclusiva, Gestão Semanal & Menu Destaque (v4.9.8)
+- **Operação 100% On-line Exclusiva (Imagem 1):**
   - Desmontagem integral do modo e mensagens de "Modo Retaguarda".
   - O Grafsis opera exclusivamente **100% ON-LINE** e com acesso direto ao banco de dados Supabase na nuvem.
   - Caso o banco de dados esteja inacessível, pausado ou com falha de conexão, o sistema informa imediatamente que está **INOPERANTE** e exibe tela de bloqueio e diagnóstico para evitar operações com dados desatualizados.

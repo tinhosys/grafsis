@@ -1201,9 +1201,6 @@ class GrafsisStore {
             ⚠️
           </div>
           <div class="space-y-1.5">
-            <span class="inline-block px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300">
-              Regra de Ouro • Condição Sine Qua Non
-            </span>
             <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
               SISTEMA INOPERANTE
             </h2>
