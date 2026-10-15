@@ -593,9 +593,12 @@ window.productionModule = {
     const currentOp = (order.tipo_operacao || order.tipo || 'venda').toLowerCase();
     if (advancedPhases.includes(newPhaseId) && (currentOp === 'orcamento' || currentOp === 'prevenda')) {
       const opLabel = currentOp === 'orcamento' ? 'ORÇAMENTO' : 'PRÉ-VENDA';
-      const shouldConvert = confirm(
-        `⚠️ REGRA DE TRAMITAÇÃO:\n\nPropostas registradas como ${opLabel} só podem tramitar até a fase de Aprovação.\n\nPara avançar para "${newPhaseObj.name}" e liberar a O.S. na fábrica, esta proposta precisa ser convertida em VENDA.\n\nDeseja converter este pedido em VENDA agora para autorizar a liberação?`
-      );
+      const shouldConvert = await window.grafsisConfirm({
+        title: 'GRAFSIS',
+        message: `⚠️ REGRA DE TRAMITAÇÃO:\n\nPropostas registradas como ${opLabel} só podem tramitar até a fase de Aprovação.\n\nPara avançar para "${newPhaseObj.name}" e liberar a O.S. na fábrica, esta proposta precisa ser convertida em VENDA.\n\nDeseja converter este pedido em VENDA agora para autorizar a liberação?`,
+        confirmText: 'Converter em Venda',
+        cancelText: 'Cancelar'
+      });
       if (!shouldConvert) {
         return;
       }
@@ -618,9 +621,12 @@ window.productionModule = {
 
     const msg = `MUDANÇA DE FASE\n\nID: #${order.numero}\nCliente: ${clientName}\nData do Pedido: ${dataPedido}\nPrazo de Entrega: ${prazo}\n\nConfirma a mudança de fase:\nDe: "${oldPhaseName}"\nPara: "${newPhaseName}"?`;
     
-    const isConfirmed = window.grafsisConfirm 
-      ? await window.grafsisConfirm({ title: 'GrafSiS', message: msg, confirmText: 'OK', cancelText: 'Cancelar' })
-      : confirm(msg);
+    const isConfirmed = await window.grafsisConfirm({
+      title: 'GRAFSIS',
+      message: msg,
+      confirmText: 'Confirmar Mudança',
+      cancelText: 'Cancelar'
+    });
 
     if (isConfirmed) {
       if (sourceEl) {

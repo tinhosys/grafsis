@@ -282,7 +282,7 @@ window.salesModule = {
     return ['ADMIN', 'PROPRIETARIO', 'GERENTE'].includes(role);
   },
 
-  checkClientStatusAndAge(selectElement) {
+  async checkClientStatusAndAge(selectElement) {
     const clientId = selectElement.value;
     if (!clientId) {
       this.updateFormState();
@@ -308,11 +308,17 @@ window.salesModule = {
       const msDiff = new Date() - new Date(refDate);
       const daysDiff = msDiff / (1000 * 60 * 60 * 24);
       if (daysDiff > 365) {
-        if (confirm(`Atenção: Os dados do cliente ${client.nome} não são atualizados há mais de 1 ano. Deseja atualizar os dados agora?`)) {
+        const atualizar = await window.grafsisConfirm({
+          title: 'GRAFSIS',
+          message: `Atenção: Os dados do cliente ${client.nome} não são atualizados há mais de 1 ano.\n\nDeseja atualizar o cadastro do cliente agora?`,
+          confirmText: 'Atualizar Cadastro',
+          cancelText: 'Continuar no Pedido'
+        });
+        if (atualizar) {
           if (window.clientsModule && typeof window.clientsModule.editModal === 'function') {
             window.clientsModule.editModal(clientId);
           } else {
-            alert('Acesse a aba Clientes para atualizar os dados.');
+            await window.grafsisAlert('Acesse a aba Clientes para atualizar os dados.', 'GRAFSIS');
           }
         }
       }
@@ -591,108 +597,41 @@ window.salesModule = {
       btnRecibo.title = 'Lançar recebimento, entrada, pagamentos e emitir recibo no Caixa';
     }
 
-    // 8. Governança de Trava de Campos e Edição
-    // Regra: se for 'venda', 'patrocinio', 'permuta', bloqueia os campos para não editar esta operação,
-    // permitindo edição SOMENTE se for 'gerente' através da chave ON/OFF.
-    // Campos que CONTINUAM HABILITADOS ("habitados"):
-    // - Detalhes do Pedido (observacoes)
-    // - Detalhes ou Descrição do Produto (item-desc)
-    // - Prazo de Entrega (dias-entrega, previsao_entrega)
-    // - Botão Caixa (btn-detalhes-recibo)
+    // 8. Governança de Edição e Campos
+    // Conforme solicitado: trava temporariamente removida para manter fluxo contínuo e sem bloqueios
     const orders = (window.store && window.store.getOrders()) || [];
     const activeDisplayId = document.getElementById('current-display-id')?.value;
     const currentOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) ||
                          (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
     const isSavedOrder = !!currentOrder;
-    // Regra: "depois que salvar a operação, mantenha, mas só trave depois que registrar"
-    const isRegisteredOrder = currentOrder && (
-      currentOrder.registrado === true ||
-      currentOrder.registrado === 'sim' ||
-      currentOrder.status_registro === 'registrado' ||
-      ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'].includes(currentOrder.status_fase) ||
-      Boolean(currentOrder.data_aceite) ||
-      Boolean(currentOrder.aprovado_cliente)
-    );
     const isVendaPatrocinioPermuta = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
-    const isLockedByApproval = this.isOrderLockedByApproval && !this.isEditingActive;
-    const isLockedOperation = (isRegisteredOrder && isVendaPatrocinioPermuta && !this.isEditingActive) || isLockedByApproval || (this.isReadOnlyFinancial && !this.isEditingActive);
 
-    if (isLockedOperation) {
-      if (opSelect) opSelect.disabled = true;
-      const clientSel = document.querySelector('select[name="cliente_id"]');
-      if (clientSel) clientSel.disabled = true;
+    // Todos os campos da tela permanecem abertos para inserção e edição
+    if (opSelect) opSelect.disabled = false;
+    const clientSel = document.querySelector('select[name="cliente_id"]');
+    if (clientSel) clientSel.disabled = false;
 
-      // Trava seção de itens e inserção, EXCETO item-desc (detalhes ou descrição do produto)
-      const itemElements = document.querySelectorAll('#secao-itens-pedido input, #secao-itens-pedido select, #secao-itens-pedido button');
-      itemElements.forEach(el => {
-        if (el.id === 'item-desc') {
-          el.disabled = false;
-        } else {
-          el.disabled = true;
-        }
-      });
+    itemElements.forEach(el => {
+      if (el.id !== 'item-type' && el.id !== 'item-type-display') el.disabled = false;
+    });
 
-      // Trava fechamento financeiro, EXCETO o Botão Caixa
-      const finElements = document.querySelectorAll('#secao-fechamento-financeiro input, #secao-fechamento-financeiro button');
-      finElements.forEach(el => {
-        if (el.id === 'btn-detalhes-recibo') {
-          el.disabled = false;
-        } else {
-          el.disabled = true;
-        }
-      });
+    finElements.forEach(el => el.disabled = false);
 
-      // Trava campos de validade/percentual
-      const valElements = document.querySelectorAll('#top-col-validade input, #top-col-percentual input');
-      valElements.forEach(el => el.disabled = true);
+    const valElements = document.querySelectorAll('#top-col-validade input, #top-col-percentual input');
+    valElements.forEach(el => el.disabled = false);
 
-      // LIBERA EXCLUSIVAMENTE OS CAMPOS PERMITIDOS:
-      // Entrega do Pedido (dias-entrega, previsao_entrega), Observações Técnicas, Detalhes do Produto e Botão Caixa
-      if (diasEntrega) {
-        diasEntrega.disabled = false;
-        diasEntrega.className = "w-full p-2 border-2 border-amber-400 bg-amber-50 text-amber-950 font-bold rounded-lg text-sm shadow-sm";
-      }
-      if (prevEntrega) {
-        prevEntrega.disabled = false;
-        prevEntrega.className = "w-full p-2 border-2 border-amber-400 bg-amber-50 text-amber-950 font-bold rounded-lg text-sm shadow-sm";
-      }
-      const obsTextarea = document.querySelector('textarea[name="observacoes"]');
-      if (obsTextarea) {
-        obsTextarea.disabled = false;
-        obsTextarea.className = "w-full p-2 border-2 border-amber-300 bg-amber-50/50 rounded-lg text-sm font-medium text-slate-800";
-      }
-      const itemDesc = document.getElementById('item-desc');
-      if (itemDesc) {
-        itemDesc.disabled = false;
-      }
-      const btnCaixa = document.getElementById('btn-detalhes-recibo');
-      if (btnCaixa) {
-        btnCaixa.disabled = false;
-      }
-    } else {
-      // Quando em modo de edição ativo ou novo pedido
-      if (opSelect) opSelect.disabled = false;
-      const clientSel = document.querySelector('select[name="cliente_id"]');
-      if (clientSel) clientSel.disabled = false;
-      const itemElements = document.querySelectorAll('#secao-itens-pedido input, #secao-itens-pedido select, #secao-itens-pedido button');
-      itemElements.forEach(el => el.disabled = false);
-      const finElements = document.querySelectorAll('#secao-fechamento-financeiro input, #secao-fechamento-financeiro button');
-      finElements.forEach(el => el.disabled = false);
-      const valElements = document.querySelectorAll('#top-col-validade input, #top-col-percentual input');
-      valElements.forEach(el => el.disabled = false);
-      if (diasEntrega) {
-        diasEntrega.disabled = false;
-        diasEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-sm";
-      }
-      if (prevEntrega) {
-        prevEntrega.disabled = false;
-        prevEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-mono text-sm";
-      }
-      const obsTextarea = document.querySelector('textarea[name="observacoes"]');
-      if (obsTextarea) {
-        obsTextarea.disabled = false;
-        obsTextarea.className = "w-full p-2 border border-slate-300 rounded text-sm bg-white";
-      }
+    if (diasEntrega) {
+      diasEntrega.disabled = false;
+      diasEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-sm";
+    }
+    if (prevEntrega) {
+      prevEntrega.disabled = false;
+      prevEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-mono text-sm";
+    }
+    const obsTextarea = document.querySelector('textarea[name="observacoes"]');
+    if (obsTextarea) {
+      obsTextarea.disabled = false;
+      obsTextarea.className = "w-full p-2 border border-slate-300 rounded text-sm bg-white";
     }
 
     // Garante que o Botão Caixa SEMPRE continue habitado/habilitado
@@ -702,22 +641,10 @@ window.salesModule = {
       btnCaixa.className = 'w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer';
     }
 
-    // 9. Chave de ON/OFF para Edição de Gerente no Botão Cinza (Imagem 2)
+    // 9. Chave de ON/OFF para Edição de Gerente: ocultada temporariamente conforme solicitação do usuário
     const wrapperChaveGerente = document.getElementById('wrapper-chave-edicao-gerente');
-    const toggleGerente = document.getElementById('toggle-gerente-edicao');
-    const labelGerente = document.getElementById('label-gerente-toggle');
-
     if (wrapperChaveGerente) {
-      if (isVendaPatrocinioPermuta && isSavedOrder) {
-        wrapperChaveGerente.style.display = 'flex';
-        if (toggleGerente) toggleGerente.checked = !!this.isEditingActive;
-        if (labelGerente) {
-          labelGerente.innerText = this.isEditingActive ? 'ON' : 'OFF';
-          labelGerente.className = this.isEditingActive ? 'ml-1.5 text-[10px] font-black text-emerald-700 uppercase' : 'ml-1.5 text-[10px] font-black text-slate-700 uppercase';
-        }
-      } else {
-        wrapperChaveGerente.style.display = 'none';
-      }
+      wrapperChaveGerente.style.display = 'none';
     }
 
     // 10. Governança e Paleta dos 6 Botões de Ação Inferiores
@@ -785,17 +712,20 @@ window.salesModule = {
     }
 
     // 6. Botão Emitir O.S. (Laranja)
-    // Se for 'orçamento' ou 'pre-venda': somente gravação, NÃO habilita a emissão de O.S.
-    // Se for 'venda', 'patrocinio', 'permuta': HABILITA a emissão de O.S.
+    // REGRA CLARA:
+    // Orçamento: NÃO emite O.S. (desabilitado)
+    // Pré-Venda: NÃO emite O.S. (desabilitado)
+    // A O.S. só fica liberada se a operação for: 'venda', 'patrocinio', 'permuta'
     if (btnEmitirOS) {
-      if (op === 'orcamento' || op === 'pre-venda') {
-        btnEmitirOS.disabled = true;
-        btnEmitirOS.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
-        btnEmitirOS.title = "Emissão de O.S. desabilitada para " + (op === 'orcamento' ? 'Orçamento' : 'Pré-Venda') + " (somente gravação)";
-      } else {
+      const isLiberadaOS = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
+      if (isLiberadaOS) {
         btnEmitirOS.disabled = false;
         btnEmitirOS.className = "w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
         btnEmitirOS.title = "Emitir Ordem de Serviço Técnica em A4 Paisagem";
+      } else {
+        btnEmitirOS.disabled = true;
+        btnEmitirOS.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
+        btnEmitirOS.title = "Emissão de O.S. liberada exclusivamente para Venda, Patrocínio ou Permuta (Orçamento e Pré-Venda não emitem O.S.)";
       }
     }
   },
@@ -997,9 +927,14 @@ window.salesModule = {
       cancelBtn.id = 'cancel-edit-btn';
       cancelBtn.type = 'button';
       cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2';
-      cancelBtn.innerHTML = 'CANCELAR';
-      cancelBtn.onclick = () => {
-        if (confirm('Cancelar edição e limpar formulário?')) {
+      cancelBtn.onclick = async () => {
+        const confirmar = await window.grafsisConfirm({
+          title: 'GRAFSIS',
+          message: 'Cancelar edição e limpar formulário do item?',
+          confirmText: 'Sim, Cancelar',
+          cancelText: 'Continuar Editando'
+        });
+        if (confirmar) {
           salesModule.activeItems.splice(idx, 0, it);
           document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml();
           document.getElementById('item-desc').value = '';
@@ -1222,7 +1157,7 @@ window.salesModule = {
                 
                 <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
                   <div class="grid grid-cols-12 gap-2">
-                    <div class="col-span-12 sm:col-span-5">
+                    <div class="col-span-12 sm:col-span-4">
                       <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
                       <select id="item-prod-select" onchange="salesModule.handleProdSelect(this)" class="w-full p-2 border border-slate-300 rounded bg-white font-semibold">
                         <option value="">Selecione...</option>
@@ -1232,11 +1167,13 @@ window.salesModule = {
                         }).join('')}
                       </select>
                     </div>
-                    <div class="col-span-6 sm:col-span-3">
+                    <!-- Parâmetro de Cálculo aumentado em mais de 30% (de col-span-3 para col-span-4) -->
+                    <div class="col-span-12 sm:col-span-4">
                       <label class="block font-semibold mb-1 text-slate-700">Parâmetro de Cálculo</label>
                       <input type="text" id="item-type-display" readonly disabled value="m² (X x Y)" class="w-full p-2 border border-slate-300 rounded bg-slate-100 font-semibold text-slate-700 cursor-not-allowed select-none shadow-inner" title="Pré-definido no cadastro do produto (não editável aqui)">
                       <input type="hidden" id="item-type" value="m2">
                     </div>
+                    <!-- Base m² / un fica com a sobra (col-span-2) -->
                     <div class="col-span-6 sm:col-span-2">
                       <label class="block font-semibold mb-1 text-slate-700 flex items-center justify-between" id="item-price-label">
                         <span id="item-price-ref-text">Base m² / un</span>
@@ -1244,7 +1181,7 @@ window.salesModule = {
                       </label>
                       <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" onmouseenter="salesModule.handlePriceHover(this, true)" onmouseleave="salesModule.handlePriceHover(this, false)" ondblclick="salesModule.revealPrice4s(this)" style="color: transparent; text-shadow: none;" class="w-full p-2 border border-slate-300 rounded bg-white font-mono font-bold transition-all duration-200 cursor-pointer selection:text-transparent" title="Preço base - Passe o mouse ou dê duplo clique para visualizar por 4 segundos">
                     </div>
-                    <div class="col-span-12 sm:col-span-2 flex items-end">
+                    <div class="col-span-6 sm:col-span-2 flex items-end">
                       <button type="button" onclick="salesModule.openQuickProductModal()" class="w-full h-[38px] bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition whitespace-nowrap cursor-pointer" title="Adicionar Novo Produto no Catálogo">
                         <span class="text-sm font-black">+</span>
                         <span>Novo Produto</span>
@@ -1923,18 +1860,23 @@ window.salesModule = {
     }
   },
 
-  promptRepositoryDriveLink(orderId) {
+  async promptRepositoryDriveLink(orderId) {
     const rawUrl = prompt('Cole o link da pasta ou arquivo no Google Drive:');
     if (!rawUrl || !rawUrl.trim()) return;
     const url = rawUrl.trim();
 
     if (!window.isValidWebUrl(url)) {
-      alert('Link inválido: O endereço deve ser uma URL web válida iniciando com "https://" ou "http://". Protocolos inseguros ou comandos foram bloqueados.');
+      await window.grafsisAlert('Link inválido: O endereço deve ser uma URL web válida iniciando com "https://" ou "http://".', 'GRAFSIS');
       return;
     }
 
     if (!window.isGoogleDriveUrl(url)) {
-      const proceed = confirm(`⚠️ Atenção: O link informado não parece pertencer ao Google Drive (drive.google.com).\n\nCertifique-se de que este link possui as devidas permissões de acesso compartilhadas para que os operadores da oficina e o cliente possam acessá-lo.\n\nDeseja vincular este link mesmo assim?`);
+      const proceed = await window.grafsisConfirm({
+        title: 'GRAFSIS',
+        message: `⚠️ Atenção: O link informado não parece pertencer ao Google Drive (drive.google.com).\n\nCertifique-se de que este link possui permissões de acesso compartilhadas.\n\nDeseja vincular este link mesmo assim?`,
+        confirmText: 'Vincular Mesmo Assim',
+        cancelText: 'Cancelar'
+      });
       if (!proceed) return;
     }
 
@@ -1968,7 +1910,13 @@ window.salesModule = {
   },
 
   async deleteRepositoryItem(idx, orderId) {
-    if (!confirm('Deseja realmente remover este arquivo do repositório?')) return;
+    const confirmar = await window.grafsisConfirm({
+      title: 'GRAFSIS',
+      message: 'Deseja realmente remover este arquivo do repositório?',
+      confirmText: 'Remover',
+      cancelText: 'Cancelar'
+    });
+    if (!confirmar) return;
     if (this.activeRepositoryItems && this.activeRepositoryItems[idx]) {
       this.activeRepositoryItems.splice(idx, 1);
       const container = document.getElementById('repo-items-container');
@@ -2386,21 +2334,27 @@ window.salesModule = {
     `;
     this.openPrintDocument(pdfHtml);
   },
-  printReceipt() {
+  async printReceipt() {
     const orderIdStr = document.getElementById('current-display-id')?.value;
     const orders = window.store?.getOrders ? window.store.getOrders() : [];
     const savedOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) || (orderIdStr && orders.find(o => String(o.numero) === String(orderIdStr)));
     
     // BLOQUEIO DE IMPRESSÃO SEM ID VÁLIDO REGISTRADO (Imagem 3 & 5)
     if (!savedOrder) {
-      if (confirm(`O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema.\n\nDeseja salvar e finalizar o pedido agora para emitir o recibo imediatamente?`)) {
+      const confirmar = await window.grafsisConfirm({
+        title: 'GRAFSIS',
+        message: `O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema.\n\nDeseja salvar e registrar a operação agora para emitir o recibo imediatamente?`,
+        confirmText: 'Registrar Agora',
+        cancelText: 'Cancelar'
+      });
+      if (confirmar) {
         const formEl = document.getElementById('order-form');
         if (formEl) {
           this.saveOrder(null, this.currentEditingOrderId, orderIdStr, { autoPrintAfter: 'recibo' });
           return;
         }
       }
-      alert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É obrigatório clicar em "Finalizar Pedido" para registrar o ID antes de emitir o recibo.`);
+      await window.grafsisAlert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É necessário salvar e registrar antes de emitir recibos.`, 'GRAFSIS');
       return;
     }
 
@@ -2597,29 +2551,40 @@ window.salesModule = {
     `;
   },
 
-  printOrder(type) {
+  async printOrder(type) {
     const orderIdStr = document.getElementById('current-display-id')?.value;
     const orders = window.store?.getOrders ? window.store.getOrders() : [];
     const savedOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) || (orderIdStr && orders.find(o => String(o.numero) === String(orderIdStr)));
     
     // BLOQUEIO DE IMPRESSÃO SEM ID VÁLIDO REGISTRADO
     if (!savedOrder) {
-      if (confirm(`A Operação #${orderIdStr || ''} ainda não foi registrada no sistema.\n\nDeseja registrar a operação agora para emitir a ${type === 'os' ? 'O.S. Técnica' : 'impressão'} imediatamente?`)) {
+      const querSalvar = await window.grafsisConfirm({
+        title: 'GRAFSIS',
+        message: `A Operação #${orderIdStr || ''} ainda não foi registrada no sistema.\n\nDeseja registrar a operação agora para emitir a ${type === 'os' ? 'O.S. Técnica' : 'impressão'} imediatamente?`,
+        confirmText: 'Registrar Agora',
+        cancelText: 'Cancelar'
+      });
+      if (querSalvar) {
         const formEl = document.getElementById('order-form');
         if (formEl) {
           this.saveOrder(null, this.currentEditingOrderId, orderIdStr, { autoPrintAfter: type });
           return;
         }
       }
-      alert(`Operação negada: A Operação #${orderIdStr || ''} ainda não foi registrada no sistema. É necessário clicar em "Registrar Operação" para salvar antes de emitir impressões ou O.S.`);
+      await window.grafsisAlert(`Operação negada: A Operação #${orderIdStr || ''} ainda não foi registrada no sistema. É necessário clicar em "Registrar Operação" para salvar antes de emitir impressões ou O.S.`, 'GRAFSIS');
       return;
     }
 
     // Se for Ordem de Serviço, emite no formato A4 Paisagem Técnico sem valores financeiros
+    // REGRA CLARA: Orçamento e Pré-Venda NÃO emitem O.S. Liberada exclusivamente para Venda, Patrocínio ou Permuta.
     if (type === 'os') {
-      const isBudgetOrPre = savedOrder.status_fase === 'orcamento' || savedOrder.status_fase === 'prevenda' || savedOrder.tipo_operacao === 'orcamento' || savedOrder.tipo_operacao === 'pre-venda';
-      if (isBudgetOrPre) {
-        alert(`Operação negada: A Ordem de Serviço (O.S.) não pode ser emitida para Orçamento ou Pré-Venda (somente gravação).\n\nPara avançar para a produção e emitir O.S., registre a operação como Venda, Patrocínio ou Permuta.`);
+      const opLower = (savedOrder.tipo_operacao || savedOrder.tipo || '').toLowerCase();
+      const isLiberadaOS = (opLower === 'venda' || opLower === 'patrocinio' || opLower === 'permuta');
+      if (!isLiberadaOS) {
+        await window.grafsisAlert(
+          `A Ordem de Serviço (O.S.) não pode ser emitida para Orçamento ou Pré-Venda (somente gravação).\n\nA emissão de O.S. só fica liberada se a operação for: Venda, Patrocínio ou Permuta.`,
+          'GRAFSIS'
+        );
         return;
       }
       this.printTechnicalWorkOrder(savedOrder.id, { includeImages: true });
@@ -3561,9 +3526,12 @@ window.salesModule = {
       `• Valor Final: R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n\n` +
       `Deseja prosseguir e registrar esta operação no sistema?`;
 
-    const confirmed = window.grafsisConfirm
-      ? await window.grafsisConfirm({ title: 'GrafSiS', message: confirmMsg, confirmText: 'Registrar', cancelText: 'Cancelar' })
-      : confirm(confirmMsg);
+    const confirmed = await window.grafsisConfirm({
+      title: 'GRAFSIS',
+      message: confirmMsg,
+      confirmText: 'Registrar',
+      cancelText: 'Cancelar'
+    });
 
     if (!confirmed) {
       return;
@@ -3974,12 +3942,18 @@ window.salesModule = {
     }
   },
 
-  handleCancelEdit() {
+  async handleCancelEdit() {
     if (!this.isEditingActive) {
       this.render();
       return;
     }
-    if (confirm('Deseja cancelar a edição da operação e restaurar os dados originais?')) {
+    const cancelar = await window.grafsisConfirm({
+      title: 'GRAFSIS',
+      message: 'Deseja cancelar a edição da operação e restaurar os dados originais?',
+      confirmText: 'Sim, Cancelar',
+      cancelText: 'Continuar Editando'
+    });
+    if (cancelar) {
       this.isEditingActive = false;
       this.isReadOnlyFinancial = true;
       const toggle = document.getElementById('toggle-gerente-edicao');
@@ -4063,14 +4037,24 @@ window.salesModule = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-  },  delete(id) {
+  },
+  async delete(id) {
     const userRole = window.authModule ? (window.authModule.getCurrentUser().tipo || window.authModule.getCurrentUser().perfil || window.authModule.getCurrentUser().role || '').toUpperCase() : '';
     const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
     if (!isManagerOrOwner) {
-      alert('Acesso Negado: Apenas usuários com perfil Gerente ou Proprietário têm permissão para excluir pedidos registrados.');
+      await window.grafsisAlert('Acesso Negado: Apenas usuários com perfil Gerente ou Proprietário têm permissão para excluir pedidos registrados.', 'GRAFSIS');
       return;
     }
-    if (confirm('Excluir este pedido?')) { window.store.deleteOrder(id); this.render(); }
+    const confirmar = await window.grafsisConfirm({
+      title: 'GRAFSIS',
+      message: 'Deseja realmente excluir este pedido do sistema?',
+      confirmText: 'Sim, Excluir',
+      cancelText: 'Cancelar'
+    });
+    if (confirmar) {
+      window.store.deleteOrder(id);
+      this.render();
+    }
   },
   sendWhatsAppOrder(orderId, customType = 'geral') {
     const order = window.store.getOrders().find(o => o.id === orderId);
@@ -4748,7 +4732,7 @@ window.salesModule = {
               <label class="block font-bold text-slate-800 dark:text-white mb-1">Link de Aprovação Online e Sem Senha de Acesso</label>
               <div class="flex gap-2">
                 <input type="text" readonly id="share-target-link" value="${link}" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 font-mono text-[11px] text-slate-600 dark:text-slate-300 select-all">
-                <button type="button" onclick="navigator.clipboard.writeText('${link}'); alert('Link copiado!');" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 font-bold rounded-xl text-xs transition">
+                <button type="button" onclick="navigator.clipboard.writeText('${link}'); window.grafsisAlert('Link de aprovação copiado com sucesso!', 'GRAFSIS');" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 font-bold rounded-xl text-xs transition cursor-pointer">
                   Copiar
                 </button>
               </div>
@@ -4756,14 +4740,25 @@ window.salesModule = {
           </div>
         </div>
 
-        <!-- Ações do Modal -->
-        <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col sm:flex-row gap-3">
-          <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}')" class="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
-            <span>💬 Abrir WhatsApp, Gerar Senha (4 dígitos) e Registrar</span>
-          </button>
-          <button type="button" onclick="document.getElementById('${modalId}').remove()" class="py-3 px-5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition">
-            Fechar
-          </button>
+        <!-- Ações do Modal com Opções de Envio Separado -->
+        <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'link')" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer" title="Envia a proposta com link de conferência">
+              <span>💬 1. Enviar Proposta & Link</span>
+            </button>
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'code')" class="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer" title="Envia a senha/código de confirmação em mensagem separada">
+              <span>🔑 2. Enviar Código Separado</span>
+            </button>
+          </div>
+          
+          <div class="flex items-center justify-between pt-1 gap-2">
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'full')" class="text-[11px] text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-400 font-bold underline transition cursor-pointer">
+              ⚡ Enviar Proposta + Código Juntos (Mensagem Única)
+            </button>
+            <button type="button" onclick="document.getElementById('${modalId}').remove()" class="py-2 px-5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition cursor-pointer">
+              Fechar
+            </button>
+          </div>
         </div>
 
       </div>
@@ -4772,7 +4767,7 @@ window.salesModule = {
     document.body.appendChild(wrap);
   },
 
-  async sendApprovalViaWhatsApp(orderId) {
+  async sendApprovalViaWhatsApp(orderId, mode = 'full') {
     const orders = window.store.getOrders();
     const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
     if (!order) return;
@@ -4780,7 +4775,7 @@ window.salesModule = {
     const phoneInput = document.getElementById('share-target-phone');
     const rawPhone = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
     if (!rawPhone || rawPhone.length < 10) {
-      alert('Informe um número de telefone com DDD válido para encaminhar o WhatsApp.');
+      await window.grafsisAlert('Informe um número de telefone com DDD válido para encaminhar o WhatsApp.', 'GRAFSIS');
       return;
     }
 
@@ -4794,31 +4789,49 @@ window.salesModule = {
     const randomPin = order.codigo_autorizacao || String(Math.floor(1000 + Math.random() * 9000));
     order.codigo_autorizacao = randomPin;
 
-    // Mensagem amigável com fechamento financeiro discricionário e Senha de 4 dígitos
     const valorStr = Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
-    const msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
-      `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
-      `*Valor Total:* R$ ${valorStr}\n` +
-      `*Sua Senha de Autorização:* *${randomPin}*\n\n` +
-      `Por favor, acesse o link abaixo para visualizar a arte, conferir as medidas e autorizar a produção:\n` +
-      `👉 ${link}\n\n` +
-      `No momento de confirmar, informe a senha *${randomPin}* e certifique-se de autorizar a localização do dispositivo para registro seguro do aceite digital.\n\n` +
-      `Você também poderá escolher a melhor opção de pagamento (Pix, Cartão de Crédito/Débito).\n` +
-      `Qualquer dúvida estamos à disposição!`;
+
+    let msg = '';
+    if (mode === 'link') {
+      msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
+        `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
+        `*Valor Total:* R$ ${valorStr}\n\n` +
+        `Por favor, acesse o link abaixo para visualizar os itens, arte e medidas:\n` +
+        `👉 ${link}\n\n` +
+        `Aguarde que enviaremos a sua Senha de Autorização em seguida.\n` +
+        `Qualquer dúvida estamos à disposição!`;
+    } else if (mode === 'code') {
+      msg = `*GRAFSIS - Confirmação de Produção*\n\n` +
+        `Olá, *${clientName}*!\n` +
+        `Seu *Código / Senha de Autorização* para o pedido *#${order.numero}* é:\n\n` +
+        `🔑 *${randomPin}*\n\n` +
+        `Informe esta senha de 4 dígitos no link enviado para confirmar o pedido e liberar a produção com segurança.`;
+    } else {
+      msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
+        `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
+        `*Valor Total:* R$ ${valorStr}\n` +
+        `*Sua Senha de Autorização:* *${randomPin}*\n\n` +
+        `Por favor, acesse o link abaixo para visualizar a arte, conferir as medidas e autorizar a produção:\n` +
+        `👉 ${link}\n\n` +
+        `No momento de confirmar, informe a senha *${randomPin}* e certifique-se de autorizar a localização do dispositivo para registro seguro do aceite digital.\n\n` +
+        `Você também poderá escolher a melhor opção de pagamento (Pix, Cartão de Crédito/Débito).\n` +
+        `Qualquer dúvida estamos à disposição!`;
+    }
 
     // Registra o envio no pedido
     order.link_enviado = {
       telefone: rawPhone,
       data: nowIso,
       usuario: currentUser,
-      codigo: randomPin
+      codigo: randomPin,
+      modo: mode
     };
 
     order.historico = order.historico || [];
     order.historico.push({
       fase: order.status_fase || 'orcamento',
       data: nowIso,
-      usuario: `Link de liberação com senha (${randomPin}) enviado via WhatsApp para ${rawPhone} por ${currentUser}`
+      usuario: `Mensagem WhatsApp (${mode === 'link' ? 'Proposta/Link' : mode === 'code' ? 'Código de Autorização' : 'Completa'}) enviada para ${rawPhone} por ${currentUser}`
     });
 
     // Salva no banco local e nuvem
@@ -4835,8 +4848,14 @@ window.salesModule = {
     const waUrl = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');
 
-    alert(`✅ Envio do link registrado com sucesso!\n\nNúmero: ${rawPhone}\nSenha de 4 dígitos: ${randomPin}\nData/Hora: ${new Date(nowIso).toLocaleString('pt-BR')}`);
-    document.getElementById('modal-approval-share-wrap')?.remove();
+    await window.grafsisAlert(
+      `✅ Envio registrado com sucesso!\n\n` +
+      `Destinatário: ${rawPhone}\n` +
+      `Tipo: ${mode === 'link' ? 'Proposta & Link de Conferência' : mode === 'code' ? 'Código de Confirmação Separado' : 'Link + Senha Juntos'}\n` +
+      `Senha de Autorização: ${randomPin}\n` +
+      `Data/Hora: ${new Date(nowIso).toLocaleString('pt-BR')}`,
+      'GRAFSIS'
+    );
     this.render();
   },
 

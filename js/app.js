@@ -4,7 +4,7 @@
    Painel do Proprietário sem Redundâncias, Perfil do Usuário e Login por CPF.
    ============================================================================== */
 
-window.grafsisConfirm = function({ title = 'GrafSiS', message = '', confirmText = 'OK', cancelText = 'Cancelar' } = {}) {
+window.grafsisConfirm = function({ title = 'GRAFSIS', message = '', confirmText = 'OK', cancelText = 'Cancelar' } = {}) {
   return new Promise((resolve) => {
     const modalId = 'grafsis-custom-confirm-modal';
     document.getElementById(modalId)?.remove();
@@ -53,7 +53,7 @@ window.grafsisConfirm = function({ title = 'GrafSiS', message = '', confirmText 
   });
 };
 
-window.grafsisAlert = function(message = '', title = 'GrafSiS') {
+window.grafsisAlert = function(message = '', title = 'GRAFSIS') {
   return new Promise((resolve) => {
     const modalId = 'grafsis-custom-alert-modal';
     document.getElementById(modalId)?.remove();
@@ -97,6 +97,14 @@ window.grafsisAlert = function(message = '', title = 'GrafSiS') {
     document.getElementById(`${modalId}-close`)?.addEventListener('click', finish);
   });
 };
+
+// Interceptação global de diálogos nativos para o padrão visual oficial GrafSiS (elimina "tinhosys.github.io diz")
+window.alert = function(message) {
+  return window.grafsisAlert(message, 'GRAFSIS');
+};
+
+window.showGrafsisAlert = window.grafsisAlert;
+window.showGrafsisConfirm = window.grafsisConfirm;
 
 window.app = {
   currentTab: 'production',
@@ -2235,6 +2243,8 @@ window.app = {
   updateNotificationStatus() {
     const expStatus = this.getSystemExpirationStatus();
     const overdueOrders = this.getOverdueOrders();
+    const notifs = JSON.parse(localStorage.getItem('grafsis_notifications') || '[]');
+    const unreadApprovals = notifs.filter(n => n.tipo === 'aprovacao_cliente' && !n.lida);
 
     const badge = document.getElementById('header-notification-badge');
     const sideDot = document.getElementById('sidebar-notif-dot');
@@ -2251,6 +2261,17 @@ window.app = {
       if (sideDot) {
         sideDot.classList.remove('hidden');
         sideDot.className = 'w-2 h-2 rounded-full bg-red-500 animate-pulse';
+      }
+    } else if (unreadApprovals.length > 0) {
+      // REGRA: VERDE ESMERALDA - Notificações de autorização pelo cliente
+      badge.classList.remove('hidden');
+      badge.className = 'absolute top-1.5 right-1.5 min-w-4 h-4 px-1 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm bg-emerald-500 text-white animate-pulse';
+      badge.textContent = unreadApprovals.length;
+      badge.title = `${unreadApprovals.length} autorização(ões) de cliente recebida(s)!`;
+
+      if (sideDot) {
+        sideDot.classList.remove('hidden');
+        sideDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
       }
     } else if (overdueOrders.length > 0) {
       // REGRA: AMARELO - Informa pedidos com prazo de entrega vencido
@@ -2277,6 +2298,14 @@ window.app = {
     const expStatus = this.getSystemExpirationStatus();
     const overdueOrders = this.getOverdueOrders();
     const activeTenant = window.store ? window.store.getActiveTenant() : {};
+    const notifs = JSON.parse(localStorage.getItem('grafsis_notifications') || '[]');
+    const unreadApprovals = notifs.filter(n => n.tipo === 'aprovacao_cliente' && !n.lida);
+
+    const markAllRead = () => {
+      const updated = notifs.map(n => ({ ...n, lida: true }));
+      localStorage.setItem('grafsis_notifications', JSON.stringify(updated));
+      this.updateNotificationStatus();
+    };
 
     const modalHtml = `
       <div id="notifications-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -2286,13 +2315,62 @@ window.app = {
               <span class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">🔔</span>
               <div>
                 <h3 class="text-base font-bold text-slate-800">Central de Notificações e Prazos</h3>
-                <p class="text-[11px] text-slate-500">Monitoramento operacional de licenças e entregas da gráfica</p>
+                <p class="text-[11px] text-slate-500">Monitoramento operacional de autorizações, licenças e entregas</p>
               </div>
             </div>
             <button onclick="document.getElementById('notifications-modal').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
           </div>
 
           <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <!-- 0. NOTIFICAÇÕES DE AUTORIZAÇÃO DE CLIENTES (VERDE) -->
+            ${unreadApprovals.length > 0 ? `
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Autorizações de Produção Recebidas (${unreadApprovals.length})
+                  </span>
+                  <button type="button" onclick="(() => {
+                    const n = JSON.parse(localStorage.getItem('grafsis_notifications') || '[]');
+                    localStorage.setItem('grafsis_notifications', JSON.stringify(n.map(x => ({...x, lida: true}))));
+                    app.updateNotificationStatus();
+                    document.getElementById('notifications-modal')?.remove();
+                  })()" class="text-[10px] text-slate-500 hover:text-emerald-700 font-bold underline cursor-pointer">
+                    Marcar todas como lidas
+                  </button>
+                </div>
+                ${unreadApprovals.map(notif => `
+                  <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3">
+                    <div class="space-y-0.5">
+                      <div class="font-black text-emerald-950 text-xs">
+                        Pedido #${notif.pedido_numero} — Autorizado pelo Cliente
+                      </div>
+                      <div class="text-[11px] text-emerald-800">
+                        ${notif.cliente ? `<strong>${notif.cliente}</strong> autorizou a produção` : 'Autorização digital confirmada'} às ${notif.hora || ''} (${new Date(notif.data).toLocaleDateString('pt-BR')})
+                      </div>
+                    </div>
+                    <button type="button" onclick="(() => {
+                      const n = JSON.parse(localStorage.getItem('grafsis_notifications') || '[]');
+                      const target = n.find(x => x.id === '${notif.id}');
+                      if (target) target.lida = true;
+                      localStorage.setItem('grafsis_notifications', JSON.stringify(n));
+                      app.updateNotificationStatus();
+                      document.getElementById('notifications-modal')?.remove();
+                      app.navigate('sales');
+                      setTimeout(() => {
+                        if (window.salesModule?.openModal) {
+                          const o = window.store.getOrders().find(ord => ord.id === '${notif.pedido_id}' || String(ord.numero) === String('${notif.pedido_numero}'));
+                          if (o) window.salesModule.openModal(o);
+                        }
+                      }, 200);
+                    })()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition whitespace-nowrap cursor-pointer">
+                      Ver Pedido &rarr;
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
             <!-- 1. ALERTA DE EXPIRAÇÃO DO SISTEMA (VERMELHO) -->
             ${(expStatus && expStatus.expiringSoon) ? `
               <div class="p-4 rounded-xl border border-red-200 bg-red-50 text-red-900 shadow-sm flex flex-col gap-2">
@@ -2320,14 +2398,14 @@ window.app = {
             ` : ''}
 
             <!-- STATUS REGULAR SE NÃO HOUVER PENDÊNCIAS -->
-            ${(!expStatus?.expiringSoon) ? `
+            ${(!expStatus?.expiringSoon && unreadApprovals.length === 0) ? `
               <div class="p-6 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-center space-y-2">
                 <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold">
                   ✓
                 </div>
                 <div class="font-black text-base text-emerald-800">Tudo em Dia!</div>
                 <p class="text-xs text-emerald-700 max-w-sm mx-auto">
-                  Sua empresa está com a licença ativa e regularizada. Alertas operacionais e prazos de pedidos são gerenciados diretamente nas colunas do Kanban de Produção.
+                  Sua empresa está com a licença ativa e regularizada. Novas autorizações de clientes e prazos de pedidos são monitorados automaticamente aqui e no Kanban de Produção.
                 </p>
               </div>
             ` : ''}
@@ -2942,14 +3020,18 @@ window.app = {
 
     // Validação da senha de 4 dígitos enviada pelo WhatsApp
     if (order.codigo_autorizacao && order.codigo_autorizacao !== approverPin) {
-      alert(`Senha incorreta! Digite a senha de 4 dígitos informada na mensagem enviada pelo WhatsApp para autorizar este pedido.`);
+      await window.grafsisAlert(`Senha incorreta! Digite a senha de 4 dígitos informada na mensagem enviada pelo WhatsApp para autorizar este pedido.`, 'GRAFSIS');
       document.getElementById('client-approver-pin')?.focus();
       return;
     }
 
-    if (!confirm(`Deseja realmente confirmar e autorizar a produção do Pedido #${order.numero}?\n\nPor favor, permita o compartilhamento de localização do seu navegador se solicitado para carimbo de segurança.`)) {
-      return;
-    }
+    const confirmAceite = await window.grafsisConfirm({
+      title: 'GRAFSIS',
+      message: `Deseja realmente confirmar e autorizar a produção do Pedido #${order.numero}?\n\nPor favor, permita o compartilhamento de localização do seu navegador se solicitado para carimbo de segurança.`,
+      confirmText: 'Autorizar Produção',
+      cancelText: 'Cancelar'
+    });
+    if (!confirmAceite) return;
 
     const btn = document.getElementById('btn-confirm-approval');
     if (btn) {
@@ -3004,7 +3086,30 @@ window.app = {
         }
       }
 
-      alert(`🎉 Parabéns! Sua autorização foi confirmada com sucesso às ${horaExtensa}.\n\nO Pedido #${order.numero} foi liberado para nossa equipe de produção.`);
+      // 3. Registra notificação no sistema para visualização da equipe interna
+      try {
+        const notifs = JSON.parse(localStorage.getItem('grafsis_notifications') || '[]');
+        notifs.unshift({
+          id: 'notif_' + Date.now(),
+          tipo: 'aprovacao_cliente',
+          pedido_numero: order.numero,
+          pedido_id: order.id,
+          cliente: approverName,
+          telefone: approverPhone,
+          data: nowIso,
+          hora: horaExtensa,
+          lida: false,
+          mensagem: `O Cliente ${approverName} autorizou a produção do Pedido #${order.numero} às ${horaExtensa}!`
+        });
+        localStorage.setItem('grafsis_notifications', JSON.stringify(notifs.slice(0, 50)));
+        if (window.app && typeof window.app.updateNotificationStatus === 'function') {
+          window.app.updateNotificationStatus();
+        }
+      } catch (e) {
+        console.warn('[notifications] Erro ao salvar notificação:', e);
+      }
+
+      await window.grafsisAlert(`🎉 Parabéns! Sua autorização foi confirmada com sucesso às ${horaExtensa}.\n\nO Pedido #${order.numero} foi liberado para nossa equipe de produção.`, 'GRAFSIS');
       this.renderPublicClientApprovalPortal(window.location.hash);
     };
 
