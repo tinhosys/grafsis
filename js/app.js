@@ -2743,8 +2743,9 @@ window.app = {
       return;
     }
 
-    // 5. Renderiza a visualização exclusiva para esse pedido
-    this.renderPortalOrderView(portalRoot, order);
+    // 5. Detecta modalidade solicitada no link (modo técnico sem financeiro vs completo)
+    const isTechnicalMode = hash.toLowerCase().includes('modo=tecnico') || hash.toLowerCase().includes('sem_valor=1');
+    this.renderPortalOrderView(portalRoot, order, { isTechnicalMode });
   },
 
   renderPortalNotFound(container, message) {
@@ -2784,13 +2785,60 @@ window.app = {
     if (container) container.innerHTML = html;
   },
 
-  renderPortalOrderView(container, order) {
+  viewPortalImageModal(url, title = 'Imagem do Pedido') {
+    if (!url) return;
+    const modalId = 'portal-img-preview-modal';
+    document.getElementById(modalId)?.remove();
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" onclick="this.remove()">
+        <div class="relative max-w-5xl max-h-[92vh] flex flex-col items-center" onclick="event.stopPropagation()">
+          <img src="${url}" class="max-h-[82vh] w-auto max-w-full rounded-2xl shadow-2xl object-contain border border-white/20">
+          <div class="mt-3 flex items-center justify-between w-full px-2 text-white text-xs">
+            <span class="font-bold">${title}</span>
+            <div class="flex items-center gap-2">
+              <a href="${url}" target="_blank" download="arte_pedido" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg font-bold transition">⬇ Baixar Imagem</a>
+              <button type="button" onclick="document.getElementById('${modalId}').remove()" class="px-3 py-1 bg-rose-600 hover:bg-rose-700 rounded-lg font-bold transition">✕ Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  detectClientDevice() {
+    const ua = navigator.userAgent || '';
+    if (/iphone/i.test(ua)) return 'Apple iPhone (iOS)';
+    if (/ipad/i.test(ua)) return 'Apple iPad (iPadOS)';
+    if (/ipod/i.test(ua)) return 'Apple iPod (iOS)';
+    if (/android/i.test(ua)) {
+      const match = ua.match(/Android[^;]+;\s*([^;)]+)\s*Build/i) || ua.match(/Android[^;]+;\s*([^;)]+)/i);
+      const model = match ? match[1].trim() : 'Smartphone';
+      return `Android (${model})`;
+    }
+    if (/macintosh|mac os x/i.test(ua)) return 'Apple Mac (macOS)';
+    if (/windows/i.test(ua)) return 'Computador Windows PC';
+    if (/linux/i.test(ua)) return 'Linux';
+    return 'Navegador Web';
+  },
+
+  renderPortalOrderView(container, order, options = {}) {
     const tenant = (window.store && window.store.getActiveTenant) ? window.store.getActiveTenant() : {};
     const clients = (window.store && window.store.getClients()) || [];
     const client = clients.find(c => c.id === order.cliente_id) || { nome: order.cliente_nome || 'Cliente' };
     const empresaNome = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS Comunicação Visual';
     const empresaWhats = tenant.celular_whatsapp || tenant.telefone || '(69) 99922-1336';
     const isApproved = !!order.aprovado_cliente || order.status_fase === 'aprovacao' || ['liberado', 'producao', 'acabamento', 'embalagem', 'entregue'].includes(order.status_fase);
+
+    // Modalidade: Técnico (sem valores financeiros) vs Completo
+    const isTechnicalMode = options.isTechnicalMode !== undefined 
+      ? options.isTechnicalMode 
+      : (window.location.hash.toLowerCase().includes('modo=tecnico') || window.location.hash.toLowerCase().includes('sem_valor=1'));
+
+    // Filtra apenas itens liberados para O.S./Link conforme checagem do operador
+    const allItems = order.itens || [];
+    const liberadosItems = allItems.filter(it => it.liberado_os !== false);
+    const displayedItems = liberadosItems.length > 0 ? liberadosItems : allItems;
 
     const html = `
       <div class="min-h-screen bg-slate-50 dark:bg-[#080e1a] py-8 px-4 sm:px-6">
@@ -2803,26 +2851,34 @@ window.app = {
                 ${tenant.logo_url ? `<img src="${tenant.logo_url}" class="w-full h-full object-contain rounded-2xl" alt="Logo">` : '🖨️'}
               </div>
               <div>
-                <span class="text-[10px] font-black uppercase text-blue-600 dark:text-cyan-400 tracking-wider">Portal de Aprovação Online</span>
+                <span class="text-[10px] font-black uppercase text-blue-600 dark:text-cyan-400 tracking-wider">
+                  ${isTechnicalMode ? 'Conferência Técnica de Produção' : 'Portal de Aprovação Online'}
+                </span>
                 <h1 class="text-xl font-black text-slate-900 dark:text-white leading-tight">${empresaNome}</h1>
-                <p class="text-xs text-slate-400 mt-0.5">Prova virtual e autorização técnica de produção</p>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  ${isTechnicalMode ? 'Prova virtual e verificação de arte e medidas (Sem Valores Financeiros)' : 'Prova virtual e autorização técnica de produção'}
+                </p>
               </div>
             </div>
             <div class="text-center sm:text-right flex flex-col items-center sm:items-end gap-1">
-              <span class="inline-block px-3.5 py-1.5 rounded-full text-xs font-black uppercase font-mono tracking-wider ${isApproved ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}">
-                ${isApproved ? '✅ ARTE APROVADA' : '🟡 AGUARDANDO SUA APROVAÇÃO'}
+              <span class="inline-block px-3.5 py-1.5 rounded-full text-xs font-black uppercase font-mono tracking-wider ${
+                isApproved 
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                  : (isTechnicalMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300')
+              }">
+                ${isApproved ? '✅ ARTE & PRODUÇÃO APROVADAS' : (isTechnicalMode ? '📐 CONFERÊNCIA TÉCNICA' : '🟡 AGUARDANDO SUA APROVAÇÃO')}
               </span>
               <div class="text-xs font-mono font-bold text-slate-500">Pedido #${order.numero}</div>
             </div>
           </div>
 
-          <!-- Informações de Identificação do Pedido & Cliente (Sem dados internos/financeiros) -->
-          <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <!-- Informações de Identificação do Pedido & Cliente -->
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase block">Cliente:</span>
                 <strong class="text-sm text-slate-900 dark:text-white">${client.nome}</strong>
-                <span class="block text-slate-500 mt-0.5">${client.telefone_whatsapp || ''}</span>
+                <span class="block text-slate-500 mt-0.5">${order.telefone_autorizacao || client.telefone_whatsapp || client.telefone || ''}</span>
               </div>
               <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase block">Data de Emissão:</span>
@@ -2834,6 +2890,18 @@ window.app = {
               </div>
             </div>
 
+            <!-- Observações Técnicas da Operação (se houver) -->
+            ${order.observacoes ? `
+              <div class="p-3.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl">
+                <h4 class="text-xs font-black uppercase text-amber-900 dark:text-amber-200 mb-1 flex items-center gap-1.5">
+                  📌 Observações & Instruções da Operação:
+                </h4>
+                <p class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                  ${order.observacoes}
+                </p>
+              </div>
+            ` : ''}
+
             <!-- Prova Virtual / Layout da Arte em Alta Resolução -->
             <div>
               <div class="flex justify-between items-center mb-2">
@@ -2841,106 +2909,155 @@ window.app = {
                   🖼️ Layout / Prova Virtual da Arte
                 </h3>
                 ${order.foto_arte_url ? `
-                  <a href="${order.foto_arte_url}" target="_blank" class="text-xs font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1">
+                  <button type="button" onclick="app.viewPortalImageModal('${order.foto_arte_url}', 'Layout Principal do Pedido #${order.numero}')" class="text-xs font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer">
                     🔍 Ver em Alta Resolução
-                  </a>
+                  </button>
                 ` : ''}
               </div>
 
               <div class="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center flex items-center justify-center min-h-[220px]">
                 ${order.foto_arte_url ? `
-                  <img src="${order.foto_arte_url}" class="max-h-[420px] w-auto max-w-full rounded-xl shadow-md object-contain" alt="Arte do Pedido">
+                  <img src="${order.foto_arte_url}" onclick="app.viewPortalImageModal('${order.foto_arte_url}', 'Layout Principal do Pedido #${order.numero}')" class="max-h-[420px] w-auto max-w-full rounded-xl shadow-md object-contain cursor-pointer hover:scale-[1.01] transition-transform" alt="Arte do Pedido" title="Clique para ampliar">
                 ` : `
                   <div class="text-slate-400 py-8">
-                    <p class="text-sm font-bold">Nenhum arquivo de imagem anexado a este pedido.</p>
-                    <p class="text-xs mt-1">Confira a relação de itens e acabamentos descritos na tabela abaixo.</p>
+                    <p class="text-sm font-bold">Nenhum arquivo geral de layout anexado a este pedido.</p>
+                    <p class="text-xs mt-1">Confira as artes específicas de cada item e suas descrições na tabela abaixo.</p>
                   </div>
                 `}
               </div>
             </div>
 
-            <!-- Especificações dos Itens e Acabamentos (Sem Custos ou Preços Internos) -->
+            <!-- Galeria de Imagens do Repositório (se houver) -->
+            ${(order.repositorio_arquivos && order.repositorio_arquivos.length > 0) ? `
+              <div>
+                <h3 class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                  📁 Anexos do Repositório da Operação (${order.repositorio_arquivos.length})
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  ${order.repositorio_arquivos.map((repoItem, rIdx) => `
+                    <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition" onclick="app.viewPortalImageModal('${repoItem.url}', '${repoItem.nome || 'Anexo'}')">
+                      ${(repoItem.tipo && repoItem.tipo.includes('image')) || (repoItem.url && repoItem.url.startsWith('data:image'))
+                        ? `<img src="${repoItem.url}" class="w-full h-20 object-cover rounded-lg mb-1.5 shadow-xs">`
+                        : `<div class="w-full h-20 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center text-2xl mb-1.5">📄</div>`
+                      }
+                      <span class="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate w-full" title="${repoItem.nome}">${repoItem.nome || 'Arquivo'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Especificações dos Itens e Acabamentos -->
             <div>
-              <h3 class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 mb-2">
-                📋 Itens, Dimensões e Acabamentos
-              </h3>
+              <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  📋 Itens Liberados para Conferência (${displayedItems.length})
+                </h3>
+                ${isTechnicalMode ? `<span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">Modo Técnico</span>` : ''}
+              </div>
+
               <div class="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
                 <table class="w-full text-left text-xs">
                   <thead class="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase text-[10px]">
                     <tr>
-                      <th class="p-3">Item</th>
+                      <th class="p-3">Item / Descrição</th>
+                      <th class="p-3">Arte</th>
                       <th class="p-3">Medidas / Formato</th>
                       <th class="p-3 text-center">Qtd</th>
                       <th class="p-3">Acabamento</th>
+                      ${!isTechnicalMode ? `<th class="p-3 text-right">Total (R$)</th>` : ''}
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    ${(order.itens || []).map((it, idx) => `
-                      <tr>
+                    ${displayedItems.map((it, idx) => `
+                      <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
                         <td class="p-3 font-semibold text-slate-900 dark:text-white">
-                          #${it.item_id || (String(order.numero) + String(idx + 1).padStart(2, '0'))} • ${it.produto_nome || it.descricao}
+                          <div class="font-bold text-xs text-blue-900 dark:text-blue-300">
+                            #${String(it.item_id || (String(order.numero) + String(idx + 1).padStart(2, '0'))).replace(/^#+/, '')} • ${it.produto_nome || ''}
+                          </div>
+                          <div class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">${it.descricao || ''}</div>
+                        </td>
+                        <td class="p-3">
+                          ${it.arte_url ? `
+                            <img src="${it.arte_url}" onclick="app.viewPortalImageModal('${it.arte_url}', 'Arte do Item #${it.item_id || (idx+1)}')" class="w-10 h-10 object-cover rounded-lg border border-blue-300 shadow-xs cursor-pointer hover:scale-110 transition" title="Clique para ampliar">
+                          ` : `<span class="text-[10px] text-slate-400 font-bold">Sem Arte</span>`}
                         </td>
                         <td class="p-3 font-mono text-slate-600 dark:text-slate-300">
                           ${it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` : 'Unidade')}
                         </td>
                         <td class="p-3 text-center font-bold text-slate-900 dark:text-white">${it.quantidade}x</td>
                         <td class="p-3 text-amber-700 dark:text-amber-300 text-[11px]">${it.acabamento || 'Padrão'}</td>
+                        ${!isTechnicalMode ? `
+                          <td class="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            R$ ${Number(it.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                          </td>
+                        ` : ''}
                       </tr>
                     `).join('')}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
 
-            <!-- Resumo Comercial e Condições de Pagamento -->
-            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
-              <div class="flex justify-between items-center">
-                <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300">💰 Resumo Financeiro & Condição</span>
-                <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                  R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                </span>
+            <!-- Resumo Comercial e Condições de Pagamento (Exibido apenas no modo completo) -->
+            ${!isTechnicalMode ? `
+              <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300">💰 Resumo Financeiro da Operação</span>
+                  <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div>
+                    <span class="block text-[10px] uppercase font-bold text-slate-400">Forma de Pagamento:</span>
+                    <strong class="text-slate-800 dark:text-slate-200">${order.forma_pagamento || 'Pix / Cartão / Dinheiro'}</strong>
+                  </div>
+                  <div>
+                    <span class="block text-[10px] uppercase font-bold text-slate-400">Entrada Registrada:</span>
+                    <span class="font-bold text-slate-700 dark:text-slate-300">R$ ${Number(order.valor_entrada || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                  </div>
+                  <div>
+                    <span class="block text-[10px] uppercase font-bold text-slate-400">Saldo a Pagar:</span>
+                    <strong class="text-rose-600 dark:text-rose-400 font-black">R$ ${Number(Math.max(0, (order.valor_final || 0) - (order.valor_entrada || 0))).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                  </div>
+                </div>
               </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                <div>
-                  <span class="block text-[10px] uppercase font-bold text-slate-400">Opção de Pagamento:</span>
-                  <strong class="text-slate-800 dark:text-slate-200">${order.forma_pagamento || 'Pix / Cartão / Dinheiro'}</strong>
-                </div>
-                <div>
-                  <span class="block text-[10px] uppercase font-bold text-slate-400">Entrada Registrada:</span>
-                  <span class="font-bold text-slate-700 dark:text-slate-300">R$ ${Number(order.valor_entrada || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                </div>
-                <div>
-                  <span class="block text-[10px] uppercase font-bold text-slate-400">Saldo a Pagar:</span>
-                  <strong class="text-rose-600 dark:text-rose-400 font-black">R$ ${Number(Math.max(0, (order.valor_final || 0) - (order.valor_entrada || 0))).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
-                </div>
-              </div>
-            </div>
+            ` : ''}
 
           </div>
 
           <!-- Área de Decisão e Aprovação do Cliente -->
           <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
             ${isApproved ? `
-              <!-- Tarja Verde Vibrante de Aceite Concluído -->
-              <div class="p-6 rounded-2xl bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 text-center space-y-4">
+              <!-- Certificado de Aceite Digital Concluído -->
+              <div class="p-6 rounded-2xl bg-[#009b3a] text-white shadow-xl text-center space-y-4">
                 <div class="w-16 h-16 rounded-full bg-white/20 text-white flex items-center justify-center mx-auto text-3xl font-black shadow-inner">
                   ✓
                 </div>
                 <div class="space-y-1">
                   <h3 class="text-xl font-black uppercase tracking-wide">Aceite do Pedido & Arte Confirmado</h3>
                   <p class="text-xs text-emerald-100 max-w-lg mx-auto leading-relaxed">
-                    Arte conferida com sucesso, valores e prazo de acordo. Pedido liberado e autorizado para início imediato da produção gráfica.
+                    Arte conferida com sucesso, valores e prazos autorizados. Pedido encaminhado com carimbo digital para início imediato da produção gráfica.
                   </p>
                 </div>
-                <div class="inline-block bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl font-mono text-[11px] text-emerald-50">
-                  Carimbo de Aceite: ${order.aprovado_cliente ? `${new Date(order.aprovado_cliente.data).toLocaleString('pt-BR')} por ${order.aprovado_cliente.aprovador || client.nome}` : `Aprovado em ${new Date().toLocaleDateString('pt-BR')}`}
+                
+                <div class="bg-black/20 backdrop-blur-sm p-4 rounded-xl font-mono text-[11px] text-emerald-50 text-left space-y-1.5 max-w-md mx-auto">
+                  <div><strong>Data & Hora:</strong> ${order.aprovado_cliente?.data_formatada || `${new Date().toLocaleDateString('pt-BR')} com segundos`}</div>
+                  <div><strong>Responsável:</strong> ${order.aprovado_cliente?.aprovador || client.nome}</div>
+                  <div><strong>Telefone Validado:</strong> ${order.aprovado_cliente?.telefone || order.telefone_autorizacao || 'Registrado'}</div>
+                  <div><strong>Dispositivo:</strong> ${order.aprovado_cliente?.dispositivo || 'Smartphone / Web'}</div>
+                  ${order.aprovado_cliente?.mapa_url ? `
+                    <div><strong>Localização:</strong> <a href="${order.aprovado_cliente.mapa_url}" target="_blank" class="text-cyan-300 underline font-bold">Ver Localização no Google Maps ↗</a></div>
+                  ` : ''}
+                  <div><strong>Código de Autenticação:</strong> <span class="bg-emerald-800 px-1.5 py-0.5 rounded">${order.aprovado_cliente?.codigo_validado || 'AUTORIZADO'}</span></div>
                 </div>
+
                 <div class="pt-2">
-                  <a href="https://api.whatsapp.com/send?phone=55${empresaWhats.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá, confirmei a aprovação do Pedido #${order.numero}!`)}"
+                  <a href="https://api.whatsapp.com/send?phone=55${empresaWhats.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá! Confirmei a aprovação técnica do Pedido #${order.numero}!`)}"
                      target="_blank"
                      class="inline-flex items-center gap-2 px-6 py-3 bg-white text-emerald-800 hover:bg-emerald-50 rounded-xl text-xs font-black transition shadow-md">
-                    💬 Conversar com a Gráfica no WhatsApp
+                    💬 Falar com a Gráfica no WhatsApp
                   </a>
                 </div>
               </div>
@@ -2951,10 +3068,10 @@ window.app = {
                     ⚠️ Termo de Aceite & Conferência de Produção:
                   </div>
                   <p>
-                    Ao clicar em <strong>"Concordo e Aprovo a Produção"</strong>, você declara estar de pleno acordo com as dimensões, arte visual, acabamentos, valores contratados e prazo de entrega estipulados acima.
+                    Ao clicar em <strong>"Concordo e Aprovo a Produção"</strong>, você declara estar de pleno acordo com as dimensões, arte visual, acabamentos${!isTechnicalMode ? ', valores contratados' : ''} e prazos estipulados acima.
                   </p>
                   <p class="font-bold">
-                    O pedido será imediatamente encaminhado para a esteira fabril e impressão gráfica.
+                    Regra de Segurança: A senha de 4 dígitos deve ser digitada pelo cliente no campo abaixo e só será validada para o número de WhatsApp cadastrado.
                   </p>
                 </div>
 
@@ -2964,11 +3081,11 @@ window.app = {
                     <input type="text" id="client-approver-name" value="${client.nome}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                   <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Telefone / WhatsApp *</label>
-                    <input type="text" id="client-approver-phone" value="${client.telefone_whatsapp || ''}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Telefone do WhatsApp (Destino da Senha) *</label>
+                    <input type="text" id="client-approver-phone" value="${order.telefone_autorizacao || client.telefone_whatsapp || client.telefone || ''}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                   <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Senha Recebida no WhatsApp (4 dígitos) *</label>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Digite a Senha Recebida (4 dígitos) *</label>
                     <input type="text" id="client-approver-pin" maxlength="4" placeholder="Ex: 1234" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/40 font-mono font-black text-center text-sm text-emerald-900 dark:text-emerald-200 tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500">
                   </div>
                 </div>
@@ -2977,7 +3094,7 @@ window.app = {
                   <button 
                     type="button" 
                     id="btn-confirm-approval"
-                    onclick="app.submitClientApproval('${order.id}')" 
+                    onclick="app.submitClientApproval('${order.id}', ${isTechnicalMode})" 
                     class="flex-1 py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer">
                     <span>✅ Concordo e Aprovo a Produção</span>
                   </button>
@@ -3003,7 +3120,7 @@ window.app = {
     if (container) container.innerHTML = html;
   },
 
-  async submitClientApproval(orderId) {
+  async submitClientApproval(orderId, isTechnicalMode = false) {
     const orders = (window.store && window.store.getOrders()) || [];
     let order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
     if (!order) {
@@ -3018,9 +3135,41 @@ window.app = {
     const approverPhone = (document.getElementById('client-approver-phone')?.value || '').trim();
     const approverPin = (document.getElementById('client-approver-pin')?.value || '').trim();
 
-    // Validação da senha de 4 dígitos enviada pelo WhatsApp
-    if (order.codigo_autorizacao && order.codigo_autorizacao !== approverPin) {
-      await window.grafsisAlert(`Senha incorreta! Digite a senha de 4 dígitos informada na mensagem enviada pelo WhatsApp para autorizar este pedido.`, 'GRAFSIS');
+    // 1. Validação de Telefone / Regra de Ouro (Apenas o número de WhatsApp de destino pode validar)
+    const cleanEnteredPhone = approverPhone.replace(/\D/g, '');
+    const cleanTargetPhone = (order.telefone_autorizacao || order.link_enviado?.telefone || order.cliente_telefone || '').replace(/\D/g, '');
+
+    if (!cleanEnteredPhone || cleanEnteredPhone.length < 8) {
+      await window.grafsisAlert('Por favor, informe seu número de telefone/WhatsApp completo para validar o aceite.', 'GRAFSIS');
+      document.getElementById('client-approver-phone')?.focus();
+      return;
+    }
+
+    if (cleanTargetPhone && cleanTargetPhone.length >= 8) {
+      const enteredSuffix = cleanEnteredPhone.slice(-8);
+      const targetSuffix = cleanTargetPhone.slice(-8);
+      if (enteredSuffix !== targetSuffix) {
+        await window.grafsisAlert(
+          `⚠️ Regra de Segurança:\n\n` +
+          `Esta aprovação só pode ser validada pelo mesmo número de WhatsApp para o qual o link e a senha foram encaminhados.\n\n` +
+          `Número digitado: ${approverPhone}\n` +
+          `Número de destino autorizado: ${cleanTargetPhone.slice(-4).padStart(cleanTargetPhone.length, '*')}`,
+          'GRAFSIS'
+        );
+        document.getElementById('client-approver-phone')?.focus();
+        return;
+      }
+    }
+
+    // 2. Validação da Senha de 4 dígitos
+    if (!approverPin || approverPin.length < 4) {
+      await window.grafsisAlert('Por favor, informe a senha de 4 dígitos recebida no seu WhatsApp.', 'GRAFSIS');
+      document.getElementById('client-approver-pin')?.focus();
+      return;
+    }
+
+    if (order.codigo_autorizacao && String(order.codigo_autorizacao).trim() !== String(approverPin).trim()) {
+      await window.grafsisAlert(`⚠️ Senha incorreta! Digite os 4 dígitos informados na mensagem do WhatsApp para liberar este pedido.`, 'GRAFSIS');
       document.getElementById('client-approver-pin')?.focus();
       return;
     }
@@ -3039,24 +3188,30 @@ window.app = {
       btn.innerHTML = '<span>⏳ Registrando aprovação com carimbo digital...</span>';
     }
 
+    const deviceName = this.detectClientDevice();
+
     const finalizeApproval = async (geoCoords = null) => {
       const now = new Date();
       const nowIso = now.toISOString();
       const todayStr = nowIso.split('T')[0];
       const horaExtensa = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      const dataHoraCompleta = `${now.toLocaleDateString('pt-BR')} às ${horaExtensa}`;
 
       order.data_aceite = todayStr;
       order.autorizo_producao = `Sim (Aprovado Digitalmente por ${approverName} às ${horaExtensa} em ${now.toLocaleDateString('pt-BR')})`;
       order.conferencia_arte = `Conferido e De Acordo (Portal Online - ${approverName})`;
       order.aprovado_cliente = {
         data: nowIso,
-        data_formatada: `${now.toLocaleDateString('pt-BR')} ${horaExtensa}`,
+        data_formatada: dataHoraCompleta,
         hora_segundos: horaExtensa,
         aprovador: approverName,
         telefone: approverPhone,
+        dispositivo: deviceName,
         codigo_validado: approverPin || order.codigo_autorizacao || '',
         userAgent: navigator.userAgent,
         geo: geoCoords,
+        mapa_url: geoCoords ? `https://www.google.com/maps?q=${geoCoords.latitude},${geoCoords.longitude}` : null,
+        modo_aprovacao: isTechnicalMode ? 'tecnico' : 'completo',
         termos_aceitos: true
       };
       order.status_fase = 'aprovacao';
@@ -3064,7 +3219,7 @@ window.app = {
       order.historico.push({
         fase: 'aprovacao',
         data: nowIso,
-        usuario: `Cliente (${approverName}) via Portal com senha (${approverPin || 'OK'}) e carimbo ${horaExtensa}${geoCoords ? ` [GPS: ${geoCoords.latitude?.toFixed(4)}, ${geoCoords.longitude?.toFixed(4)}]` : ''}`
+        usuario: `Cliente (${approverName}) validou via ${deviceName} às ${horaExtensa} [Tel: ${approverPhone}] [Senha: ${approverPin}]${geoCoords ? ` [GPS: ${geoCoords.latitude?.toFixed(4)}, ${geoCoords.longitude?.toFixed(4)}]` : ''}`
       });
 
       // 1. Grava no cache / banco local
@@ -3086,7 +3241,7 @@ window.app = {
         }
       }
 
-      // 3. Registra notificação no sistema para visualização da equipe interna
+      // 3. Registra notificação automática no sistema interno para visualização da equipe da empresa
       try {
         const notifs = JSON.parse(localStorage.getItem('grafsis_notifications') || '[]');
         notifs.unshift({
@@ -3096,20 +3251,28 @@ window.app = {
           pedido_id: order.id,
           cliente: approverName,
           telefone: approverPhone,
+          dispositivo: deviceName,
           data: nowIso,
           hora: horaExtensa,
           lida: false,
-          mensagem: `O Cliente ${approverName} autorizou a produção do Pedido #${order.numero} às ${horaExtensa}!`
+          mensagem: `O Cliente ${approverName} [Tel: ${approverPhone}] autorizou a produção do Pedido #${order.numero} às ${horaExtensa} via ${deviceName}!`
         });
         localStorage.setItem('grafsis_notifications', JSON.stringify(notifs.slice(0, 50)));
         if (window.app && typeof window.app.updateNotificationStatus === 'function') {
           window.app.updateNotificationStatus();
         }
+        window.dispatchEvent(new CustomEvent('grafsis:orderApproved', { detail: { order } }));
       } catch (e) {
         console.warn('[notifications] Erro ao salvar notificação:', e);
       }
 
-      await window.grafsisAlert(`🎉 Parabéns! Sua autorização foi confirmada com sucesso às ${horaExtensa}.\n\nO Pedido #${order.numero} foi liberado para nossa equipe de produção.`, 'GRAFSIS');
+      await window.grafsisAlert(
+        `🎉 Parabéns! Sua autorização foi confirmada com sucesso às ${horaExtensa}.\n\n` +
+        `Dispositivo registrado: ${deviceName}\n` +
+        `Telefone autenticado: ${approverPhone}\n\n` +
+        `O Pedido #${order.numero} foi liberado para nossa equipe de produção!`,
+        'GRAFSIS'
+      );
       this.renderPublicClientApprovalPortal(window.location.hash);
     };
 

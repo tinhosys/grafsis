@@ -388,7 +388,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.8.6 (Ver Notas)
+              Versão 4.9.8.7 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -812,7 +812,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.6</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.7</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -820,7 +820,20 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.8.6 (Atual)</h4>
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.7 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Gravar Operação, Liberação O.S., Links Técnico/Completo & Aceite Digital</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Renomeação Oficial:</strong> Botão "Salva Operação" atualizado formalmente para "Gravar Operação", com governança imune a bloqueios e persistência segura.</li>
+            <li><strong>Liberação O.S. & Checks Persistentes:</strong> Checkboxes de liberação de item para O.S. (<code>#check-all-os</code>, <code>.item-os-check</code>), input de busca e botões "Isolar Item" e "Liberar Todos" mantêm-se sempre habilitados mesmo após o registro da operação. Por padrão os itens iniciam marcados e somente os checados são impressos na O.S. e disponibilizados no link do cliente.</li>
+            <li><strong>Link Padrão de Cópia Fácil e Botões Sempre Habilitados:</strong> O campo de link padrão permite seleção direta e cópia instantânea via <code>navigator.clipboard</code> com fallback por <code>execCommand</code> e feedback visual ("✓ Link Copiado!"). Os botões "Copiar Link", "Enviar WhatsApp" e "Visualizar" permanecem habilitados em qualquer estado do registro.</li>
+            <li><strong>4 Modalidades de Compartilhamento WhatsApp:</strong> Disponibilizados botões específicos para: (1) Link Técnico sem valores financeiros para conferência pura de arte e medidas; (2) Link Completo com demonstrativo comercial; (3) Senha de Autorização de 4 dígitos enviada separadamente; (4) Recibo Digital de Pagamento com código único de validação (ex: <code>REC-260008-XXXX</code>).</li>
+            <li><strong>Regra de Ouro do Aceite & Telemetria Completa:</strong> A senha de autorização só pode ser validada no portal caso o telefone informado pelo cliente corresponda rigorosamente ao mesmo WhatsApp cadastrado no envio. Ao validar, o sistema registra data/hora com segundos, modelo de dispositivo (Android/iOS/PC), geolocalização com link no Google Maps e notifica imediatamente a equipe interna pelo sistema.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.6</h4>
             <span class="text-xs text-blue-600 font-bold">Estabilidade de Gravação & Caixa Parcelado (Tabela Price)</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
@@ -1014,17 +1027,17 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.8.6) -->
-  <script src="js/config.js?v=4.9.8.6"></script>
-  <script src="js/auth.js?v=4.9.8.6"></script>
-  <script src="js/store.js?v=4.9.8.6"></script>
-  <script src="js/clients.js?v=4.9.8.6"></script>
-  <script src="js/suppliers.js?v=4.9.8.6"></script>
-  <script src="js/products.js?v=4.9.8.6"></script>
-  <script src="js/sales.js?v=4.9.8.6"></script>
-  <script src="js/production.js?v=4.9.8.6"></script>
-  <script src="js/finance.js?v=4.9.8.6"></script>
-  <script src="js/newsticker.js?v=4.9.8.6"></script>
-  <script src="js/app.js?v=4.9.8.6"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.8.7) -->
+  <script src="js/config.js?v=4.9.8.7"></script>
+  <script src="js/auth.js?v=4.9.8.7"></script>
+  <script src="js/store.js?v=4.9.8.7"></script>
+  <script src="js/clients.js?v=4.9.8.7"></script>
+  <script src="js/suppliers.js?v=4.9.8.7"></script>
+  <script src="js/products.js?v=4.9.8.7"></script>
+  <script src="js/sales.js?v=4.9.8.7"></script>
+  <script src="js/production.js?v=4.9.8.7"></script>
+  <script src="js/finance.js?v=4.9.8.7"></script>
+  <script src="js/newsticker.js?v=4.9.8.7"></script>
+  <script src="js/app.js?v=4.9.8.7"></script>
 </body>
 </html>

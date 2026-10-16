@@ -690,11 +690,26 @@ window.salesModule = {
         el.disabled = true;
         el.classList.add('bg-slate-100', 'cursor-not-allowed');
       });
+      // Desabilita campos de inserção/edição do item, mas MANTÉM HABILITADOS os checks de liberação de O.S. e botões de isolamento (Imagem 2)
       itemElements.forEach(el => {
-        el.disabled = true;
+        const isOsCheckOrControl = el.classList.contains('item-os-check') || 
+                                   el.id === 'check-all-os' || 
+                                   el.id === 'filter-item-code-os' || 
+                                   (el.getAttribute('onclick') && (el.getAttribute('onclick').includes('isolateTypedItemOs') || el.getAttribute('onclick').includes('resetItemsOsFilter')));
+        if (isOsCheckOrControl) {
+          el.disabled = false;
+        } else {
+          el.disabled = true;
+        }
       });
       if (descPctInput) descPctInput.disabled = true;
       if (descValInput) descValInput.disabled = true;
+
+      // A seção do link de aprovação e seus botões (Copiar Link, Enviar WhatsApp, Visualizar) SEMPRE ficam habilitados (Marcação Verde Imagem 1)
+      const linkSectionElements = document.querySelectorAll('#secao-link-aprovacao-padrao input, #secao-link-aprovacao-padrao button, #secao-link-aprovacao-padrao a');
+      linkSectionElements.forEach(el => {
+        el.disabled = false;
+      });
     } else {
       // ANTES DE REGISTRAR (OU LIBERADO PELO GERENTE):
       if (opSelect) {
@@ -741,7 +756,7 @@ window.salesModule = {
     // 10. Governança e Paleta dos 6 Botões de Ação Inferiores
     // 1. cancela = 'Cancelar Edição', deixe enable true quando tiver editando
     // 2. edita = 'Editar Operação' (Marcação Laranja - Imune)
-    // 3. Salva Operação (Marcação Laranja - Imune)
+    // 3. Gravar Operação (Marcação Laranja - Imune)
     // 4. 'Registrar Operação' (Amarelo, fonte preto) / 'Operação Registrada' (Verde bandeira, fonte branca)
     // 5. Botão cinza: 'Emitir Orçamento', 'Emitir Pré-Venda', 'Emitir Venda', 'Emitir Patrocínio', 'Emitir Permuta'
     // 6. Botão laranja: Emitir O.S. (desabilitado para Orçamento e Pré-Venda; habilitado para Venda, Patrocínio, Permuta)
@@ -774,11 +789,12 @@ window.salesModule = {
       btnEdita.title = isRegistered ? "Editar dados e itens da operação registrada (Requer Gerente)" : "Editar dados e itens da operação";
     }
 
-    // 3. Botão Salva Operação: 'Salva Operação' (Marcação Laranja - Sempre Imune)
+    // 3. Botão Gravar Operação: 'Gravar Operação' (Marcação Laranja - Sempre Imune)
     if (btnSalvaOperacao) {
+      btnSalvaOperacao.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Gravar Operação`;
       btnSalvaOperacao.disabled = false;
       btnSalvaOperacao.className = "w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
-      btnSalvaOperacao.title = "Salvar alterações da operação";
+      btnSalvaOperacao.title = "Gravar alterações da operação no sistema";
     }
 
     // 4. Botão Registrar Operação / Operação Registrada (Imagem 4)
@@ -1569,10 +1585,10 @@ window.salesModule = {
                     Editar Operação
                   </button>
 
-                  <!-- 3. Salva Operação (Verde) -->
-                  <button type="button" id="btn-save-draft" onclick="salesModule.saveOrderQuick(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Salvar a operação rapidamente">
+                  <!-- 3. Gravar Operação (Verde) -->
+                  <button type="button" id="btn-save-draft" onclick="salesModule.saveOrderQuick(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Gravar a operação no sistema">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    Salva Operação
+                    Gravar Operação
                   </button>
 
                   <!-- LINHA INFERIOR (3 BOTÕES) -->
@@ -1649,7 +1665,7 @@ window.salesModule = {
                       </div>
                       <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <div class="relative flex-1">
-                          <input type="text" readonly id="padrao-approval-link-input" value="${approvalLinkValue}" class="w-full px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 select-all shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500" onclick="this.select()">
+                          <input type="text" id="padrao-approval-link-input" value="${approvalLinkValue}" class="w-full px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 select-all shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-text" onclick="this.select()" onfocus="this.select()">
                         </div>
                         <button type="button" onclick="salesModule.copyStandardApprovalLink()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
@@ -3413,7 +3429,7 @@ window.salesModule = {
       return this.activeItems.map((it, idx) => `
         <tr class="border-b hover:bg-slate-50 transition ${it.liberado_os === false ? 'bg-amber-50/50 opacity-90' : ''}">
           <td class="p-3 text-center">
-            <input type="checkbox" ${it.liberado_os !== false ? 'checked' : ''} onchange="salesModule.toggleItemOs(${idx}, this.checked)" title="Liberar item para O.S. (Desmarque para reter)" class="w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
+            <input type="checkbox" ${it.liberado_os !== false ? 'checked' : ''} onchange="salesModule.toggleItemOs(${idx}, this.checked)" title="Liberar item para O.S. (Desmarque para reter)" class="item-os-check w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
           </td>
           <td class="p-3">
             <div class="flex items-center gap-3">
@@ -5020,40 +5036,81 @@ window.salesModule = {
       alert('Link de aprovação indisponível no momento.');
       return;
     }
+
+    const setButtonFeedback = () => {
+      const btn = document.querySelector('#secao-link-aprovacao-padrao button[onclick*="copyStandardApprovalLink"]');
+      if (btn) {
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> <span class="text-white font-black">✓ Link Copiado!</span>`;
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+        setTimeout(() => {
+          btn.innerHTML = origHtml;
+          btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+          btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2500);
+      }
+    };
+
+    if (input) {
+      input.focus();
+      input.select();
+      if (input.setSelectionRange) {
+        input.setSelectionRange(0, 99999);
+      }
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(link).then(() => {
+        setButtonFeedback();
         if (window.grafsisAlert) {
-          window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEnvie este link para o cliente no WhatsApp para que ele possa aprovar o layout sem necessidade de login ou senha.', 'GRAFSIS');
+          window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEnvie este link para o cliente no WhatsApp para que ele possa conferir arte, medidas e validar a aprovação.', 'GRAFSIS');
         } else {
           alert(`Link de aprovação copiado com sucesso!\n\n${link}`);
         }
       }).catch(() => {
-        prompt('Copie o link abaixo para enviar ao cliente:', link);
+        try {
+          document.execCommand('copy');
+          setButtonFeedback();
+          if (window.grafsisAlert) {
+            window.grafsisAlert('Link de aprovação copiado com sucesso!', 'GRAFSIS');
+          }
+        } catch (e) {
+          prompt('Copie o link abaixo para enviar ao cliente:', link);
+        }
       });
     } else {
-      prompt('Copie o link abaixo para enviar ao cliente:', link);
+      try {
+        document.execCommand('copy');
+        setButtonFeedback();
+        if (window.grafsisAlert) {
+          window.grafsisAlert('Link de aprovação copiado com sucesso!', 'GRAFSIS');
+        }
+      } catch (e) {
+        prompt('Copie o link abaixo para enviar ao cliente:', link);
+      }
     }
   },
 
   sendStandardApprovalWhatsApp() {
-    let orderId = document.getElementById('current-display-id')?.innerText?.trim();
-    if (!orderId || orderId === 'NOVO') {
+    let orderId = document.getElementById('current-display-id')?.value?.replace('#', '') || document.getElementById('display-order-id-label')?.innerText?.replace('#', '')?.trim();
+    if (!orderId || orderId === 'NOVO' || orderId.includes('NOVO')) {
       const linkInput = document.getElementById('padrao-approval-link-input');
       if (linkInput && linkInput.value) {
         const match = linkInput.value.match(/id=([^&]+)/);
         if (match) orderId = match[1];
       }
     }
-    if (!orderId) {
+    if (!orderId || orderId === 'NOVO' || orderId.includes('NOVO')) {
       const orders = window.store?.getOrders() || [];
-      const clientId = document.getElementById('order-client-id')?.value;
+      const clientId = document.querySelector('select[name="cliente_id"]')?.value;
       const matchingOrder = orders.filter(o => o.cliente_id === clientId).sort((a,b) => (b.numero||0) - (a.numero||0))[0];
       if (matchingOrder) orderId = matchingOrder.id || matchingOrder.numero;
     }
-    if (orderId) {
+    if (orderId && orderId !== 'NOVO' && !orderId.includes('NOVO')) {
       this.openApprovalShareModal(orderId);
     } else {
-      alert('Não foi possível identificar a operação para compartilhamento no WhatsApp.');
+      alert('Grave ou registre a operação primeiro para poder encaminhar o link de aprovação ao cliente via WhatsApp.');
     }
   },
 
@@ -5074,20 +5131,27 @@ window.salesModule = {
     const orders = window.store.getOrders();
     const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
     if (!order) {
-      alert('Pedido não encontrado.');
+      alert('Pedido não encontrado para compartilhamento.');
       return;
     }
 
     const clients = window.store.getClients();
     const client = clients.find(c => c.id === order.cliente_id) || {};
     const clientName = client.nome || order.cliente_nome || 'Cliente';
-    const clientPhone = client.telefone_whatsapp || client.telefone || order.cliente_telefone || '';
-    const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    const clientPhone = order.telefone_autorizacao || client.telefone_whatsapp || client.telefone || order.cliente_telefone || '';
+    const baseLink = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    const linkTecnico = `${baseLink}&modo=tecnico`;
+    const linkCompleto = `${baseLink}&modo=completo`;
     const tenant = window.store.getActiveTenant ? window.store.getActiveTenant() : {};
     const empresaNome = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS Comunicação Visual';
 
     const modalId = 'modal-approval-share-wrap';
     document.getElementById(modalId)?.remove();
+
+    // Filtra itens liberados para O.S./Link (conforme marcações de checagem)
+    const allItems = order.itens || [];
+    const liberadosItems = allItems.filter(it => it.liberado_os !== false);
+    const displayedItems = liberadosItems.length > 0 ? liberadosItems : allItems;
 
     const wrap = document.createElement('div');
     wrap.id = modalId;
@@ -5102,7 +5166,7 @@ window.salesModule = {
               📱
             </div>
             <div>
-              <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Envio de Prova & Liberação</span>
+              <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Envio de Links & Recibo Digital</span>
               <h2 class="text-lg font-black text-slate-900 dark:text-white">Encaminhar Pedido #${order.numero}</h2>
             </div>
           </div>
@@ -5112,11 +5176,11 @@ window.salesModule = {
         </div>
 
         <!-- Corpo do Modal -->
-        <div class="p-6 overflow-y-auto space-y-5 text-xs text-slate-700 dark:text-slate-300">
+        <div class="p-6 overflow-y-auto space-y-4 text-xs text-slate-700 dark:text-slate-300">
           
           <!-- Folha de Resumo Tipo Impressão -->
-          <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 font-sans">
-            <div class="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700 text-slate-500 text-[11px]">
+          <div class="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 font-sans">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-700 text-slate-500 text-[11px]">
               <span class="font-bold uppercase tracking-wider">${empresaNome}</span>
               <span class="font-mono">${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span>
             </div>
@@ -5133,17 +5197,28 @@ window.salesModule = {
             </div>
 
             <div>
-              <span class="text-[10px] uppercase font-bold text-slate-400 block">Itens da Operação:</span>
-              <ul class="mt-1 space-y-1 list-disc list-inside text-slate-600 dark:text-slate-300 text-[11px]">
-                ${(order.itens || []).map(it => `<li><strong>${it.quantidade}x</strong> ${it.produto_nome || it.descricao || 'Item'}</li>`).join('')}
+              <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Itens Liberados no Link (${displayedItems.length} de ${allItems.length}):</span>
+              <ul class="space-y-1 text-slate-600 dark:text-slate-300 text-[11px]">
+                ${displayedItems.map(it => `
+                  <li class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50 pb-1">
+                    <span><strong>${it.quantidade}x</strong> #${String(it.item_id||'').replace(/^#+/,'')} ${it.produto_nome || it.descricao || 'Item'}</span>
+                    <span class="font-mono text-[10px] text-blue-600">${it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : 'Un'}</span>
+                  </li>
+                `).join('')}
               </ul>
             </div>
 
+            ${order.observacoes ? `
+              <div class="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-900 dark:text-amber-200 text-[11px]">
+                <strong>Observações da Operação:</strong> ${order.observacoes}
+              </div>
+            ` : ''}
+
             <!-- Registro de Envios Anteriores -->
             ${order.link_enviado ? `
-              <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-[11px] space-y-1">
+              <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-[11px] space-y-1">
                 <div><strong>Último envio registrado:</strong> ${new Date(order.link_enviado.data).toLocaleString('pt-BR')} para <strong>${order.link_enviado.telefone}</strong> (por ${order.link_enviado.usuario || 'Operador'})</div>
-                ${order.codigo_autorizacao ? `<div><strong>Senha / Código de Autorização:</strong> <span class="font-mono font-black text-xs px-2 py-0.5 bg-emerald-200 dark:bg-emerald-900 rounded">${order.codigo_autorizacao}</span> (informada ao cliente via WhatsApp)</div>` : ''}
+                ${order.codigo_autorizacao ? `<div><strong>Senha / Código de Autorização:</strong> <span class="font-mono font-black text-xs px-2 py-0.5 bg-emerald-200 dark:bg-emerald-900 rounded">${order.codigo_autorizacao}</span> (vinculado exclusivamente a este número)</div>` : ''}
               </div>
             ` : `
               <div class="text-[11px] text-slate-400 italic">
@@ -5152,42 +5227,63 @@ window.salesModule = {
             `}
           </div>
 
-          <!-- Campos de Configuração do Envio -->
-          <div class="space-y-4">
+          <!-- Configuração do Telefone e Links -->
+          <div class="space-y-3">
             <div>
-              <label class="block font-bold text-slate-800 dark:text-white mb-1">Telefone / WhatsApp do Destinatário *</label>
-              <input type="text" id="share-target-phone" value="${clientPhone}" placeholder="Ex: (69) 99999-9999" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-              <span class="text-[10px] text-slate-400 mt-1 block">O número deve conter o DDD. O sistema formatará automaticamente para o link do WhatsApp com senha exclusiva de 4 dígitos.</span>
+              <label class="block font-bold text-slate-800 dark:text-white mb-1">Telefone / WhatsApp do Destinatário (Regra de Ouro: Senha vinculada a este número) *</label>
+              <input type="text" id="share-target-phone" value="${clientPhone}" placeholder="Ex: (69) 99999-9999" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+              <span class="text-[10px] text-slate-400 mt-1 block">Apenas o cliente com este número exato poderá digitar a senha e validar a conferência digital.</span>
             </div>
 
-            <div>
-              <label class="block font-bold text-slate-800 dark:text-white mb-1">Link de Aprovação Online e Sem Senha de Acesso</label>
-              <div class="flex gap-2">
-                <input type="text" readonly id="share-target-link" value="${link}" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 font-mono text-[11px] text-slate-600 dark:text-slate-300 select-all">
-                <button type="button" onclick="navigator.clipboard.writeText('${link}'); window.grafsisAlert('Link de aprovação copiado com sucesso!', 'GRAFSIS');" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 font-bold rounded-xl text-xs transition cursor-pointer">
-                  Copiar
-                </button>
+            <!-- Visualização dos Links Gerados -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+              <div class="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl">
+                <span class="font-black text-blue-900 dark:text-blue-200 block mb-1">1. Link Técnico (Sem Valores):</span>
+                <div class="flex gap-1.5 items-center">
+                  <input type="text" id="share-link-tecnico" value="${linkTecnico}" class="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded font-mono text-[10px] text-slate-700 dark:text-slate-200 select-all" onclick="this.select()">
+                  <button type="button" onclick="navigator.clipboard.writeText('${linkTecnico}'); window.grafsisAlert('Link Técnico copiado!', 'GRAFSIS');" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-[10px] transition cursor-pointer">Copiar</button>
+                </div>
+              </div>
+              <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                <span class="font-black text-emerald-900 dark:text-emerald-200 block mb-1">2. Link Completo (Com Financeiro):</span>
+                <div class="flex gap-1.5 items-center">
+                  <input type="text" id="share-link-completo" value="${linkCompleto}" class="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded font-mono text-[10px] text-slate-700 dark:text-slate-200 select-all" onclick="this.select()">
+                  <button type="button" onclick="navigator.clipboard.writeText('${linkCompleto}'); window.grafsisAlert('Link Completo copiado!', 'GRAFSIS');" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[10px] transition cursor-pointer">Copiar</button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Ações do Modal com Opções de Envio Separado -->
-        <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col gap-3">
+        <!-- 4 Modalidades de Envio no WhatsApp -->
+        <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col gap-2.5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'link')" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer" title="Envia a proposta com link de conferência">
-              <span>💬 1. Enviar Proposta & Link</span>
+            <!-- 1. Enviar Link Técnico (Sem Financeiro) -->
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'tecnico')" class="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer" title="Envia layout, arte, medidas e descrição sem valores monetários">
+              <span>📐 1. Enviar Link Técnico (Sem Valores)</span>
             </button>
-            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'code')" class="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer" title="Envia a senha/código de confirmação em mensagem separada">
-              <span>🔑 2. Enviar Código Separado</span>
+
+            <!-- 2. Enviar Link Completo (Com Financeiro) -->
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'completo')" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer" title="Envia layout completo com valores unitários, total, entrada e opções de pagamento">
+              <span>💰 2. Enviar Link Completo (Com Valores)</span>
+            </button>
+
+            <!-- 3. Enviar Senha de Autorização Separada -->
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'codigo')" class="py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-amber-950 font-black text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer" title="Envia a senha de 4 dígitos exclusivamente para o WhatsApp do cliente">
+              <span>🔑 3. Enviar Senha de 4 Dígitos</span>
+            </button>
+
+            <!-- 4. Enviar Recibo de Pagamento com Código de Validação -->
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'recibo')" class="py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer" title="Envia recibo digital com código de validação único">
+              <span>🧾 4. Enviar Recibo de Pagamento</span>
             </button>
           </div>
           
-          <div class="flex items-center justify-between pt-1 gap-2">
-            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'full')" class="text-[11px] text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-400 font-bold underline transition cursor-pointer">
-              ⚡ Enviar Proposta + Código Juntos (Mensagem Única)
+          <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 gap-2">
+            <button type="button" onclick="salesModule.sendApprovalViaWhatsApp('${order.id}', 'full')" class="text-[11px] text-slate-600 hover:text-emerald-700 dark:hover:text-emerald-400 font-bold underline transition cursor-pointer">
+              ⚡ Enviar Proposta Completa + Senha Juntos
             </button>
-            <button type="button" onclick="document.getElementById('${modalId}').remove()" class="py-2 px-5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition cursor-pointer">
+            <button type="button" onclick="document.getElementById('${modalId}').remove()" class="py-1.5 px-4 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition cursor-pointer">
               Fechar
             </button>
           </div>
@@ -5199,7 +5295,7 @@ window.salesModule = {
     document.body.appendChild(wrap);
   },
 
-  async sendApprovalViaWhatsApp(orderId, mode = 'full') {
+  async sendApprovalViaWhatsApp(orderId, mode = 'completo') {
     const orders = window.store.getOrders();
     const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
     if (!order) return;
@@ -5212,42 +5308,100 @@ window.salesModule = {
     }
 
     const fullPhone = rawPhone.length === 10 || rawPhone.length === 11 ? '55' + rawPhone : rawPhone;
-    const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    const baseLink = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
+    const linkTecnico = `${baseLink}&modo=tecnico`;
+    const linkCompleto = `${baseLink}&modo=completo`;
     const clientName = order.cliente_nome || 'Cliente';
     const currentUser = window.app?.currentUser?.nome || 'Operador';
-    const nowIso = new Date().toISOString();
+    const tenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+    const empresaNome = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS Comunicação Visual';
+    const now = new Date();
+    const nowIso = now.toISOString();
 
-    // Gera senha aleatória de 4 dígitos para conferência do cliente
+    // Gera/preserva senha aleatória de 4 dígitos para conferência do cliente
     const randomPin = order.codigo_autorizacao || String(Math.floor(1000 + Math.random() * 9000));
     order.codigo_autorizacao = randomPin;
+    // Vincula explicitamente o número autorizado para conferência (Regra de Ouro)
+    order.telefone_autorizacao = rawPhone;
 
+    // Código único de validação do recibo
+    const validationCode = `REC-${order.numero}-${String(Math.abs(Number(order.numero) * 31 + 1047)).slice(-4).padStart(4, '7')}`;
+
+    // Monta itens liberados para envio
+    const allItems = order.itens || [];
+    const liberadosItems = allItems.filter(it => it.liberado_os !== false);
+    const itemsToSend = liberadosItems.length > 0 ? liberadosItems : allItems;
+
+    const itemsSummaryTecnico = itemsToSend.map((it, idx) => {
+      const dim = it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` : 'Peça/Un');
+      return `• *${it.quantidade}x* #${String(it.item_id||'').replace(/^#+/,'')} ${it.produto_nome || it.descricao || 'Item'} (${dim})${it.acabamento ? ` - Acabamento: ${it.acabamento}` : ''}`;
+    }).join('\n');
+
+    const itemsSummaryCompleto = itemsToSend.map((it, idx) => {
+      const dim = it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` : (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` : 'Peça/Un');
+      return `• *${it.quantidade}x* #${String(it.item_id||'').replace(/^#+/,'')} ${it.produto_nome || it.descricao || 'Item'} (${dim}) = R$ ${Number(it.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    }).join('\n');
+
+    const obsBlock = order.observacoes ? `\n📌 *Observações Técnicas:*\n${order.observacoes}\n` : '';
     const valorStr = Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    const entradaStr = Number(order.valor_entrada || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    const saldoStr = Number(Math.max(0, (order.valor_final || 0) - (order.valor_entrada || 0))).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    const formaPagto = order.forma_pagamento || 'Pix / Cartão / Dinheiro';
 
     let msg = '';
-    if (mode === 'link') {
+    if (mode === 'tecnico') {
       msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
-        `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
-        `*Valor Total:* R$ ${valorStr}\n\n` +
-        `Por favor, acesse o link abaixo para visualizar os itens, arte e medidas:\n` +
-        `👉 ${link}\n\n` +
-        `Aguarde que enviaremos a sua Senha de Autorização em seguida.\n` +
-        `Qualquer dúvida estamos à disposição!`;
-    } else if (mode === 'code') {
-      msg = `*GRAFSIS - Confirmação de Produção*\n\n` +
+        `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência técnica de arte, medidas e acabamentos.\n\n` +
+        `📋 *ITENS DA OPERAÇÃO:*\n${itemsSummaryTecnico}\n` +
+        `${obsBlock}\n` +
+        `👉 *Acesse o Link Técnico para Visualizar o Layout e Artes:*\n` +
+        `${linkTecnico}\n\n` +
+        `🔐 *Senha de Autorização:* Enviaremos a sua senha de 4 dígitos exclusiva para este seu número para que você possa aprovar digitalmente a produção.`;
+    } else if (mode === 'codigo') {
+      msg = `🔐 *${empresaNome} - SENHA DE AUTORIZAÇÃO*\n\n` +
         `Olá, *${clientName}*!\n` +
-        `Seu *Código / Senha de Autorização* para o pedido *#${order.numero}* é:\n\n` +
+        `Sua Senha de 4 Dígitos para conferência e autorização do Pedido *#${order.numero}* é:\n\n` +
         `🔑 *${randomPin}*\n\n` +
-        `Informe esta senha de 4 dígitos no link enviado para confirmar o pedido e liberar a produção com segurança.`;
-    } else {
+        `⚠️ *Regra de Segurança:* Esta senha só pode ser validada no portal acessando a partir deste seu número de WhatsApp (${rawPhone}). Digite-a no link para liberar a produção com segurança.`;
+    } else if (mode === 'recibo') {
+      msg = `🧾 *${empresaNome} - RECIBO DIGITAL DE PAGAMENTO*\n\n` +
+        `*Pedido:* #${order.numero}\n` +
+        `*Cliente:* ${clientName}\n` +
+        `*Data/Hora:* ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}\n` +
+        `*Valor do Pedido:* R$ ${valorStr}\n` +
+        `*Valor Recebido / Entrada:* R$ ${entradaStr}\n` +
+        `*Saldo Restante:* R$ ${saldoStr}\n` +
+        `*Forma de Pagamento:* ${formaPagto}\n\n` +
+        `🔒 *Código de Autenticação Digital:* *${validationCode}*\n\n` +
+        `Este documento comprova o pagamento e lançamento financeiro da operação junto à ${empresaNome}.`;
+    } else if (mode === 'full') {
       msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
-        `Seu pedido *#${order.numero}* está pronto para conferência e aprovação técnica.\n` +
-        `*Valor Total:* R$ ${valorStr}\n` +
-        `*Sua Senha de Autorização:* *${randomPin}*\n\n` +
-        `Por favor, acesse o link abaixo para visualizar a arte, conferir as medidas e autorizar a produção:\n` +
-        `👉 ${link}\n\n` +
-        `No momento de confirmar, informe a senha *${randomPin}* e certifique-se de autorizar a localização do dispositivo para registro seguro do aceite digital.\n\n` +
-        `Você também poderá escolher a melhor opção de pagamento (Pix, Cartão de Crédito/Débito).\n` +
-        `Qualquer dúvida estamos à disposição!`;
+        `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência e aprovação.\n\n` +
+        `📋 *ITENS DA OPERAÇÃO:*\n${itemsSummaryCompleto}\n` +
+        `${obsBlock}\n` +
+        `💰 *RESUMO FINANCEIRO:*\n` +
+        `• Total: R$ ${valorStr}\n` +
+        `• Entrada: R$ ${entradaStr}\n` +
+        `• Saldo: R$ ${saldoStr}\n` +
+        `• Condição: ${formaPagto}\n\n` +
+        `👉 *Link para Conferência e Aprovação:*\n` +
+        `${linkCompleto}\n\n` +
+        `🔑 *Sua Senha de Autorização:* *${randomPin}*\n` +
+        `⚠️ Informe a senha *${randomPin}* no portal para validar o aceite e autorizar o início da produção gráfica!`;
+    } else {
+      // completo
+      msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
+        `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência completa.\n\n` +
+        `📋 *ITENS DA OPERAÇÃO:*\n${itemsSummaryCompleto}\n` +
+        `${obsBlock}\n` +
+        `💰 *CONDIÇÕES COMERCIAIS:*\n` +
+        `• Total: R$ ${valorStr}\n` +
+        `• Entrada: R$ ${entradaStr}\n` +
+        `• Saldo Restante: R$ ${saldoStr}\n` +
+        `• Forma: ${formaPagto}\n\n` +
+        `👉 *Acesse o Link Completo para Visualizar Arte, Valores e Aprovar:*\n` +
+        `${linkCompleto}\n\n` +
+        `🔐 *Sua Senha de Autorização:* *${randomPin}* (exclusiva para este seu WhatsApp)`;
     }
 
     // Registra o envio no pedido
@@ -5256,6 +5410,7 @@ window.salesModule = {
       data: nowIso,
       usuario: currentUser,
       codigo: randomPin,
+      codigo_recibo: validationCode,
       modo: mode
     };
 
@@ -5263,7 +5418,7 @@ window.salesModule = {
     order.historico.push({
       fase: order.status_fase || 'orcamento',
       data: nowIso,
-      usuario: `Mensagem WhatsApp (${mode === 'link' ? 'Proposta/Link' : mode === 'code' ? 'Código de Autorização' : 'Completa'}) enviada para ${rawPhone} por ${currentUser}`
+      usuario: `WhatsApp enviado (${mode}) para ${rawPhone} por ${currentUser}`
     });
 
     // Salva no banco local e nuvem
@@ -5281,11 +5436,12 @@ window.salesModule = {
     window.open(waUrl, '_blank');
 
     await window.grafsisAlert(
-      `✅ Envio registrado com sucesso!\n\n` +
+      `✅ Envio WhatsApp preparado com sucesso!\n\n` +
       `Destinatário: ${rawPhone}\n` +
-      `Tipo: ${mode === 'link' ? 'Proposta & Link de Conferência' : mode === 'code' ? 'Código de Confirmação Separado' : 'Link + Senha Juntos'}\n` +
+      `Tipo de Envio: ${mode.toUpperCase()}\n` +
       `Senha de Autorização: ${randomPin}\n` +
-      `Data/Hora: ${new Date(nowIso).toLocaleString('pt-BR')}`,
+      (mode === 'recibo' ? `Código do Recibo: ${validationCode}\n` : '') +
+      `Data/Hora: ${now.toLocaleString('pt-BR')}`,
       'GRAFSIS'
     );
     this.render();

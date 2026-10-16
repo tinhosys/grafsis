@@ -169,6 +169,26 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
   - Inicialização segura da aba padrão (`currentTab: 'orcamento'`) e tratamento de exceções com fallback visual.
   - Operação fluida tanto na visualização em grade Desktop com Drag & Drop quanto na versão sanfona Mobile.
 
+## 🔄 Gravar Operação, Liberação O.S., Links Técnico/Completo & Aceite Digital (v4.9.8.7)
+- **Renomeação Oficial de Ação ("Gravar Operação")**:
+  - O botão de salvamento rápido / rascunho (`#btn-save-draft`) foi oficialmente padronizado para **"Gravar Operação"**, em substituição a "Salva Operação".
+  - Mantida a imunidade total a bloqueios pós-registro para gravação de alterações complementares.
+- **Persistência de Liberação de Itens para O.S. & Checkboxes Livres**:
+  - Os checkboxes de liberação de item (`#check-all-os`, `.item-os-check`), o campo de isolamento por código (`#filter-item-code-os`) e os botões de ação ("Isolar Item" e "Liberar Todos") permanecem **sempre habilitados**, mesmo após o registro da operação.
+  - Por padrão, todos os itens iniciam marcados (`checked = true`), garantindo que apenas os itens conferidos e checados pelo operador sejam impressos na Ordem de Serviço (A4 Paisagem) e exibidos no link de aprovação online.
+- **Link Padrão Fácil de Copiar & Botões Permanentemente Ativos**:
+  - O campo do link padrão de aprovação (`#padrao-approval-link-input`) agora possui seleção livre com cursor de texto (`cursor-text`, `onfocus="this.select()"`), facilitando a cópia manual pelo operador.
+  - O botão **"Copiar Link"** implementa escrita primária por `navigator.clipboard` com contingência robusta via `document.execCommand('copy')` e feedback visual instantâneo na interface (`"✓ Link Copiado!"` em verde por 2,5 segundos).
+  - Os botões "Copiar Link", "Enviar WhatsApp" e "Visualizar ↗" mantêm-se habilitados em qualquer estágio da operação.
+- **4 Modalidades Estruturadas de Compartilhamento WhatsApp**:
+  1. *1. Link Técnico (Sem Valores)*: URL `#aprovacao?id=...&modo=tecnico` — exibe especificações completas de itens, medidas, quantidades, descrições técnicas, observações e galeria de imagens/artes, omitindo valores monetários.
+  2. *2. Link Completo (Com Valores)*: URL `#aprovacao?id=...&modo=completo` — exibe o layout técnico integral somado ao demonstrativo financeiro (preços unitários, total, entrada, saldo restante e condições de pagamento).
+  3. *3. Senha de Autorização de 4 Dígitos*: Envio isolado do código PIN (`order.codigo_autorizacao`), vinculado estritamente ao WhatsApp destinatário.
+  4. *4. Recibo Digital de Pagamento*: Emissão de comprovante digital com dados da operação e Código Único de Validação (ex: `REC-260008-XXXX`).
+- **Regra de Ouro do Aceite Digital & Telemetria Completa**:
+  - A senha de autorização só pode ser validada no portal caso o telefone informado pelo cliente coincida com o número de WhatsApp cadastrado no envio da chave.
+  - Ao validar o aceite, o sistema registra data/hora com segundos, modelo e marca do dispositivo (Android / Apple iOS / Windows PC / Mac), geolocalização com coordenadas e link para o Google Maps, e emite notificação automática em tempo real para a equipe interna da gráfica.
+
 ---
 
 ## 🔄 Resolução de Travamento de Gravação & Caixa Parcelado Inteligente (v4.9.8.6)
