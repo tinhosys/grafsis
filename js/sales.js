@@ -285,9 +285,37 @@ window.salesModule = {
   async checkClientStatusAndAge(selectElement) {
     const clientId = selectElement.value;
     if (!clientId) {
+      if (!this.currentEditingOrderId) {
+        this.currentAssignedOrderId = null;
+        const labelEl = document.getElementById('display-order-id-label');
+        if (labelEl) labelEl.innerText = '#NOVO (Gerado ao salvar)';
+        const hiddenId = document.getElementById('current-display-id');
+        if (hiddenId) hiddenId.value = '#NOVO';
+      }
       this.updateFormState();
       return;
     }
+
+    // Regra Imagens 1, 2 e 3: Se cliente <> null, atribui último ID + 1 logo no começo da operação
+    if (!this.currentEditingOrderId || !this.currentAssignedOrderId || this.currentAssignedOrderId === '#NOVO') {
+      const nextId = this.getNextOrderId();
+      this.currentAssignedOrderId = nextId;
+      const labelEl = document.getElementById('display-order-id-label');
+      if (labelEl) labelEl.innerText = '#' + nextId;
+      const hiddenId = document.getElementById('current-display-id');
+      if (hiddenId) hiddenId.value = nextId;
+
+      // Vincula e atualiza imediatamente os itens da memória com o ID oficial para evitar itens sem vínculo
+      if (this.activeItems && this.activeItems.length > 0) {
+        this.activeItems.forEach((it, idx) => {
+          const seq = String(idx + 1).padStart(2, '0');
+          it.item_id = `${nextId}${seq}`;
+        });
+        const tbody = document.getElementById('order-items-tbody');
+        if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+      }
+    }
+
     const client = window.store.getClients().find(c => c.id === clientId);
     if (!client) {
       this.updateFormState();
@@ -597,51 +625,113 @@ window.salesModule = {
       btnRecibo.title = 'Lançar recebimento, entrada, pagamentos e emitir recibo no Caixa';
     }
 
-    // 8. Governança de Edição e Campos
-    // Conforme solicitado: trava temporariamente removida para manter fluxo contínuo e sem bloqueios
+    // 8. Governança de Edição e Bloqueio de Registro (Diretrizes Mestras e Solicitação do Usuário)
     const orders = (window.store && window.store.getOrders()) || [];
     const activeDisplayId = document.getElementById('current-display-id')?.value;
     const currentOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) ||
                          (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
     const isSavedOrder = !!currentOrder;
-    const isVendaPatrocinioPermuta = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
+    const isRegistered = this.isOrderRegistered || (currentOrder && (currentOrder.status_registro === 'registrado' || currentOrder.registrado === true || currentOrder.registrado === 'sim'));
+    this.isOrderRegistered = isRegistered;
 
-    // Todos os campos da tela permanecem abertos para inserção e edição
-    if (opSelect) opSelect.disabled = false;
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    const userRole = user ? (user.tipo || user.perfil || user.role || '').toUpperCase() : '';
+    const isGerente = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+    const isEditingUnlocked = isRegistered ? (this.isEditingActive && isGerente) : (this.isEditingActive || !isSavedOrder);
+
     const clientSel = document.querySelector('select[name="cliente_id"]');
-    if (clientSel) clientSel.disabled = false;
-
-    itemElements.forEach(el => {
-      if (el.id !== 'item-type' && el.id !== 'item-type-display') el.disabled = false;
-    });
-
-    finElements.forEach(el => el.disabled = false);
-
     const valElements = document.querySelectorAll('#top-col-validade input, #top-col-percentual input');
-    valElements.forEach(el => el.disabled = false);
+    const descPctInput = document.getElementById('order-discount-perc');
+    const descValInput = document.getElementById('order-discount');
 
-    if (diasEntrega) {
-      diasEntrega.disabled = false;
-      diasEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-sm";
-    }
-    if (prevEntrega) {
-      prevEntrega.disabled = false;
-      prevEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-mono text-sm";
-    }
-    const obsTextarea = document.querySelector('textarea[name="observacoes"]');
-    if (obsTextarea) {
-      obsTextarea.disabled = false;
-      obsTextarea.className = "w-full p-2 border border-slate-300 rounded text-sm bg-white";
+    if (isRegistered && !isEditingUnlocked) {
+      // APÓS O REGISTRO:
+      // Locais imunes ao bloqueio (marcações laranjadas e circundados de rosa da Imagem 4):
+      // 1. Prazo de Entrega (Dias) & Previsão de Entrega
+      if (diasEntrega) {
+        diasEntrega.disabled = false;
+        diasEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-sm";
+      }
+      if (prevEntrega) {
+        prevEntrega.disabled = false;
+        prevEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-mono text-sm";
+      }
+      // 2. Observações Técnicas
+      if (obsTextarea) {
+        obsTextarea.disabled = false;
+        obsTextarea.className = "w-full p-2 border border-slate-300 rounded text-sm bg-white";
+      }
+      // 3. Valor de Entrada (R$)
+      const entradaInput = document.getElementById('order-valor-entrada') || document.getElementById('order-entrada');
+      if (entradaInput) {
+        entradaInput.disabled = false;
+      }
+      // 4. Botão Caixa
+      const btnCaixa = document.getElementById('btn-detalhes-recibo');
+      if (btnCaixa) {
+        btnCaixa.disabled = false;
+        btnCaixa.className = 'w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer';
+      }
+      // 5. Repositório da Operação
+      const repoBtns = document.querySelectorAll('#secao-producao-validacoes button, [onclick*="openRepositoryModal"], [onclick*="promptRepositoryDriveLink"]');
+      repoBtns.forEach(b => b.disabled = false);
+
+      // TODOS OS OUTROS CAMPOS SEGUEM BLOQUEADOS APÓS O REGISTRO:
+      if (clientSel) {
+        clientSel.disabled = true;
+        clientSel.classList.add('bg-slate-100', 'cursor-not-allowed');
+      }
+      if (opSelect) {
+        opSelect.disabled = true;
+        opSelect.classList.add('bg-slate-100', 'cursor-not-allowed');
+      }
+      valElements.forEach(el => {
+        el.disabled = true;
+        el.classList.add('bg-slate-100', 'cursor-not-allowed');
+      });
+      itemElements.forEach(el => {
+        el.disabled = true;
+      });
+      if (descPctInput) descPctInput.disabled = true;
+      if (descValInput) descValInput.disabled = true;
+    } else {
+      // ANTES DE REGISTRAR (OU LIBERADO PELO GERENTE):
+      if (opSelect) {
+        opSelect.disabled = false;
+        opSelect.classList.remove('bg-slate-100', 'cursor-not-allowed');
+      }
+      if (clientSel) {
+        clientSel.disabled = false;
+        clientSel.classList.remove('bg-slate-100', 'cursor-not-allowed');
+      }
+      itemElements.forEach(el => {
+        if (el.id !== 'item-type' && el.id !== 'item-type-display') el.disabled = false;
+      });
+      finElements.forEach(el => el.disabled = false);
+      valElements.forEach(el => {
+        el.disabled = false;
+        el.classList.remove('bg-slate-100', 'cursor-not-allowed');
+      });
+      if (diasEntrega) {
+        diasEntrega.disabled = false;
+        diasEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-sm";
+      }
+      if (prevEntrega) {
+        prevEntrega.disabled = false;
+        prevEntrega.className = "w-full p-2 border border-slate-300 rounded bg-white font-mono text-sm";
+      }
+      if (obsTextarea) {
+        obsTextarea.disabled = false;
+        obsTextarea.className = "w-full p-2 border border-slate-300 rounded text-sm bg-white";
+      }
+      const btnCaixa = document.getElementById('btn-detalhes-recibo');
+      if (btnCaixa) {
+        btnCaixa.disabled = false;
+        btnCaixa.className = 'w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer';
+      }
     }
 
-    // Garante que o Botão Caixa SEMPRE continue habitado/habilitado
-    const btnCaixa = document.getElementById('btn-detalhes-recibo');
-    if (btnCaixa) {
-      btnCaixa.disabled = false;
-      btnCaixa.className = 'w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer';
-    }
-
-    // 9. Chave de ON/OFF para Edição de Gerente: ocultada temporariamente conforme solicitação do usuário
+    // 9. Chave de ON/OFF para Edição de Gerente
     const wrapperChaveGerente = document.getElementById('wrapper-chave-edicao-gerente');
     if (wrapperChaveGerente) {
       wrapperChaveGerente.style.display = 'none';
@@ -649,9 +739,9 @@ window.salesModule = {
 
     // 10. Governança e Paleta dos 6 Botões de Ação Inferiores
     // 1. cancela = 'Cancelar Edição', deixe enable true quando tiver editando
-    // 2. edita = 'Editar Operação'
-    // 3. Salva Operação (Verde)
-    // 4. Em azul: 'Registrar Operação'
+    // 2. edita = 'Editar Operação' (Marcação Laranja - Imune)
+    // 3. Salva Operação (Marcação Laranja - Imune)
+    // 4. 'Registrar Operação' (Amarelo, fonte preto) / 'Operação Registrada' (Verde bandeira, fonte branca)
     // 5. Botão cinza: 'Emitir Orçamento', 'Emitir Pré-Venda', 'Emitir Venda', 'Emitir Patrocínio', 'Emitir Permuta'
     // 6. Botão laranja: Emitir O.S. (desabilitado para Orçamento e Pré-Venda; habilitado para Venda, Patrocínio, Permuta)
     const btnCancelar = document.getElementById('btn-cancel-action') || document.querySelector('#secao-botoes-acoes button[onclick*="handleCancelEdit"]') || document.querySelector('#secao-botoes-acoes button[onclick*="render"]');
@@ -661,7 +751,7 @@ window.salesModule = {
     const btnEmitirPedido = document.getElementById('btn-emitir-pedido');
     const btnEmitirOS = document.getElementById('btn-emitir-os');
 
-    // 1. Botão Cancelar: cancela = 'Cancelar Edição', deixe enable true quando tiver editando (Cor estilizada Imagem 5)
+    // 1. Botão Cancelar: cancela = 'Cancelar Edição'
     if (btnCancelar) {
       btnCancelar.innerHTML = `<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Cancelar Edição`;
       if (this.isEditingActive) {
@@ -675,26 +765,35 @@ window.salesModule = {
       }
     }
 
-    // 2. Botão Edita: edita = 'Editar Operação'
+    // 2. Botão Edita: edita = 'Editar Operação' (Marcação Laranja - Sempre Imune)
     if (btnEdita) {
       btnEdita.innerHTML = `<svg class="w-4 h-4 text-amber-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> Editar Operação`;
       btnEdita.disabled = false;
       btnEdita.className = "w-full h-12 text-sm font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 border border-amber-500 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
-      btnEdita.title = "Editar dados e itens da operação";
+      btnEdita.title = isRegistered ? "Editar dados e itens da operação registrada (Requer Gerente)" : "Editar dados e itens da operação";
     }
 
-    // 3. Botão Salva Operação (Verde Esmeralda)
+    // 3. Botão Salva Operação: 'Salva Operação' (Marcação Laranja - Sempre Imune)
     if (btnSalvaOperacao) {
       btnSalvaOperacao.disabled = false;
       btnSalvaOperacao.className = "w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+      btnSalvaOperacao.title = "Salvar alterações da operação";
     }
 
-    // 4. Botão Registrar Operação (Azul Royal)
+    // 4. Botão Registrar Operação / Operação Registrada (Imagem 4)
+    // Antes de registrar: 'Registrar Operação', amarelo, fonte preto.
+    // Depois de registrar: 'Operação Registrada', botão verde bandeira, fonte branca.
     if (btnSubmit) {
       btnSubmit.disabled = false;
-      btnSubmit.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar Operação`;
-      btnSubmit.className = 'w-full h-12 text-sm font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase';
-      btnSubmit.title = "Gravar e registrar operação oficial no sistema";
+      if (isRegistered) {
+        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Operação Registrada`;
+        btnSubmit.className = 'w-full h-12 text-sm font-bold text-white bg-[#009b3a] hover:bg-[#008230] rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
+        btnSubmit.title = "Operação já registrada no sistema";
+      } else {
+        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar Operação`;
+        btnSubmit.className = 'w-full h-12 text-sm font-bold text-slate-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-500 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
+        btnSubmit.title = "Registrar operação oficial no sistema";
+      }
     }
 
     // 5. Botão Cinza: 'Emitir Orçamento', 'Emitir Pré-Venda', 'Emitir Venda', 'Emitir Patrocínio', 'Emitir Permuta'
@@ -993,16 +1092,6 @@ window.salesModule = {
       });
     }
     
-    const displayId = isEdit ? order.numero : '#NOVO';
-    this.activeItems.forEach((it, idx) => {
-      if (!it.item_id || !it.item_id.startsWith(String(displayId))) {
-        it.item_id = isEdit ? (String(displayId) + String(idx + 1).padStart(2, '0')) : ('ITEM' + String(idx + 1).padStart(2, '0'));
-      }
-    });
-    const canPermutaPatrocinio = this.canManagePermutaPatrocinio();
-    
-    const defValidadeDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
     // Resolução Relacional Ultra-Resiliente do Cliente (1 Cliente -> Muitos Pedidos)
     let foundClient = null;
     if (order) {
@@ -1021,14 +1110,43 @@ window.salesModule = {
     }
     const initialClientId = foundClient ? foundClient.id : (params.clientId || (order && order.cliente_id) || '');
     const hasKnownClientInList = clients.some(c => String(c.id) === String(initialClientId));
+
+    const isRegistered = !!(order && (order.status_registro === 'registrado' || order.registrado === true || order.registrado === 'sim'));
+    this.isOrderRegistered = isRegistered;
+
+    // Regra Imagens 1, 2 e 3: Se cliente <> null, atribui último ID + 1 logo no começo da operação
+    if (isEdit && order && order.numero) {
+      this.currentAssignedOrderId = String(order.numero);
+    } else if (!isEdit && initialClientId) {
+      this.currentAssignedOrderId = this.getNextOrderId();
+    } else {
+      this.currentAssignedOrderId = null;
+    }
+
+    const displayId = isEdit ? order.numero : (this.currentAssignedOrderId || '#NOVO');
+    this.activeItems.forEach((it, idx) => {
+      if (!it.item_id || !it.item_id.startsWith(String(displayId))) {
+        it.item_id = (displayId && displayId !== '#NOVO')
+          ? (String(displayId) + String(idx + 1).padStart(2, '0'))
+          : ('ITEM' + String(idx + 1).padStart(2, '0'));
+      }
+    });
+    const canPermutaPatrocinio = this.canManagePermutaPatrocinio();
     
+    const defValidadeDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const initialOp = (order && (order.tipo_operacao || order.tipo)) || 'venda';
     const isBudgetOrPre = (initialOp === 'orcamento' || initialOp === 'pre-venda');
     const isPermutaPatrocinio = (initialOp === 'permuta' || initialOp === 'patrocinio');
     const hasClientAcceptance = order && (order.data_aceite || order.aprovado_cliente);
 
     this.isOrderLockedByApproval = isEdit && !!hasClientAcceptance;
-    this.isEditingActive = !isEdit;
+    this.isEditingActive = !isRegistered && !isEdit;
+
+    const approvalLinkValue = (order && (order.id || order.numero))
+      ? `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`
+      : ((displayId && displayId !== '#NOVO')
+        ? `${window.location.origin}${window.location.pathname}#aprovacao?id=${displayId}`
+        : '');
 
     const formHtml = `
       <div class="space-y-4 max-w-6xl mx-auto pb-10">
@@ -1042,7 +1160,7 @@ window.salesModule = {
             </div>
             <div class="text-right flex flex-col items-end">
               <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider">ID OPERAÇÃO</span>
-              <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">${isEdit ? '#' + displayId : '#NOVO (Gerado ao salvar)'}</span>
+              <span class="text-2xl font-black text-blue-700 dark:text-cyan-400 font-mono tracking-tight" id="display-order-id-label">${(displayId && displayId !== '#NOVO') ? '#' + displayId : '#NOVO (Gerado ao salvar)'}</span>
               <input type="hidden" id="current-display-id" value="${displayId}">
               ${order ? `
                 <button type="button" onclick="salesModule.openApprovalShareModal('${order.id}')" class="mt-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Visualizar proposta e encaminhar link de liberação via WhatsApp">
@@ -1457,10 +1575,10 @@ window.salesModule = {
                   </button>
 
                   <!-- LINHA INFERIOR (3 BOTÕES) -->
-                  <!-- 4. Registrar Operação (Azul) -->
-                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase" title="Gravar e oficializar operação">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    Registrar Operação
+                  <!-- 4. Registrar Operação / Operação Registrada (Imagem 4) -->
+                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold ${isRegistered ? 'text-white bg-[#009b3a] hover:bg-[#008230]' : 'text-slate-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-500'} rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer" title="${isRegistered ? 'Operação já registrada no sistema' : 'Registrar operação oficial no sistema'}">
+                    <svg class="w-4 h-4 ${isRegistered ? 'text-white' : 'text-slate-900'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    ${isRegistered ? 'Operação Registrada' : 'Registrar Operação'}
                   </button>
 
                   <!-- 5. Emitir Operação (Cinza) + Chave ON/OFF Edição Gerente -->
@@ -1506,6 +1624,44 @@ window.salesModule = {
                     </div>
                     <div class="w-full bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden shadow-inner">
                       <div id="inline-progress-bar" class="h-full bg-gradient-to-r from-blue-600 via-emerald-500 to-emerald-600 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- PADRÃO OFICIAL: ÁREA DO LINK DE APROVAÇÃO DO CLIENTE (MARCAÇÃO VERMELHA IMAGEM 5) -->
+                  <div id="secao-link-aprovacao-padrao" class="${isRegistered ? '' : 'hidden'} col-span-1 sm:col-span-3 mt-3 pt-3 border-t border-slate-200">
+                    <div class="p-3 bg-emerald-50/90 dark:bg-emerald-950/40 border-2 border-emerald-400 dark:border-emerald-600 rounded-xl shadow-xs transition-all">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-emerald-200 dark:border-emerald-800">
+                        <div class="flex items-center gap-2">
+                          <span class="text-lg">📱</span>
+                          <div>
+                            <h4 class="font-black text-xs text-emerald-900 dark:text-emerald-300 uppercase tracking-wide">
+                              Link de Aprovação Online do Cliente
+                            </h4>
+                            <p class="text-[11px] text-emerald-700 dark:text-emerald-400">
+                              Link gerado para conferência de arte, medidas e aceite digital do cliente sem senha de acesso.
+                            </p>
+                          </div>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded self-start sm:self-auto">
+                          Liberado para Envio
+                        </span>
+                      </div>
+                      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <div class="relative flex-1">
+                          <input type="text" readonly id="padrao-approval-link-input" value="${approvalLinkValue}" class="w-full px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 select-all shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500" onclick="this.select()">
+                        </div>
+                        <button type="button" onclick="salesModule.copyStandardApprovalLink()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                          Copiar Link
+                        </button>
+                        <button type="button" onclick="salesModule.sendStandardApprovalWhatsApp()" class="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                          Enviar WhatsApp
+                        </button>
+                        <a href="${approvalLinkValue}" target="_blank" rel="noopener noreferrer" id="padrao-approval-link-open" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-lg text-xs transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap">
+                          Visualizar ↗
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2932,9 +3088,10 @@ window.salesModule = {
     const itemArteInput = document.getElementById('item-arte-url');
     const arteUrl = itemArteInput ? itemArteInput.value.trim() : '';
 
-    const orderIdStr = document.getElementById('current-display-id')?.value || '000000';
+    const orderIdStr = document.getElementById('current-display-id')?.value;
+    const finalId = (orderIdStr && orderIdStr !== '#NOVO') ? orderIdStr : (this.currentAssignedOrderId || this.getNextOrderId());
     const seq = String(this.activeItems.length + 1).padStart(2, '0');
-    const generatedItemId = orderIdStr + seq;
+    const generatedItemId = finalId + seq;
 
     let area = 0;
     let piecePrice = price;
@@ -3075,7 +3232,7 @@ window.salesModule = {
               }
               <div>
                 <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
-                  <span class="text-[10px] font-mono ${it.liberado_os !== false ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'} border px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200 transition" onclick="salesModule.isolateItemForOs(${idx})" title="Clique para isolar este item na O.S. / visualização">#${it.item_id || '----'}</span>
+                  <span class="text-[10px] font-mono ${it.liberado_os !== false ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'} border px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200 transition" onclick="salesModule.isolateItemForOs(${idx})" title="Clique para isolar este item na O.S. / visualização">#${String(it.item_id || '----').replace(/^#+/, '')}</span>
                   ${it.produto_nome || ''}
                   ${it.liberado_os === false ? '<span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Aguardando Liberação</span>' : ''}
                 </div>
@@ -3100,7 +3257,7 @@ window.salesModule = {
           <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
           <td class="p-3 text-right">
-            ${(this.isOrderLockedByApproval && !this.isEditingActive) || this.isReadOnlyFinancial ? `
+            ${((this.isOrderRegistered || this.isOrderLockedByApproval) && !this.isEditingActive) || this.isReadOnlyFinancial ? `
               <span class="text-[11px] font-bold text-slate-400 italic">Travado</span>
             ` : `
               <div class="flex justify-end gap-1">
@@ -3281,7 +3438,10 @@ window.salesModule = {
           return;
         }
       }
-      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
+      const preAssignedQuick = document.getElementById('current-display-id')?.value;
+      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) 
+        ? oldOrder.numero 
+        : ((preAssignedQuick && preAssignedQuick !== '#NOVO') ? preAssignedQuick : (this.currentAssignedOrderId || this.getNextOrderId()));
 
       // Identifica dados cadastrais completos do cliente para integridade relacional
       const clientObj = clients.find(c => c.id === clienteId || String(c.id) === String(clienteId)) || {};
@@ -3413,13 +3573,17 @@ window.salesModule = {
         submitBtn.setAttribute('onclick', `salesModule.saveOrder(event, '${saved.id}', '${saved.numero}')`);
       }
 
-      // Sincroniza badge de Fase Atual, carimbo de data/hora e campos sem travar
+      this.currentEditingOrderId = saved.id;
+      this.isEditingActive = false;
+
+      // Sincroniza badge de Fase Atual, carimbo de data/hora e campos
       this.updatePhaseBadge(op);
       const phaseTimeEl = document.getElementById('display-order-phase-time-val');
       if (phaseTimeEl) {
         phaseTimeEl.innerText = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       }
       this.updateFormState();
+      this.updateStandardApprovalBox(saved);
       this.showInlineProgress(`Operação #${saved.numero} salva com sucesso!`, 100, true);
 
       setTimeout(() => {
@@ -3572,9 +3736,10 @@ window.salesModule = {
       const cleanEntrada = String(rawEntrada).trim().replace(/\./g, '').replace(',', '.');
       const valorEntrada = parseFloat(cleanEntrada) || 0;
       const saldoRestante = Math.max(0, finalTotal - valorEntrada);
-      const statusPagto = (saldoRestante <= 0.01 && finalTotal > 0) ? 'pago' : (valorEntrada > 0 ? 'parcial' : 'pendente');
-
-      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) ? oldOrder.numero : this.getNextOrderId();
+      const preAssignedOrder = document.getElementById('current-display-id')?.value;
+      const finalNumber = (isExistingOrder && oldOrder && oldOrder.numero) 
+        ? oldOrder.numero 
+        : ((preAssignedOrder && preAssignedOrder !== '#NOVO') ? preAssignedOrder : (this.currentAssignedOrderId || this.getNextOrderId()));
 
       // Identifica dados cadastrais completos do cliente para integridade relacional
       const allClients = window.store.getClients();
@@ -3672,16 +3837,19 @@ window.salesModule = {
         }
       }
 
-      // Restaura o botão ANTES do alert nativo para evitar parecer travado em 'Gravando...'
+      // Atualiza estado de registro da operação (Imagem 4)
+      this.isOrderRegistered = true;
+      this.isEditingActive = false;
+      this.currentEditingOrderId = saved.id;
+
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText || `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar Operação`;
+        submitBtn.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Operação Registrada`;
+        submitBtn.className = 'w-full h-12 text-sm font-bold text-white bg-[#009b3a] hover:bg-[#008230] rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
+        submitBtn.title = "Operação já registrada no sistema";
       }
 
       // MANTÉM NA PÁGINA ATUAL (REQUISITO DA IMAGEM 5)
-      this.currentEditingOrderId = saved.id;
-      this.isEditingActive = false;
-
       const displayIdLabel = document.getElementById('display-order-id-label');
       if (displayIdLabel) displayIdLabel.innerText = '#' + saved.numero;
       const displayNumeroTag = document.getElementById('display-order-numero-tag');
@@ -3706,6 +3874,7 @@ window.salesModule = {
       // Sincroniza badge de Fase Atual e trava os campos da operação registrada
       this.updatePhaseBadge(op);
       this.updateFormState();
+      this.updateStandardApprovalBox(saved);
 
       this.showInlineProgress(`Operação #${saved.numero} registrada e oficializada com sucesso!`, 100, true);
 
@@ -3833,17 +4002,26 @@ window.salesModule = {
                   (activeDisplayId && orders.find(o => String(o.numero) === String(activeDisplayId)));
 
     const isSaved = !!order;
+    const isRegistered = this.isOrderRegistered || (order && (order.status_registro === 'registrado' || order.registrado === true || order.registrado === 'sim'));
     const op = (order?.tipo_operacao || order?.tipo || document.querySelector('select[name="tipo_operacao"]')?.value || 'venda').toLowerCase();
-    const isVendaPatrocinioPermuta = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
-    const isApprovedOrAdvanced = isSaved && (!!order.data_aceite || !!order.aprovado_cliente || (isVendaPatrocinioPermuta && order.status_fase !== 'orcamento' && order.status_fase !== 'prevenda'));
+    const isApprovedOrAdvanced = isSaved && (!!order.data_aceite || !!order.aprovado_cliente || (order.status_fase !== 'orcamento' && order.status_fase !== 'prevenda'));
 
-    const user = window.authModule ? window.authModule.getCurrentUser() : null;
-    const userRole = user ? (user.tipo || user.perfil || user.role || '').toUpperCase() : '';
-    const isManagerOrOwner = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
+    // Regra Imagem 4: antes de registrar, sempre que for preciso editar algum registro clique no botão 'Editar Registro',
+    // mas depois que a operação estiver registrada, esta ação de edição, somente pode acontecer se o perfil for 'gerente', envie um aviso com essa regra.
+    if (isRegistered) {
+      const user = window.authModule ? window.authModule.getCurrentUser() : null;
+      const userRole = user ? (user.tipo || user.perfil || user.role || '').toUpperCase() : '';
+      const isGerente = ['GERENTE', 'PROPRIETARIO', 'ADMIN'].includes(userRole);
 
-    if (isSaved && isVendaPatrocinioPermuta && !isManagerOrOwner) {
-      alert(`Acesso Restrito: Operações de Venda, Patrocínio ou Permuta registradas só podem ser editadas pelo perfil Gerente ou Proprietário.\n\nPor favor, solicite a um Gerente para ativar a chave de edição.`);
-      return;
+      if (!isGerente) {
+        const avisoRegra = 'Acesso Restrito: Esta operação já está registrada no sistema. Conforme as normas de controle operacional, a edição de registros após o registro oficial é permitida exclusivamente para o perfil de Gerente.';
+        if (window.grafsisAlert) {
+          await window.grafsisAlert(avisoRegra, 'GRAFSIS');
+        } else {
+          alert(avisoRegra);
+        }
+        return;
+      }
     }
 
     if (isSaved) {
@@ -4636,6 +4814,63 @@ window.salesModule = {
     } else {
       prompt('Copie o link abaixo para enviar ao cliente:', link);
     }
+  },
+
+  copyStandardApprovalLink() {
+    const input = document.getElementById('padrao-approval-link-input');
+    const link = input ? input.value : '';
+    if (!link) {
+      alert('Link de aprovação indisponível no momento.');
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        if (window.grafsisAlert) {
+          window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEnvie este link para o cliente no WhatsApp para que ele possa aprovar o layout sem necessidade de login ou senha.', 'GRAFSIS');
+        } else {
+          alert(`Link de aprovação copiado com sucesso!\n\n${link}`);
+        }
+      }).catch(() => {
+        prompt('Copie o link abaixo para enviar ao cliente:', link);
+      });
+    } else {
+      prompt('Copie o link abaixo para enviar ao cliente:', link);
+    }
+  },
+
+  sendStandardApprovalWhatsApp() {
+    let orderId = document.getElementById('current-display-id')?.innerText?.trim();
+    if (!orderId || orderId === 'NOVO') {
+      const linkInput = document.getElementById('padrao-approval-link-input');
+      if (linkInput && linkInput.value) {
+        const match = linkInput.value.match(/id=([^&]+)/);
+        if (match) orderId = match[1];
+      }
+    }
+    if (!orderId) {
+      const orders = window.store?.getOrders() || [];
+      const clientId = document.getElementById('order-client-id')?.value;
+      const matchingOrder = orders.filter(o => o.cliente_id === clientId).sort((a,b) => (b.numero||0) - (a.numero||0))[0];
+      if (matchingOrder) orderId = matchingOrder.id || matchingOrder.numero;
+    }
+    if (orderId) {
+      this.openApprovalShareModal(orderId);
+    } else {
+      alert('Não foi possível identificar a operação para compartilhamento no WhatsApp.');
+    }
+  },
+
+  updateStandardApprovalBox(order) {
+    if (!order) return;
+    const box = document.getElementById('secao-link-aprovacao-padrao');
+    if (!box) return;
+    box.classList.remove('hidden');
+    const orderId = order.id || order.numero;
+    const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${orderId}`;
+    const input = document.getElementById('padrao-approval-link-input');
+    if (input) input.value = link;
+    const openBtn = document.getElementById('padrao-approval-link-open');
+    if (openBtn) openBtn.href = link;
   },
 
   openApprovalShareModal(orderId) {

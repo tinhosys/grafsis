@@ -388,7 +388,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.8.4 (Ver Notas)
+              Versão 4.9.8.5 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -812,7 +812,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.4</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.5</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -820,7 +820,20 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.8.4 (Atual)</h4>
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.5 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Atribuição Antecipada de ID, Governança Estrita & Link Padrão</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Atribuição Antecipada de ID:</strong> Ao selecionar o cliente (cliente &lt;&gt; null), o sistema gera imediatamente o próximo ID sequencial (#ID = último ID + 1) e o vincula diretamente a todos os itens inseridos, eliminando itens desvinculados ou com numeração pendente (#NOVO).</li>
+            <li><strong>Botão Dinâmico de Registro:</strong> Botão padronizado como "Registrar Operação" com fundo amarelo e fonte preta; após o registro oficial, transiciona automaticamente para "Operação Registrada" com fundo verde bandeira (#009b3a) e fonte branca.</li>
+            <li><strong>Governança de Bloqueio & Perfis:</strong> Após o registro, Cliente, Tipo de Operação, Itens e Descontos permanecem bloqueados. Campos imunes: Prazo de Entrega, Observações Técnicas, Valor de Entrada, Botão Caixa, Repositório e botões de operação.</li>
+            <li><strong>Edição Exclusiva de Gerente Pós-Registro:</strong> Antes de registrar, qualquer operador pode editar clicando em "Editar Operação". Após o registro, a ação de edição é restrita aos perfis com privilégio de Gerente, exibindo aviso informativo formal aos demais usuários.</li>
+            <li><strong>Área Padrão do Link de Aprovação:</strong> Local fixo e destacado abaixo dos botões de ação logo após o registro da operação, permitindo copiar o link, enviar via WhatsApp e visualizar em nova aba.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.4</h4>
             <span class="text-xs text-blue-600 font-bold">Registrar Operação, Chave Gerente, Botão Caixa & O.S. Condicional</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
@@ -984,17 +997,17 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.8.4) -->
-  <script src="js/config.js?v=4.9.8.4"></script>
-  <script src="js/auth.js?v=4.9.8.4"></script>
-  <script src="js/store.js?v=4.9.8.4"></script>
-  <script src="js/clients.js?v=4.9.8.4"></script>
-  <script src="js/suppliers.js?v=4.9.8.4"></script>
-  <script src="js/products.js?v=4.9.8.4"></script>
-  <script src="js/sales.js?v=4.9.8.4"></script>
-  <script src="js/production.js?v=4.9.8.4"></script>
-  <script src="js/finance.js?v=4.9.8.4"></script>
-  <script src="js/newsticker.js?v=4.9.8.4"></script>
-  <script src="js/app.js?v=4.9.8.4"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.8.5) -->
+  <script src="js/config.js?v=4.9.8.5"></script>
+  <script src="js/auth.js?v=4.9.8.5"></script>
+  <script src="js/store.js?v=4.9.8.5"></script>
+  <script src="js/clients.js?v=4.9.8.5"></script>
+  <script src="js/suppliers.js?v=4.9.8.5"></script>
+  <script src="js/products.js?v=4.9.8.5"></script>
+  <script src="js/sales.js?v=4.9.8.5"></script>
+  <script src="js/production.js?v=4.9.8.5"></script>
+  <script src="js/finance.js?v=4.9.8.5"></script>
+  <script src="js/newsticker.js?v=4.9.8.5"></script>
+  <script src="js/app.js?v=4.9.8.5"></script>
 </body>
 </html>

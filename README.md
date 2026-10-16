@@ -171,6 +171,34 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Atribuição Antecipada de ID, Governança Estrita & Link Padrão de Aprovação (v4.9.8.5)
+- **Atribuição Antecipada de ID (#ID = Último ID + 1)**:
+  - Ao iniciar uma nova operação sem cliente (`cliente == null`), o identificador exibe provisoriamente `#NOVO (Gerado ao salvar)`.
+  - Assim que o cliente é selecionado (`cliente <> null`), o sistema calcula e atribui imediatamente o próximo ID sequencial oficial (`ultimo ID + 1`), atualizando os crachás `#display-order-id-label` e `#current-display-id`.
+  - Ao inserir itens no pedido, cada item recebe imediatamente a chave de vínculo relacional definitiva (`26000201`, etc.), eliminando itens desvinculados, órfãos ou com prefixos redundantes (`##NOVO01`).
+- **Botão Dinâmico de Registro de Operação**:
+  - Antes do registro ou em modo rascunho: botão padronizado com a legenda **"Registrar Operação"**, estilizado em amarelo vibrante (`bg-yellow-400`, `hover:bg-yellow-500`) com texto preto em negrito (`text-slate-900 font-bold`).
+  - Após a gravação oficial ou ao abrir operações já registradas: transiciona de imediato para a legenda **"Operação Registrada"**, estilizado em verde bandeira oficial (`bg-[#009b3a]`, `hover:bg-[#008030]`) com texto branco em negrito (`text-white font-bold`).
+- **Campos Imunes ao Bloqueio Pós-Registro**:
+  - Após o registro da operação, os campos de Cabeçalho (Cliente, Tipo de Operação, Validade/Percentual), Itens (inserção, edição, exclusão) e Descontos ficam rigorosamente bloqueados para garantir a integridade dos dados fiscais e contratuais.
+  - Permanecem **100% imunes ao bloqueio**:
+    1. *Prazo de Entrega* (dias úteis e data prevista de entrega).
+    2. *Observações Técnicas / Observações do Pedido*.
+    3. *Valor de Entrada* (`#order-valor-entrada`).
+    4. *Botão Caixa* (`#btn-detalhes-recibo` - recebimentos, parcelas e recibos).
+    5. *Repositório da Operação* (anexos e links de arte/arquivos).
+    6. *Botões de Operação*: "Editar Operação" (`#btn-edit-order`) e "Salva Operação" (`#btn-save-draft`).
+- **Regra de Perfil para Edição Pós-Registro**:
+  - Antes de registrar a operação, qualquer operador com permissão de vendas pode clicar em **"Editar Operação"** para fazer ajustes.
+  - Uma vez registrada a operação, o clique em **"Editar Operação"** é restrito com rigidez aos usuários com perfil **Gerente** (incluindo `PROPRIETARIO` e `ADMIN`).
+  - Caso um usuário sem esse nível de privilégio tente acionar a edição pós-registro, o sistema bloqueia a ação e exibe uma notificação formal informativa: *"Acesso Restrito: Esta operação já está registrada no sistema. Conforme as normas de controle operacional, a edição de registros após o registro oficial é permitida exclusivamente para o perfil de Gerente."*
+- **Área Padrão do Link de Aprovação do Cliente**:
+  - Implementação da área padrão de aprovação posicionada de forma fixa e destacada logo abaixo dos botões de ação (`#secao-botoes-acoes`).
+  - Exibida de imediato após a gravação da operação e permanentemente visível ao consultar registros gravados.
+  - Oferece campo de link pré-selecionado, botão "Copiar Link" com cópia direta para a área de transferência, botão "Enviar WhatsApp" com direcionamento automatizado e botão "Visualizar ↗" para conferência em nova aba.
+
+---
+
 ## 🔄 Governança de Vendas, Chave Gerente, Botão Caixa & O.S. Condicional (v4.9.8.4)
 - **Registrar Operação com Crítica e Confirmação Explícita**:
   - Botão azul padronizado como "Registrar Operação", executando crítica de integridade prévia (cliente obrigatório, ao menos 1 item cadastrado e previsão de entrega para operações comerciais) e exibindo diálogo de confirmação detalhado com tipo de operação, cliente, total de itens e valor final antes de efetivar a gravação.
