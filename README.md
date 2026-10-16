@@ -171,6 +171,26 @@ Basta dar **duplo clique no arquivo `iniciar_grafsis.bat`** ou abrir diretamente
 
 ---
 
+## 🔄 Resolução de Travamento de Gravação & Caixa Parcelado Inteligente (v4.9.8.6)
+- **Resolução de Travamento de Gravação (`obsTextarea` e `statusPagto`)**:
+  - Identificada e corrigida a causa raiz da interrupção que exibia os erros *"Erro ao salvar operação: obsTextarea is not defined"* e *"Erro ao gravar operação no sistema: statusPagto is not defined"*, que congelavam o processo na barra de progresso em 35%.
+  - Ambos os escopos foram formalmente inicializados e integrados aos fluxos `updateFormState()`, `saveOrder()` e `saveOrderQuick()`, restaurando a fluidez total da gravação e persistência no sistema.
+- **Módulo de Recebimento Financeiro (Caixa) - Parcelamento Inteligente**:
+  - **Verde Bandeira (Quantidade de Parcelas - Máximo 6x)**: Seleção de parcelas reconfigurada para atender ao limite máximo estrito de 6x (`1x a 6x parcelas`), bloqueando opções superiores e ajustando a entrada de dados.
+  - **Amarelo (Taxa de Juros Mensal - '0,0%' a 9,9%)**: Campo dedicado para aplicação de taxa de juros mensal (`% a.m.`), com valor padrão mantido em `'0,0%'` e limite superior de `9,9%`.
+  - **Verde Limão (Data da Primeira Parcela)**: Campo de data para início dos vencimentos (`1ª Parcela`), inicializado em +30 dias por padrão e com recálculo automático em tempo real das datas subsequentes de vencimento para intervalos iguais.
+  - **Azul Royal (Grade Analítica das Parcelas)**: Tabela analítica completa com cabeçalho em azul royal, detalhando:
+    1. *Parcela*: Identificador sequencial (`1ª`, `2ª`, ... `Nª`).
+    2. *Data Vencimento*: Vencimentos calculados mês a mês no mesmo dia base da 1ª parcela.
+    3. *Valor Parcela*: Cálculo de parcelas rigorosamente iguais com juros compostos mês a mês (Tabela Price: $PMT = S \times \frac{i(1+i)^N}{(1+i)^N - 1}$ ou $S/N$ quando juros for 0,0%).
+    4. *Status (Pago / Pendente)*: Indicador visual em verde (`● Pago`) e vermelho (`● Pendente`), permitindo alternância dinâmica com um clique e integração ao saldo restante.
+  - **Fórmula Financeira Oficial Implementada**:
+    - $\text{Saldo da Dívida} = \text{Valor do Pedido} - \text{Valor Recebido}$
+    - $\text{Valor de Cada Parcela Base} = \text{Saldo da Dívida} / \text{Quantidade de Parcelas}$
+    - $\text{Valor de Cada Parcela no Grid} = \text{Parcelas iguais com juros compostos mês a mês sobre o saldo financiado}$.
+
+---
+
 ## 🔄 Atribuição Antecipada de ID, Governança Estrita & Link Padrão de Aprovação (v4.9.8.5)
 - **Atribuição Antecipada de ID (#ID = Último ID + 1)**:
   - Ao iniciar uma nova operação sem cliente (`cliente == null`), o identificador exibe provisoriamente `#NOVO (Gerado ao salvar)`.

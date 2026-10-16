@@ -388,7 +388,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.8.5 (Ver Notas)
+              Versão 4.9.8.6 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -812,7 +812,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.5</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.6</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -820,7 +820,24 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.8.5 (Atual)</h4>
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.6 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Estabilidade de Gravação & Caixa Parcelado (Tabela Price)</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Resolução de Travamento de Gravação:</strong> Corrigidas as referências de escopo que causavam interrupção com erro <em>"obsTextarea is not defined"</em> e <em>"statusPagto is not defined"</em>, eliminando o congelamento da barra de progresso em 35% e garantindo a gravação fluida da operação.</li>
+            <li><strong>Caixa - Recebimento Parcelado Inteligente (4 Cores):</strong>
+              <ul class="list-disc list-inside pl-3 space-y-0.5 text-[11px] text-slate-500">
+                <li><span class="text-emerald-700 font-bold">Verde Bandeira:</span> Quantidade de parcelas limitada estritamente ao teto de 6x (1x a 6x).</li>
+                <li><span class="text-amber-700 font-bold">Amarelo:</span> Taxa de juros mensal de 0,0% a 9,9% a.m., mantendo 0,0% como valor padrão.</li>
+                <li><span class="text-lime-700 font-bold">Verde Limão:</span> Data da primeira parcela com atualização dinâmica e recálculo sincronizado dos vencimentos mensais.</li>
+                <li><span class="text-blue-700 font-bold">Azul Royal:</span> Grade analítica completa exibindo Parcela, Vencimento, Valor da Parcela com juros compostos mês a mês e parcelas rigorosamente iguais (Tabela Price), além de status visual verde (Pago) e vermelho (Pendente) com alternância dinâmica ao toque.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.5</h4>
             <span class="text-xs text-blue-600 font-bold">Atribuição Antecipada de ID, Governança Estrita & Link Padrão</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
@@ -997,17 +1014,17 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.8.5) -->
-  <script src="js/config.js?v=4.9.8.5"></script>
-  <script src="js/auth.js?v=4.9.8.5"></script>
-  <script src="js/store.js?v=4.9.8.5"></script>
-  <script src="js/clients.js?v=4.9.8.5"></script>
-  <script src="js/suppliers.js?v=4.9.8.5"></script>
-  <script src="js/products.js?v=4.9.8.5"></script>
-  <script src="js/sales.js?v=4.9.8.5"></script>
-  <script src="js/production.js?v=4.9.8.5"></script>
-  <script src="js/finance.js?v=4.9.8.5"></script>
-  <script src="js/newsticker.js?v=4.9.8.5"></script>
-  <script src="js/app.js?v=4.9.8.5"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.8.6) -->
+  <script src="js/config.js?v=4.9.8.6"></script>
+  <script src="js/auth.js?v=4.9.8.6"></script>
+  <script src="js/store.js?v=4.9.8.6"></script>
+  <script src="js/clients.js?v=4.9.8.6"></script>
+  <script src="js/suppliers.js?v=4.9.8.6"></script>
+  <script src="js/products.js?v=4.9.8.6"></script>
+  <script src="js/sales.js?v=4.9.8.6"></script>
+  <script src="js/production.js?v=4.9.8.6"></script>
+  <script src="js/finance.js?v=4.9.8.6"></script>
+  <script src="js/newsticker.js?v=4.9.8.6"></script>
+  <script src="js/app.js?v=4.9.8.6"></script>
 </body>
 </html>
