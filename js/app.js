@@ -593,6 +593,466 @@ window.app = {
   },
 
   /* ==============================================================================
+     PAINEL EXCLUSIVO DO PROPRIETÁRIO (ACESSO SECRETO PELO LOGO DA EMPRESA)
+     Somente e exclusivamente o perfil 'PROPRIETARIO' possui acesso.
+     Se outro perfil tentar acessar, exibe alerta de não possibilidade de acesso.
+     ============================================================================== */
+  openOwnerSecretPanel() {
+    const user = window.authModule ? window.authModule.getCurrentUser() : null;
+    if (!user) {
+      if (window.authModule) window.authModule.openLoginModal();
+      return;
+    }
+
+    const role = (user.role || '').toUpperCase();
+    if (role !== 'PROPRIETARIO') {
+      alert(
+        `⛔ ACESSO RESTRITO / NÃO AUTORIZADO\n\n` +
+        `Este ambiente de gestão estratégica e controle corporativo é de acesso exclusivo e confidencial do PROPRIETÁRIO da empresa.\n\n` +
+        `Seu perfil atual (${role}) não possui autorização para ingressar neste painel.`
+      );
+      return;
+    }
+
+    const modal = document.getElementById('owner-exclusive-modal');
+    if (!modal) return;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    const tenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+    const tenantIdEl = document.getElementById('owner-modal-tenant-id');
+    if (tenantIdEl) tenantIdEl.textContent = `ID: ${tenant.id || '001'}`;
+
+    this.currentOwnerTab = 'empresa';
+    this.renderOwnerContent();
+  },
+
+  closeOwnerSecretPanel() {
+    const modal = document.getElementById('owner-exclusive-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  },
+
+  switchOwnerTab(tab) {
+    this.currentOwnerTab = tab;
+    document.querySelectorAll('.owner-tab-btn').forEach(btn => {
+      btn.className = 'owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer';
+    });
+    const activeBtn = document.getElementById(`owner-tab-btn-${tab}`);
+    if (activeBtn) {
+      activeBtn.className = 'owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-black uppercase tracking-wide border-b-2 border-amber-600 text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 shadow-xs transition flex items-center gap-1.5 cursor-pointer';
+    }
+    this.renderOwnerContent();
+  },
+
+  renderOwnerContent() {
+    const container = document.getElementById('owner-modal-content');
+    if (!container) return;
+
+    const tenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+    const users = window.authModule ? window.authModule.getUsers().filter(u => (u.empresa_id || '001') === (tenant.id || '001')) : [];
+    const orders = window.store?.getOrders ? window.store.getOrders().filter(o => o.empresa_id === tenant.id || o.tenant_id === tenant.id || !o.tenant_id) : [];
+
+    const tab = this.currentOwnerTab || 'empresa';
+
+    if (tab === 'empresa') {
+      container.innerHTML = `
+        <form onsubmit="app.saveOwnerCompanyData(event)" class="space-y-6">
+          
+          <!-- Bloco 1: Logomarca da Empresa & Foto do Proprietário -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50">
+            <!-- Logomarca Oficial da Empresa -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  Logomarca Oficial da Empresa (Visível no Topo)
+                </label>
+              </div>
+              <input type="file" accept="image/*" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 focus:outline-none mb-2" onchange="app.handleOwnerImageUpload(this, 'own-logo-preview', 'own-logo-val')">
+              <input type="hidden" id="own-logo-val" value="${tenant.logo_url || ''}">
+              <div class="h-24 border-2 border-dashed border-amber-300 dark:border-amber-800 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center p-2 overflow-hidden shadow-inner">
+                <img id="own-logo-preview" src="${tenant.logo_url || 'assets/demo-top-digital.png'}" class="max-h-full max-w-full object-contain" alt="Logo Empresa">
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">Essa imagem é exibida no canto superior esquerdo e em todos os documentos oficiais da gráfica.</p>
+            </div>
+
+            <!-- Foto Pessoal do Proprietário -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  Foto do Proprietário
+                </label>
+              </div>
+              <input type="file" accept="image/*" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 focus:outline-none mb-2" onchange="app.handleOwnerImageUpload(this, 'own-photo-preview', 'own-photo-val')">
+              <input type="hidden" id="own-photo-val" value="${tenant.proprietario_foto_url || ''}">
+              <div class="h-24 border-2 border-dashed border-indigo-200 dark:border-indigo-900 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center p-2 overflow-hidden shadow-inner">
+                <img id="own-photo-preview" src="${tenant.proprietario_foto_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}" class="w-20 h-20 rounded-full object-cover border-2 border-indigo-400 shadow-sm" alt="Foto do Dono">
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">Foto oficial de identificação do titular e proprietário da conta empresarial.</p>
+            </div>
+          </div>
+
+          <!-- Bloco 2: Dados Cadastrais da Empresa (CNPJ, Razão, Fantasia, Endereço, etc) -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-400 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center gap-1.5">
+              📋 Dados Cadastrais da Empresa / Gráfica
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">CNPJ *</label>
+                <input type="text" id="own-cnpj" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.cnpj || ''}" required placeholder="00.000.000/0000-00">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Razão Social *</label>
+                <input type="text" id="own-razao" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.razao_social || ''}" required placeholder="Razão social oficial">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Nome Fantasia *</label>
+                <input type="text" id="own-fantasia" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.nome_fantasia || ''}" required placeholder="Nome fantasia comercial">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Endereço Completo</label>
+                <input type="text" id="own-endereco" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.endereco || ''}" placeholder="Rua, número, bairro, cidade - UF">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Telefone Fixo</label>
+                <input type="text" id="own-tel" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.telefone_fixo || ''}" placeholder="(00) 0000-0000">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Celular / WhatsApp da Empresa</label>
+                <input type="text" id="own-cel" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.celular_whatsapp || ''}" placeholder="(00) 90000-0000">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">E-mail da Empresa</label>
+                <input type="email" id="own-email" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.email || ''}" placeholder="contato@empresa.com.br">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Site Oficial / Portfólio</label>
+                <input type="url" id="own-site" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.site || ''}" placeholder="https://suagrafica.com.br">
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloco 3: Dados Pessoais do Proprietário (Titular) -->
+          <div class="space-y-3 pt-2">
+            <h3 class="text-xs font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-400 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center gap-1.5">
+              👤 Dados Pessoais do Proprietário
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Nome do Proprietário *</label>
+                <input type="text" id="own-prop-nome" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.proprietario_nome || ''}" required placeholder="Nome completo do dono">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">CPF do Proprietário *</label>
+                <input type="text" id="own-prop-cpf" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.proprietario_cpf || ''}" required placeholder="000.000.000-00">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Telefone Celular do Dono</label>
+                <input type="text" id="own-prop-cel" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.proprietario_celular || ''}" placeholder="(00) 90000-0000">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">E-mail Pessoal do Dono</label>
+                <input type="email" id="own-prop-email" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800" value="${tenant.proprietario_email || ''}" placeholder="dono@email.com">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800 gap-2">
+            <button type="submit" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-xs uppercase tracking-wider transition shadow-md flex items-center gap-2 cursor-pointer">
+              <span>Salvar Dados Cadastrais & Logo</span>
+            </button>
+          </div>
+        </form>
+      `;
+    } else if (tab === 'usuarios') {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-1.5 uppercase">
+                Controle de Colaboradores & Bloqueio Imediato
+              </h3>
+              <p class="text-xs text-slate-500">O Proprietário pode bloquear ou liberar qualquer usuário da sua empresa, inclusive gerentes e vendedores.</p>
+            </div>
+            <button onclick="app.openUserModal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1">
+              + Cadastrar Novo Colaborador
+            </button>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-amber-50/70 dark:bg-slate-800 text-amber-900 dark:text-amber-300 uppercase text-[10px] font-bold border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th class="p-3">Colaborador / Foto</th>
+                  <th class="p-3">Cargo / Perfil</th>
+                  <th class="p-3">CPF</th>
+                  <th class="p-3 text-center">Status de Acesso</th>
+                  <th class="p-3 text-center">Ação do Proprietário</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                ${users.map(u => {
+                  const isOwnerSelf = (u.role === 'PROPRIETARIO');
+                  return `
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                      <td class="p-3 flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-600">
+                          ${u.foto_url ? `<img src="${u.foto_url}" class="w-full h-full object-cover">` : (u.operador || u.nome || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span class="font-bold text-slate-800 dark:text-white block">${u.nome}</span>
+                          <span class="text-[10px] text-slate-400 font-mono">@${u.operador || u.login}</span>
+                        </div>
+                      </td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${u.role === 'PROPRIETARIO' ? 'bg-amber-100 text-amber-800' : (u.role === 'GERENTE' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700')}">
+                          ${u.role}
+                        </span>
+                      </td>
+                      <td class="p-3 font-mono text-slate-600 dark:text-slate-300">
+                        ${u.cpf ? window.authModule.maskCpf(u.cpf) : '--'}
+                      </td>
+                      <td class="p-3 text-center">
+                        ${u.ativo !== false ? `
+                          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Liberado
+                          </span>
+                        ` : `
+                          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span> Bloqueado
+                          </span>
+                        `}
+                      </td>
+                      <td class="p-3 text-center">
+                        ${!isOwnerSelf ? `
+                          <button 
+                            type="button" 
+                            onclick="app.toggleOwnerUserBlock('${u.id}')" 
+                            class="px-3 py-1 text-xs font-bold rounded-lg transition shadow-xs cursor-pointer ${u.ativo !== false ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'}">
+                            ${u.ativo !== false ? '🚫 Bloquear Acesso' : '✓ Liberar Acesso'}
+                          </button>
+                        ` : `
+                          <span class="text-[11px] text-slate-400 italic">Titular (Você)</span>
+                        `}
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else if (tab === 'producao') {
+      // Cálculo de produção real por vendedor/colaborador
+      const prodStats = {};
+      orders.forEach(o => {
+        const vend = o.vendedor || 'Não Definido';
+        if (!prodStats[vend]) {
+          prodStats[vend] = { totalOrders: 0, totalValor: 0, totalM2: 0 };
+        }
+        prodStats[vend].totalOrders += 1;
+        prodStats[vend].totalValor += (parseFloat(o.valor_final) || 0);
+        (o.itens || []).forEach(it => {
+          if (it.tipo_calculo === 'm2') {
+            prodStats[vend].totalM2 += (Number(it.largura_x || 0) * Number(it.comprimento_y || 0) * Number(it.quantidade || 1));
+          }
+        });
+      });
+
+      const prodList = Object.entries(prodStats).map(([nome, d]) => ({ nome, ...d }));
+
+      container.innerHTML = `
+        <div class="space-y-5">
+          <div class="pb-2 border-b border-slate-200 dark:border-slate-800">
+            <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-1.5 uppercase">
+              Auditoria de Produtividade & Vendas por Colaborador
+            </h3>
+            <p class="text-xs text-slate-500">Métricas exclusivas visíveis apenas pelo Proprietário.</p>
+          </div>
+
+          <!-- Cards de Produção Individual -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            ${prodList.map(p => `
+              <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700 mb-2">
+                  <span class="font-black text-slate-800 dark:text-white text-xs truncate">${p.nome}</span>
+                  <span class="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">${p.totalOrders} pedidos</span>
+                </div>
+                <div class="space-y-1 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Faturamento:</span>
+                    <strong class="font-mono text-emerald-700 dark:text-emerald-400">R$ ${p.totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Volume Produzido:</span>
+                    <strong class="font-mono text-blue-700 dark:text-blue-400">${p.totalM2.toFixed(2)} m²</strong>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (tab === 'mercadolivre') {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40 p-5 rounded-2xl border border-sky-200 dark:border-sky-800 space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-sky-200/60 dark:border-sky-800/60">
+              <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center font-black text-base shadow-sm">
+                  MP
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-slate-800 dark:text-white uppercase flex items-center gap-2">
+                    Configuração da API Mercado Pago / Mercado Livre
+                    <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">Ativo no Caixa</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Geração de Pix com QR Code em tela e Link de Cartão de Crédito com parcelamento até 12x</p>
+                </div>
+              </div>
+              <button type="button" onclick="window.mercadoPagoModule.openFinancialManager()" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                <span>Acessar Gestor Financeiro MP</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Access Token Oficial (Produção ou Teste)
+                </label>
+                <input type="password" id="own-mp-token" class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono bg-white dark:bg-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="APP_USR-..." value="${tenant.mercadopago_access_token || ''}">
+                <p class="text-[10px] text-slate-400 mt-1">Obtenha em: <a href="https://www.mercadopago.com.br/developers/panel" target="_blank" class="text-sky-600 underline font-semibold">mercadopago.com.br/developers</a> &gt; Suas integrações &gt; Credenciais</p>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  URL do Webhook (Supabase Edge Function)
+                </label>
+                <input type="url" id="own-mp-webhook" class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono bg-white dark:bg-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="https://...supabase.co/functions/v1/mercadopago-webhook" value="${tenant.mercadopago_webhook_url || ''}">
+                <p class="text-[10px] text-slate-400 mt-1">URL para recebimento de confirmações de pagamento instantâneas.</p>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-sky-200/60 dark:border-sky-800/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="own-mp-enabled" class="rounded text-sky-600 focus:ring-sky-500 w-4 h-4" ${tenant.mercadopago_enabled ? 'checked' : ''}>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Habilitar botões automáticos do Mercado Pago no Caixa</span>
+              </label>
+              <button type="button" onclick="app.saveOwnerMercadoPagoConfig()" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl text-xs uppercase tracking-wide transition shadow-sm cursor-pointer">
+                Salvar Configurações do Mercado Pago
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  },
+
+  handleOwnerImageUpload(input, previewId, valId) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      const preview = document.getElementById(previewId);
+      const valEl = document.getElementById(valId);
+      if (preview) preview.src = base64;
+      if (valEl) valEl.value = base64;
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async saveOwnerCompanyData(e) {
+    if (e) e.preventDefault();
+    const tenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+
+    // Coleta dados da empresa
+    tenant.cnpj = (document.getElementById('own-cnpj')?.value || '').trim();
+    tenant.razao_social = (document.getElementById('own-razao')?.value || '').trim();
+    tenant.nome_fantasia = (document.getElementById('own-fantasia')?.value || '').trim();
+    tenant.endereco = (document.getElementById('own-endereco')?.value || '').trim();
+    tenant.telefone_fixo = (document.getElementById('own-tel')?.value || '').trim();
+    tenant.celular_whatsapp = (document.getElementById('own-cel')?.value || '').trim();
+    tenant.email = (document.getElementById('own-email')?.value || '').trim();
+    tenant.site = (document.getElementById('own-site')?.value || '').trim();
+    tenant.logo_url = (document.getElementById('own-logo-val')?.value || '').trim();
+
+    // Coleta dados pessoais do proprietário
+    tenant.proprietario_nome = (document.getElementById('own-prop-nome')?.value || '').trim();
+    tenant.proprietario_cpf = (document.getElementById('own-prop-cpf')?.value || '').trim();
+    tenant.proprietario_celular = (document.getElementById('own-prop-cel')?.value || '').trim();
+    tenant.proprietario_email = (document.getElementById('own-prop-email')?.value || '').trim();
+    tenant.proprietario_foto_url = (document.getElementById('own-photo-val')?.value || '').trim();
+
+    if (window.store?.saveTenant) {
+      await window.store.saveTenant(tenant);
+    }
+
+    this.updateUserHeader();
+    alert('✓ Dados cadastrais da empresa e do proprietário salvos com sucesso!');
+  },
+
+  async toggleOwnerUserBlock(userId) {
+    const users = window.authModule ? window.authModule.getUsers() : [];
+    const target = users.find(u => u.id === userId);
+    if (!target) return;
+
+    const novoStatus = target.ativo === false;
+    const acaoTexto = novoStatus ? 'LIBERAR' : 'BLOQUEAR';
+
+    if (!confirm(`Deseja realmente ${acaoTexto} o acesso do colaborador "${target.nome}" (${target.role})?`)) {
+      return;
+    }
+
+    target.ativo = novoStatus;
+    if (window.authModule?.saveUserWithoutValidation) {
+      window.authModule.saveUserWithoutValidation(target);
+    }
+
+    if (window.store && window.store.supabaseClient) {
+      try {
+        await window.store.supabaseClient.from('usuarios').update({ ativo: target.ativo }).eq('id', target.id);
+      } catch (err) {
+        console.warn('Erro ao atualizar status remoto de usuário:', err);
+      }
+    }
+
+    alert(`✓ Usuário ${target.nome} agora está ${target.ativo ? 'LIBERADO' : 'BLOQUEADO'}.`);
+    this.renderOwnerContent();
+  },
+
+  async saveOwnerMercadoPagoConfig() {
+    const token = (document.getElementById('own-mp-token')?.value || '').trim();
+    const webhook = (document.getElementById('own-mp-webhook')?.value || '').trim();
+    const enabled = !!document.getElementById('own-mp-enabled')?.checked;
+
+    const tenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+    tenant.mercadopago_access_token = token;
+    tenant.mercadopago_webhook_url = webhook;
+    tenant.mercadopago_enabled = enabled;
+
+    if (window.mercadoPagoModule) {
+      window.mercadoPagoModule.saveConfig({
+        enabled,
+        accessToken: token,
+        webhookUrl: webhook
+      });
+    }
+
+    if (window.store?.saveTenant) {
+      await window.store.saveTenant(tenant);
+    }
+
+    alert('✓ Configurações do Mercado Pago / Mercado Livre salvas com sucesso!');
+  },
+
+  /* ==============================================================================
      PAINEL DO PROPRIETÁRIO (Sem redundâncias de marca - Imagem 3 & 4)
      Proprietário edita: Logomarca e Mensagem de Rodapé
      Admin do Sistema: edita todos os dados cadastrais da empresa

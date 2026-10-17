@@ -225,3 +225,10 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS mercadopago_access_token TEXT;
 ALTER TABLE tenants ADD COLUMN IF NOT EXISTS mercadopago_webhook_url TEXT;
 ALTER TABLE tenants ADD COLUMN IF NOT EXISTS mercadopago_enabled BOOLEAN DEFAULT FALSE;
 
+-- Atualizações v4.9.8.9 (Painel Exclusivo do Proprietário: Dados do Dono, Foto e Logomarca Oficial)
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS proprietario_nome VARCHAR(255);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS proprietario_cpf VARCHAR(20);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS proprietario_celular VARCHAR(30);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS proprietario_email VARCHAR(150);
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS proprietario_foto_url TEXT;
+

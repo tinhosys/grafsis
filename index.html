@@ -96,10 +96,10 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
 
-        <!-- Logomarca Oficial do Cliente Proprietário / Gráfica (Apenas o logo como no arquivo) -->
-        <div id="header-company-brand" class="flex items-center cursor-pointer select-none group py-1" onclick="app.navigate('dashboard')" title="Painel Operacional">
+        <!-- Logomarca Oficial do Cliente Proprietário / Gráfica (Botão de Acesso Exclusivo ao Painel do Proprietário) -->
+        <div id="header-company-brand" class="flex items-center cursor-pointer select-none group py-1" onclick="app.openOwnerSecretPanel()" title="Painel de Gestão Exclusivo do Proprietário">
           <div id="header-company-logo-wrap" class="relative max-h-14 flex items-center shrink-0">
-            <!-- Imagem do Logo do Cliente Proprietário (Dinâmica, sem textos soltos duplicados) -->
+            <!-- Imagem do Logo do Cliente Proprietário (Dinâmica, sempre exibida aqui) -->
             <img id="header-company-logo-img" src="assets/demo-top-digital.png" alt="Logo da Gráfica" class="h-10 sm:h-12 w-auto max-w-[200px] object-contain rounded">
             <!-- Nuvem CMYK Grafsis Vector (Fallback Oficial) -->
             <div id="header-company-logo-default" class="w-10 h-10 hidden items-center justify-center">
@@ -594,6 +594,53 @@
     </div>
   </div>
 
+  <!-- MODAL EXCLUSIVO DO PROPRIETÁRIO (ACESSO SECRETO PELO LOGO DA EMPRESA) -->
+  <div id="owner-exclusive-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-5xl w-full border border-amber-300 dark:border-amber-700/60 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-fade-in">
+      
+      <!-- Cabeçalho Exclusivo Dourado/Escuro -->
+      <div class="p-5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-900 text-white flex justify-between items-center shadow-md shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
+            👑
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black uppercase tracking-widest bg-amber-400 text-slate-900 px-2 py-0.5 rounded-full shadow-xs">Acesso Restrito</span>
+              <span id="owner-modal-tenant-id" class="text-xs font-mono font-bold text-amber-200">ID: 001</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2 mt-0.5">
+              Ambiente de Gestão do Proprietário
+            </h2>
+            <p class="text-xs text-amber-100/90 font-medium">Controle executivo, auditoria, equipe, produção por colaborador e API Mercado Pago</p>
+          </div>
+        </div>
+        <button onclick="app.closeOwnerSecretPanel()" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xl font-bold transition cursor-pointer" title="Fechar Painel do Proprietário">&times;</button>
+      </div>
+
+      <!-- Abas Internas do Painel do Proprietário -->
+      <div class="bg-amber-50/70 dark:bg-slate-800/80 border-b border-amber-200 dark:border-amber-900/40 px-5 flex flex-wrap gap-2 pt-2 shrink-0">
+        <button onclick="app.switchOwnerTab('empresa')" id="owner-tab-btn-empresa" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-black uppercase tracking-wide border-b-2 border-amber-600 text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+          🏢 Dados da Empresa & Proprietário
+        </button>
+        <button onclick="app.switchOwnerTab('usuarios')" id="owner-tab-btn-usuarios" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer">
+          👥 Equipe & Controle de Bloqueio
+        </button>
+        <button onclick="app.switchOwnerTab('producao')" id="owner-tab-btn-producao" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer">
+          📊 Produção por Colaborador & Auditoria
+        </button>
+        <button onclick="app.switchOwnerTab('mercadolivre')" id="owner-tab-btn-mercadolivre" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-400 hover:text-sky-800 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer">
+          💳 Cobrança Mercado Pago / Mercado Livre
+        </button>
+      </div>
+
+      <!-- Conteúdo das Abas do Painel -->
+      <div class="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5 bg-white dark:bg-slate-900" id="owner-modal-content">
+        <!-- Renderizado dinamicamente por app.renderOwnerContent() -->
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de Configurações do Perfil do Usuário (Imagem 5 - Engrenagem) -->
   <div id="user-profile-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
@@ -1043,18 +1090,18 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.8.8) -->
-  <script src="js/config.js?v=4.9.8.8"></script>
-  <script src="js/auth.js?v=4.9.8.8"></script>
-  <script src="js/store.js?v=4.9.8.8"></script>
-  <script src="js/clients.js?v=4.9.8.8"></script>
-  <script src="js/suppliers.js?v=4.9.8.8"></script>
-  <script src="js/products.js?v=4.9.8.8"></script>
-  <script src="js/sales.js?v=4.9.8.8"></script>
-  <script src="js/production.js?v=4.9.8.8"></script>
-  <script src="js/finance.js?v=4.9.8.8"></script>
-  <script src="js/mercadopago.js?v=4.9.8.8"></script>
-  <script src="js/newsticker.js?v=4.9.8.8"></script>
-  <script src="js/app.js?v=4.9.8.8"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.8.9) -->
+  <script src="js/config.js?v=4.9.8.9"></script>
+  <script src="js/auth.js?v=4.9.8.9"></script>
+  <script src="js/store.js?v=4.9.8.9"></script>
+  <script src="js/clients.js?v=4.9.8.9"></script>
+  <script src="js/suppliers.js?v=4.9.8.9"></script>
+  <script src="js/products.js?v=4.9.8.9"></script>
+  <script src="js/sales.js?v=4.9.8.9"></script>
+  <script src="js/production.js?v=4.9.8.9"></script>
+  <script src="js/finance.js?v=4.9.8.9"></script>
+  <script src="js/mercadopago.js?v=4.9.8.9"></script>
+  <script src="js/newsticker.js?v=4.9.8.9"></script>
+  <script src="js/app.js?v=4.9.8.9"></script>
 </body>
 </html>
