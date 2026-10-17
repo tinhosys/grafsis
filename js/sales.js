@@ -828,15 +828,15 @@ window.salesModule = {
       }
     }
 
-    // 5. Botão Registrar Operação / Operação Registrada
+    // 5. Botão Registrar Operação / Pedido Registrado
     // Antes de registrar: 'Registrar [Operação]', amarelo, fonte preto.
-    // Depois de registrar: 'Operação Registrada', botão verde bandeira, fonte branca.
+    // Depois de registrar: 'Pedido Registrado', botão verde bandeira, fonte branca.
     if (btnSubmit) {
       if (isRegistered) {
         btnSubmit.disabled = false;
-        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Operação Registrada`;
+        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Pedido Registrado`;
         btnSubmit.className = 'w-full h-12 text-sm font-bold text-white bg-[#009b3a] hover:bg-[#008230] rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
-        btnSubmit.title = "Operação já registrada no sistema";
+        btnSubmit.title = "Pedido já registrado no sistema";
       } else {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = `<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar ${opLabel}`;
@@ -1730,10 +1730,10 @@ window.salesModule = {
                   </button>
 
                   <!-- LINHA INFERIOR (4 BOTÕES) -->
-                  <!-- 5. Registrar Operação / Operação Registrada (Imagem 4) -->
-                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold ${isRegistered ? 'text-white bg-[#009b3a] hover:bg-[#008230]' : 'text-slate-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-500'} rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer" title="${isRegistered ? 'Operação já registrada no sistema' : 'Registrar operação oficial no sistema'}">
+                  <!-- 5. Registrar Operação / Pedido Registrado -->
+                  <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold ${isRegistered ? 'text-white bg-[#009b3a] hover:bg-[#008230]' : 'text-slate-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-500'} rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer" title="${isRegistered ? 'Pedido já registrado no sistema' : 'Registrar operação oficial no sistema'}">
                     <svg class="w-4 h-4 ${isRegistered ? 'text-white' : 'text-slate-900'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    ${isRegistered ? 'Operação Registrada' : 'Registrar Operação'}
+                    ${isRegistered ? 'Pedido Registrado' : 'Registrar Operação'}
                   </button>
 
                   <!-- 6. Emitir Operação (Cinza) -->
@@ -4295,9 +4295,9 @@ window.salesModule = {
 
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Operação Registrada`;
+        submitBtn.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Pedido Registrado`;
         submitBtn.className = 'w-full h-12 text-sm font-bold text-white bg-[#009b3a] hover:bg-[#008230] rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
-        submitBtn.title = "Operação já registrada no sistema";
+        submitBtn.title = "Pedido já registrado no sistema";
       }
 
       // MANTÉM NA PÁGINA ATUAL (REQUISITO DA IMAGEM 5)
