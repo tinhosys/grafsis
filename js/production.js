@@ -350,12 +350,6 @@ window.productionModule = {
                 <span>pós vendas</span>
               </button>
             ` : ''}
-
-            ${(window.authModule && window.authModule.can('canCreateOrders')) ? `
-              <button onclick="app.openNewOrderModal()" class="h-10 min-w-[130px] px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
-                <span>+ novo pedido</span>
-              </button>
-            ` : ''}
           </div>
 
         </div>
