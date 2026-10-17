@@ -1811,7 +1811,7 @@ window.salesModule = {
                       </div>
                       <button type="button" onclick="salesModule.saveClientAdditionalPhone('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0" title="Salva novo telefone no cadastro e grava no histórico do cliente">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        + Telefone
+                        Novo Telefone
                       </button>
                     </div>
 
@@ -2427,22 +2427,26 @@ window.salesModule = {
     const dateStr = new Date().toLocaleString('pt-BR');
     const metodoAtual = document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash';
     let parcelasAtual = parseInt(document.getElementById('order-parcelas')?.value || '1') || 1;
-    if (parcelasAtual < 1) parcelasAtual = 1;
-    if (parcelasAtual > 12) parcelasAtual = 12;
+    // Regra da Gráfica para Parcelamento Próprio:
+    // Máximo de 3x para compras maiores que R$ 500,00, e até 2x para compras até R$ 500,00
+    const maxGraficaParcelas = finalTotal > 500.00 ? 3 : 2;
+    if (parcelasAtual > maxGraficaParcelas) parcelasAtual = maxGraficaParcelas;
     const obsAtual = document.getElementById('order-obs-pagto')?.value || '';
     
-    // Verde bandeira: Quantidade de parcelas máximo 12x (1x a 12x)
-    const parcelasOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(p => `<option value="${p}" ${parcelasAtual === p ? 'selected' : ''}>${p}x parcela${p > 1 ? 's' : ''}</option>`).join('');
+    // Gera opções conforme o limite da gráfica (1x a 3x se > 500, ou 1x a 2x se <= 500)
+    const allowedParcelas = [];
+    for (let p = 1; p <= maxGraficaParcelas; p++) allowedParcelas.push(p);
+    const parcelasOptions = allowedParcelas.map(p => `<option value="${p}" ${parcelasAtual === p ? 'selected' : ''}>${p}x parcela${p > 1 ? 's' : ''}</option>`).join('');
 
     // Verde limão: Data da primeira parcela (+30 dias por padrão)
     const d1 = new Date();
     d1.setDate(d1.getDate() + 30);
     const defaultDataPrimeiraParcela = d1.toISOString().split('T')[0];
 
-    // Data máxima para iniciar a pagar: até 12 meses (365 dias)
-    const dMax = new Date();
-    dMax.setFullYear(dMax.getFullYear() + 1);
-    const maxDataPrimeiraParcela = dMax.toISOString().split('T')[0];
+    // Data máxima para iniciar a pagar: NÃO pode ser maior que 60 dias (Regra Gráfica)
+    const dMax60 = new Date();
+    dMax60.setDate(dMax60.getDate() + 60);
+    const maxDataPrimeiraParcela = dMax60.toISOString().split('T')[0];
     const minDataPrimeiraParcela = new Date().toISOString().split('T')[0];
 
     this.installmentsState = {};
@@ -2466,7 +2470,7 @@ window.salesModule = {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Meio de Pagto</label>
-                <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none';">
+                <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none'; salesModule.updateModalRestante();">
                   <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
                   <option value="Cartão de crédito / A vista" ${metodoAtual === 'Cartão de crédito / A vista' ? 'selected' : ''}>Cartão de crédito / A vista</option>
                   <option value="Cartão de crédito / Parcelado" ${metodoAtual === 'Cartão de crédito / Parcelado' ? 'selected' : ''}>Cartão de crédito / Parcelado</option>
@@ -2477,19 +2481,19 @@ window.salesModule = {
               </div>
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Valor Recebido R$</label>
-                <input type="number" id="fm-recebido" step="0.01" class="w-full p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-center bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toFixed(2)}" oninput="salesModule.updateModalRestante()">
+                <input type="text" id="fm-recebido" class="w-full p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-center bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
               </div>
             </div>
 
-            <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Carência de até 12 Meses -->
+            <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Limite de 60 Dias / 3x Parcelas -->
             <div id="fm-parcelas-div" class="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700" style="display: ${metodoAtual.includes('Parcelado') ? 'block' : 'none'};">
               <!-- Linha Verde Bandeira, Amarelo e Verde Limão -->
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                <!-- Verde Bandeira: Quantidade de Parcelas (Máximo 12x) -->
+                <!-- Verde Bandeira: Quantidade de Parcelas da Gráfica (Máximo 2x ou 3x) -->
                 <div>
                   <label class="block text-[11px] font-black mb-1 text-emerald-700 dark:text-emerald-400 uppercase tracking-tight flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-                    Parcelas (Máx 12x)
+                    Parcelas (Máx ${maxGraficaParcelas}x)
                   </label>
                   <select id="fm-parcelas" class="w-full p-2 border-2 border-emerald-600 rounded-lg text-xs bg-white dark:bg-slate-800 font-black text-emerald-800 dark:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" onchange="salesModule.recalcInstallmentsGrid()">
                     ${parcelasOptions}
@@ -2508,13 +2512,13 @@ window.salesModule = {
                   </div>
                 </div>
 
-                <!-- Verde Limão: Data da Primeira Parcela (Até 12 meses para iniciar) -->
+                <!-- Verde Limão: Data da Primeira Parcela (Máximo 60 dias para iniciar) -->
                 <div>
                   <label class="block text-[11px] font-black mb-1 text-lime-700 dark:text-lime-400 uppercase tracking-tight flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full bg-lime-500 inline-block"></span>
-                    1ª Parcela (Até 12m)
+                    1ª Parcela (Até 60d)
                   </label>
-                  <input type="date" id="fm-data-primeira-parcela" min="${minDataPrimeiraParcela}" max="${maxDataPrimeiraParcela}" value="${defaultDataPrimeiraParcela}" class="w-full p-1.5 border-2 border-lime-500 bg-lime-50/50 dark:bg-lime-950/20 dark:text-white rounded-lg font-bold text-xs focus:outline-none focus:ring-2 focus:ring-lime-400" onchange="salesModule.recalcInstallmentsGrid()">
+                  <input type="date" id="fm-data-primeira-parcela" min="${minDataPrimeiraParcela}" max="${maxDataPrimeiraParcela}" value="${defaultDataPrimeiraParcela}" class="w-full p-1.5 border-2 border-lime-500 bg-lime-50/50 dark:bg-lime-950/20 dark:text-white rounded-lg font-bold text-xs focus:outline-none focus:ring-2 focus:ring-lime-400" onchange="salesModule.handleDataPrimeiraParcela(this)">
                 </div>
               </div>
 
@@ -2534,10 +2538,10 @@ window.salesModule = {
                   <table class="w-full text-xs text-left">
                     <thead class="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-bold border-b border-blue-200 dark:border-blue-800 sticky top-0">
                       <tr>
-                        <th class="px-2.5 py-1.5 text-center w-16">Parcela</th>
-                        <th class="px-2.5 py-1.5 text-center">Data Vencimento</th>
-                        <th class="px-2.5 py-1.5 text-right">Valor Parcela</th>
-                        <th class="px-2.5 py-1.5 text-center w-24">Status</th>
+                        <th class="px-2 py-1.5 text-center w-14">Parcela</th>
+                        <th class="px-2 py-1.5 text-left w-28">Data Vencimento</th>
+                        <th class="px-2 py-1.5 text-left w-28">Valor Parcela</th>
+                        <th class="px-2 py-1.5 text-center min-w-[110px]">Status</th>
                       </tr>
                     </thead>
                     <tbody id="fm-parcelas-tbody" class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -2570,7 +2574,7 @@ window.salesModule = {
 
               <!-- Botão Dinâmico de Pix (Exibido quando Pix estiver selecionado) -->
               <div id="fm-btn-mp-pix-container" style="display: ${metodoAtual === 'Pix' ? 'block' : 'none'};">
-                <button type="button" onclick="salesModule.handleMercadoPagoPix('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                <button type="button" id="fm-btn-mp-pix" onclick="salesModule.handleMercadoPagoPix('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                   <span>GERAR QR CODE PIX MERCADO PAGO</span>
                 </button>
@@ -2578,7 +2582,7 @@ window.salesModule = {
 
               <!-- Botão Dinâmico de Cartão (Exibido quando Cartão estiver selecionado) -->
               <div id="fm-btn-mp-card-container" style="display: ${metodoAtual.includes('Cartão') ? 'block' : 'none'};">
-                <button type="button" onclick="salesModule.handleMercadoPagoCard('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                <button type="button" id="fm-btn-mp-card" onclick="salesModule.handleMercadoPagoCard('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                   <span>GERAR LINK DE CARTÃO (ATÉ 12X MERCADO PAGO)</span>
                 </button>
@@ -2587,11 +2591,11 @@ window.salesModule = {
           </div>
           
           <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
-            <button type="button" onclick="salesModule.confirmFinance()" class="w-full py-3 text-sm bg-emerald-600 text-white font-black rounded-xl shadow-md hover:bg-emerald-700 uppercase transition-colors cursor-pointer flex items-center justify-center gap-2">
+            <button type="button" id="fm-btn-confirm" onclick="salesModule.confirmFinance()" class="w-full py-3 text-sm bg-emerald-600 text-white font-black rounded-xl shadow-md hover:bg-emerald-700 uppercase transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
               <span>CONFIRMAR RECEBIMENTO</span>
             </button>
             <div class="grid grid-cols-2 gap-2 mt-1">
-              <button type="button" onclick="salesModule.printReceipt()" class="py-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer">
+              <button type="button" id="fm-btn-receipt" onclick="salesModule.printReceipt()" class="py-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                 Gerar Recibo
               </button>
@@ -2603,6 +2607,32 @@ window.salesModule = {
     `;
     document.getElementById('finance-modal')?.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.updateModalRestante();
+  },
+
+  handleRecebidoInput(input) {
+    let clean = (input.value || '').replace(/\D/g, '');
+    let num = parseFloat(clean) / 100;
+    if (isNaN(num)) num = 0;
+    input.value = num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    this.updateModalRestante();
+  },
+
+  handleDataPrimeiraParcela(input) {
+    if (!input || !input.value) return;
+    const [y, m, d] = input.value.split('-').map(Number);
+    const escolhida = new Date(y, m - 1, d);
+    escolhida.setHours(0, 0, 0, 0);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const diffDias = Math.round((escolhida.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDias > 60) {
+      alert('Atenção: A primeira parcela não pode ultrapassar 60 dias (Regra da Gráfica). Ajustando para 60 dias.');
+      const dMax60 = new Date(hoje);
+      dMax60.setDate(dMax60.getDate() + 60);
+      input.value = dMax60.toISOString().split('T')[0];
+    }
     this.recalcInstallmentsGrid();
   },
 
@@ -2612,9 +2642,14 @@ window.salesModule = {
       return;
     }
 
-    const restEl = document.getElementById('fm-restante');
-    const valorPendente = restEl ? (parseFloat(restEl.innerText.replace(/[^\d,]/g, '').replace(',', '.')) || finalTotal) : finalTotal;
-    const valorCobrar = valorPendente > 0 ? valorPendente : finalTotal;
+    const recInput = document.getElementById('fm-recebido');
+    const valorRecebido = recInput ? (parseFloat(recInput.value.replace(/\./g, '').replace(',', '.')) || 0) : 0;
+    const valorCobrar = valorRecebido > 0 ? valorRecebido : finalTotal;
+
+    if (valorCobrar <= 0) {
+      alert('Digite o valor a ser recebido no campo "Valor Recebido R$" para gerar o Pix.');
+      return;
+    }
 
     const btn = event?.currentTarget;
     const originalText = btn ? btn.innerHTML : '';
@@ -2649,9 +2684,14 @@ window.salesModule = {
       return;
     }
 
-    const restEl = document.getElementById('fm-restante');
-    const valorPendente = restEl ? (parseFloat(restEl.innerText.replace(/[^\d,]/g, '').replace(',', '.')) || finalTotal) : finalTotal;
-    const valorCobrar = valorPendente > 0 ? valorPendente : finalTotal;
+    const recInput = document.getElementById('fm-recebido');
+    const valorRecebido = recInput ? (parseFloat(recInput.value.replace(/\./g, '').replace(',', '.')) || 0) : 0;
+    const valorCobrar = valorRecebido > 0 ? valorRecebido : finalTotal;
+
+    if (valorCobrar <= 0) {
+      alert('Digite o valor a ser recebido no campo "Valor Recebido R$" para gerar o link do Cartão.');
+      return;
+    }
 
     const parcEl = document.getElementById('fm-parcelas');
     const parcelas = parcEl ? (parseInt(parcEl.value) || 12) : 12;
@@ -2690,7 +2730,9 @@ window.salesModule = {
   recalcInstallmentsGrid() {
     const finalTotal = this.currentFinanceFinalTotal != null ? this.currentFinanceFinalTotal : (this.recalcTotals().finalTotal || 0);
     const recInput = document.getElementById('fm-recebido');
-    const valorRecebido = parseFloat(recInput ? recInput.value : 0) || 0;
+    const valorRecebido = recInput 
+      ? (parseFloat(String(recInput.value).replace(/\./g, '').replace(',', '.')) || 0) 
+      : 0;
     
     // O saldo da dívida é: valor do pedido - valor recebido
     const saldoDivida = Math.max(0, finalTotal - valorRecebido);
@@ -2700,6 +2742,18 @@ window.salesModule = {
     if (restEl) {
       restEl.innerText = `R$ ${saldoDivida.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
+
+    // Regra da Imagem 4: se valor recebido for <= 0, desabilita Confirmar, Gerar Recibo e Cobrança Online
+    const isZerado = valorRecebido <= 0;
+    const btnConfirm = document.getElementById('fm-btn-confirm');
+    const btnReceipt = document.getElementById('fm-btn-receipt');
+    const btnPix = document.getElementById('fm-btn-mp-pix');
+    const btnCard = document.getElementById('fm-btn-mp-card');
+
+    if (btnConfirm) btnConfirm.disabled = isZerado;
+    if (btnReceipt) btnReceipt.disabled = isZerado;
+    if (btnPix) btnPix.disabled = isZerado;
+    if (btnCard) btnCard.disabled = isZerado;
 
     const fmParcelas = document.getElementById('fm-parcelas');
     let qtde = parseInt(fmParcelas ? fmParcelas.value : 1) || 1;
@@ -2811,13 +2865,13 @@ window.salesModule = {
       });
 
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors';
+      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors whitespace-nowrap';
       tr.innerHTML = `
-        <td class="px-2.5 py-1.5 text-center font-bold text-slate-700 dark:text-slate-300">${k}ª</td>
-        <td class="px-2.5 py-1.5 text-center font-mono font-bold text-slate-800 dark:text-slate-200">${vencStr}</td>
-        <td class="px-2.5 py-1.5 text-right font-mono font-black text-slate-900 dark:text-white">R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-        <td class="px-2.5 py-1.5 text-center">
-          <button type="button" onclick="salesModule.toggleInstallmentStatus(${k})" class="cursor-pointer px-2.5 py-0.5 rounded-full text-[10px] font-black border transition ${
+        <td class="px-2 py-2 text-center font-bold text-slate-700 dark:text-slate-300 w-14">${k}ª</td>
+        <td class="px-2 py-2 text-left font-mono font-bold text-slate-800 dark:text-slate-200 w-28">${vencStr}</td>
+        <td class="px-2 py-2 text-left font-mono font-black text-slate-900 dark:text-white w-28">R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td class="px-2 py-2 text-center min-w-[110px]">
+          <button type="button" onclick="salesModule.toggleInstallmentStatus(${k})" class="cursor-pointer px-3 py-1 rounded-full text-[10px] font-black border transition inline-flex items-center justify-center gap-1 min-w-[85px] ${
             isPago 
               ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700' 
               : 'bg-rose-100 hover:bg-rose-200 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700'
@@ -2842,7 +2896,8 @@ window.salesModule = {
   },
 
   confirmFinance() {
-    const recebido = parseFloat(document.getElementById('fm-recebido')?.value) || 0;
+    const rawRec = document.getElementById('fm-recebido')?.value || '0';
+    const recebido = parseFloat(String(rawRec).replace(/\./g, '').replace(',', '.')) || 0;
     const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
     const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
     const finalTotal = Math.max(0, subtotal - discount);
