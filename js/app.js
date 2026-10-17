@@ -2356,13 +2356,7 @@ window.app = {
                       localStorage.setItem('grafsis_notifications', JSON.stringify(n));
                       app.updateNotificationStatus();
                       document.getElementById('notifications-modal')?.remove();
-                      app.navigate('sales');
-                      setTimeout(() => {
-                        if (window.salesModule?.openModal) {
-                          const o = window.store.getOrders().find(ord => ord.id === '${notif.pedido_id}' || String(ord.numero) === String('${notif.pedido_numero}'));
-                          if (o) window.salesModule.openModal(o);
-                        }
-                      }, 200);
+                      app.showNotificationOrderDetails('${notif.pedido_id}', '${notif.pedido_numero}');
                     })()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition whitespace-nowrap cursor-pointer">
                       Ver Pedido &rarr;
                     </button>
@@ -2419,6 +2413,163 @@ window.app = {
         </div>
       </div>
     `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  showNotificationOrderDetails(pedidoId, pedidoNumero) {
+    const orders = window.store ? window.store.getOrders() : [];
+    const order = orders.find(o => o.id === pedidoId || String(o.numero) === String(pedidoNumero) || String(o.id) === String(pedidoNumero));
+    
+    if (!order) {
+      alert(`Pedido #${pedidoNumero || pedidoId} não localizado nos registros locais.`);
+      return;
+    }
+
+    const clients = window.store ? window.store.getClients() : [];
+    const client = clients.find(c => c.id === order.cliente_id) || { nome: order.cliente_nome || 'Cliente não identificado' };
+
+    const phaseNames = {
+      'orcamento': '1. Orçamento',
+      'prevenda': '2. Pré-Venda',
+      'aprovacao': '3. Aguardando Aprovação',
+      'liberado': '4. Liberado O.S.',
+      'producao': '5. Em Produção',
+      'acabamento': '6. Acabamento',
+      'embalagem': '7. Embalagem / Expedição',
+      'entregue': '8. Entregue / Concluído'
+    };
+
+    const modalId = 'order-details-info-modal';
+    document.getElementById(modalId)?.remove();
+
+    const hist = order.historico || [];
+    const aprov = order.aprovado_cliente;
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-fade-in">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">📋</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-black text-slate-800">Pedido #${order.numero || order.id.substring(0,8)}</h3>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${order.status_fase === 'entregue' ? 'bg-slate-800 text-white' : 'bg-blue-600 text-white'}">
+                    ${phaseNames[order.status_fase] || order.status_fase}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 font-bold">${client.nome}</p>
+              </div>
+            </div>
+            <button onclick="document.getElementById('${modalId}').remove()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <!-- Informações de Quem Autorizou -->
+            <div class="p-4 rounded-xl ${aprov ? 'bg-emerald-50 border border-emerald-200 text-emerald-950' : 'bg-amber-50 border border-amber-200 text-amber-950'} space-y-2">
+              <div class="font-black text-xs uppercase flex items-center gap-1.5">
+                <span>${aprov ? '✅' : '⏳'}</span>
+                <span>${aprov ? 'Autorização de Produção Confirmada' : 'Status de Aprovação'}</span>
+              </div>
+              ${aprov ? `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div><strong>Quem autorizou:</strong> ${aprov.aprovador || client.nome}</div>
+                  <div><strong>Data & Hora:</strong> ${aprov.data_formatada || (aprov.data ? new Date(aprov.data).toLocaleString('pt-BR') : 'Registrado')}</div>
+                  <div><strong>Telefone Validado:</strong> ${aprov.telefone || order.telefone_autorizacao || 'WhatsApp'}</div>
+                  <div><strong>Dispositivo:</strong> ${aprov.dispositivo || 'Web / Smartphone'}</div>
+                </div>
+              ` : `
+                <p class="text-[11px] text-amber-800">Este pedido ainda aguarda autorização formal ou foi lançado manualmente em fase avançada.</p>
+              `}
+            </div>
+
+            <!-- Dados Operacionais e Localização do Pedido -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Fase Atual</span>
+                <span class="font-black text-slate-800">${phaseNames[order.status_fase] || order.status_fase}</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Vendedor / Resp.</span>
+                <span class="font-bold text-slate-800 truncate block">${order.vendedor || 'Sistema'}</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Data Emissão</span>
+                <span class="font-bold text-slate-800">${order.data_criacao ? new Date(order.data_criacao).toLocaleDateString('pt-BR') : '--'}</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Previsão Entrega</span>
+                <span class="font-bold text-rose-600">${order.previsao_entrega ? order.previsao_entrega.split('-').reverse().join('/') : 'A combinar'}</span>
+              </div>
+            </div>
+
+            <!-- Itens do Pedido -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <div class="p-2.5 bg-slate-100 font-bold text-slate-700 text-xs flex justify-between items-center">
+                <span>Itens do Pedido (${order.itens?.length || 0})</span>
+                <span class="font-mono text-emerald-700 font-black">
+                  Total: R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] border-b">
+                  <tr>
+                    <th class="p-2">Item</th>
+                    <th class="p-2">Descrição / Medidas</th>
+                    <th class="p-2 text-center">Qtd</th>
+                    <th class="p-2 text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${(order.itens || []).map((it, idx) => `
+                    <tr>
+                      <td class="p-2 font-bold text-blue-700">#${it.item_id || String(order.numero) + String(idx+1).padStart(2, '0')}</td>
+                      <td class="p-2 font-medium text-slate-800">
+                        <div>${it.produto_nome || it.descricao || 'Item Gráfico'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono">${it.largura_x ? `${it.largura_x}m x ${it.comprimento_y}m` : ''} ${it.acabamento ? `• ${it.acabamento}` : ''}</div>
+                      </td>
+                      <td class="p-2 text-center font-bold">${it.quantidade}x</td>
+                      <td class="p-2 text-right font-mono font-bold text-slate-700">R$ ${Number(it.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Histórico de Transição de Fases -->
+            <div>
+              <span class="block text-xs font-bold text-slate-700 uppercase mb-2">Histórico de Movimentação de Fases</span>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 max-h-40 overflow-y-auto">
+                ${hist.length === 0 ? `
+                  <p class="text-xs text-slate-400 text-center py-2">Sem histórico de transição registrado.</p>
+                ` : hist.map(h => `
+                  <div class="flex items-start gap-2 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-blue-500 mt-1 shrink-0"></span>
+                    <div class="flex-1">
+                      <strong class="text-slate-800 uppercase">${phaseNames[h.fase] || h.fase}</strong>
+                      <span class="text-slate-500 text-[10px]"> — ${new Date(h.data).toLocaleString('pt-BR')} por <strong>${h.usuario || 'Operador'}</strong></span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+            <button 
+              onclick="document.getElementById('${modalId}').remove(); app.navigate('sales'); setTimeout(() => { if (window.salesModule?.openModal) window.salesModule.openModal({ orderId: '${order.id}' }); }, 150);"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
+              Abrir Edição Completa &rarr;
+            </button>
+            <button onclick="document.getElementById('${modalId}').remove()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
@@ -2566,8 +2717,9 @@ window.app = {
               <select id="portal-sel-order" class="w-full p-2.5 border rounded-xl bg-slate-50 text-xs font-bold text-slate-800">
                 ${orders.map(o => {
                   const showVal = (window.authModule && window.authModule.can('canViewSaleValues'));
-                  const valStr = showVal ? ` (R$ ${Number(o.total || o.valor_final || 0).toFixed(2)})` : '';
-                  return `<option value="${o.id}">Pedido #${o.id || o.numero_pedido} - ${o.cliente_nome || 'Cliente'}${valStr}</option>`;
+                  const valStr = showVal ? ` (R$ ${Number(o.total || o.valor_final || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})` : '';
+                  const numDisplay = o.numero || (o.id && o.id.length > 8 ? o.id.substring(0, 8) : o.id) || '--';
+                  return `<option value="${o.id}">Pedido #${numDisplay} - ${o.cliente_nome || 'Cliente'}${valStr}</option>`;
                 }).join('')}
               </select>
             </div>
@@ -2743,7 +2895,32 @@ window.app = {
       return;
     }
 
-    // 5. Detecta modalidade solicitada no link (modo técnico sem financeiro vs completo)
+    // 5. Verificação de Expiração do Link: Disponível até a conclusão + 7 dias após a entrega total
+    if (order.status_fase === 'entregue') {
+      let dataEntrega = null;
+      if (order.historico && Array.isArray(order.historico)) {
+        const hEntregue = [...order.historico].reverse().find(h => h.fase === 'entregue');
+        if (hEntregue && hEntregue.data) dataEntrega = new Date(hEntregue.data);
+      }
+      if (!dataEntrega && order.data_entrega) {
+        dataEntrega = new Date(order.data_entrega);
+      }
+      if (!dataEntrega && order.updated_at) {
+        dataEntrega = new Date(order.updated_at);
+      }
+
+      if (dataEntrega && !isNaN(dataEntrega.getTime())) {
+        const agora = new Date();
+        const diffMs = agora.getTime() - dataEntrega.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        if (diffDays > 7) {
+          this.renderPortalNotFound(portalRoot, `O acesso ao Pedido #${order.numero || order.id} foi encerrado. O link de acompanhamento público do cliente permanece ativo até a conclusão e fica disponível por até 7 dias após a entrega total.`);
+          return;
+        }
+      }
+    }
+
+    // 6. Detecta modalidade solicitada no link (modo técnico sem financeiro vs completo)
     const isTechnicalMode = hash.toLowerCase().includes('modo=tecnico') || hash.toLowerCase().includes('sem_valor=1');
     this.renderPortalOrderView(portalRoot, order, { isTechnicalMode });
   },
@@ -3002,11 +3179,23 @@ window.app = {
             <!-- Resumo Comercial e Condições de Pagamento (Exibido apenas no modo completo) -->
             ${!isTechnicalMode ? `
               <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300">💰 Resumo Financeiro da Operação</span>
-                  <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                    R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                  </span>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div>
+                    <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300">💰 Resumo Financeiro da Operação</span>
+                    <p class="text-[10px] text-slate-400">Transparência comercial do pedido e controle de pagamentos</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      R$ ${Number(order.valor_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </span>
+                    <button 
+                      type="button" 
+                      onclick="app.viewPortalReceiptModal('${order.id}')"
+                      class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      title="Visualizar Recibo de Pagamento">
+                      <span>📄 Ver Recibo</span>
+                    </button>
+                  </div>
                 </div>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                   <div>
@@ -3014,16 +3203,91 @@ window.app = {
                     <strong class="text-slate-800 dark:text-slate-200">${order.forma_pagamento || 'Pix / Cartão / Dinheiro'}</strong>
                   </div>
                   <div>
-                    <span class="block text-[10px] uppercase font-bold text-slate-400">Entrada Registrada:</span>
-                    <span class="font-bold text-slate-700 dark:text-slate-300">R$ ${Number(order.valor_entrada || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <span class="block text-[10px] uppercase font-bold text-slate-400">Total Já Pago:</span>
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400">
+                      R$ ${Number(order.valor_entrada || order.valor_recebido || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </span>
                   </div>
                   <div>
-                    <span class="block text-[10px] uppercase font-bold text-slate-400">Saldo a Pagar:</span>
-                    <strong class="text-rose-600 dark:text-rose-400 font-black">R$ ${Number(Math.max(0, (order.valor_final || 0) - (order.valor_entrada || 0))).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                    <span class="block text-[10px] uppercase font-bold text-slate-400">Saldo Restante:</span>
+                    <strong class="text-rose-600 dark:text-rose-400 font-black">
+                      R$ ${Number(Math.max(0, (order.valor_final || 0) - (order.valor_entrada || order.valor_recebido || 0))).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </strong>
                   </div>
                 </div>
               </div>
             ` : ''}
+
+            <!-- Linha do Tempo e Acompanhamento de Fases do Pedido -->
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 space-y-3">
+              <div class="flex justify-between items-center">
+                <h4 class="text-xs font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <span>📍</span> Acompanhamento do Pedido (Fase Atual & Histórico)
+                </h4>
+                <span class="text-[10px] font-bold text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-blue-200 dark:border-slate-700">
+                  Fase Atual: ${
+                    order.status_fase === 'orcamento' ? '1. Orçamento' :
+                    (order.status_fase === 'prevenda' ? '2. Pré-Venda' :
+                    (order.status_fase === 'aprovacao' ? '3. Aguardando Aprovação' :
+                    (order.status_fase === 'liberado' ? '4. Liberado O.S.' :
+                    (order.status_fase === 'producao' ? '5. Em Produção' :
+                    (order.status_fase === 'acabamento' ? '6. Acabamento' :
+                    (order.status_fase === 'embalagem' ? '7. Embalagem / Expedição' :
+                    (order.status_fase === 'entregue' ? '8. Entregue / Concluído' : order.status_fase)))))))
+                  }
+                </span>
+              </div>
+
+              ${order.aprovado_cliente ? `
+                <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 text-xs flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">✓</span>
+                    <div>
+                      <span class="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">Autorizado por:</span>
+                      <strong class="text-emerald-950 dark:text-emerald-100">${order.aprovado_cliente.aprovador || client.nome}</strong>
+                    </div>
+                  </div>
+                  <div class="text-right text-[11px] text-emerald-800 dark:text-emerald-300">
+                    <div>${order.aprovado_cliente.data_formatada || (order.aprovado_cliente.data ? new Date(order.aprovado_cliente.data).toLocaleString('pt-BR') : '')}</div>
+                    <span class="text-[9px] font-mono bg-emerald-100 dark:bg-emerald-900 px-1 rounded">${order.aprovado_cliente.telefone || 'Validado'}</span>
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="space-y-2 pt-1">
+                ${(order.historico && order.historico.length > 0) ? `
+                  <div class="border-l-2 border-blue-400 pl-3 ml-2 space-y-2 text-xs">
+                    ${order.historico.map(h => `
+                      <div class="relative">
+                        <span class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900"></span>
+                        <div class="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px]">
+                          ${
+                            h.fase === 'orcamento' ? '1. Orçamento' :
+                            (h.fase === 'prevenda' ? '2. Pré-Venda' :
+                            (h.fase === 'aprovacao' ? '3. Aguardando Aprovação' :
+                            (h.fase === 'liberado' ? '4. Liberado O.S.' :
+                            (h.fase === 'producao' ? '5. Em Produção' :
+                            (h.fase === 'acabamento' ? '6. Acabamento' :
+                            (h.fase === 'embalagem' ? '7. Embalagem / Expedição' :
+                            (h.fase === 'entregue' ? '8. Entregue / Concluído' : h.fase)))))))
+                          }
+                        </div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400">
+                          Quando mudou: <strong>${new Date(h.data).toLocaleString('pt-BR')}</strong> • Quem autorizou/operou: <strong>${h.usuario || 'Operador'}</strong>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <p class="text-xs text-slate-400">Início do acompanhamento operacional deste pedido.</p>
+                `}
+              </div>
+
+              <div class="p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl text-[10px] text-slate-500 flex items-center gap-2">
+                <span>ℹ️</span>
+                <span>Acesso exclusivo ao pedido encaminhado até a sua conclusão. O histórico permanecerá disponível por mais <strong>7 dias após a entrega total</strong>.</span>
+              </div>
+            </div>
 
           </div>
 
@@ -3293,6 +3557,92 @@ window.app = {
     } else {
       finalizeApproval(null);
     }
+  },
+
+  viewPortalReceiptModal(orderId) {
+    const orders = window.store?.getOrders ? window.store.getOrders() : [];
+    const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
+    if (!order) {
+      alert('Pedido não encontrado para gerar recibo.');
+      return;
+    }
+
+    const tenant = (window.store && window.store.getActiveTenant ? window.store.getActiveTenant() : null) || {};
+    const clients = window.store ? window.store.getClients() : [];
+    const client = clients.find(c => c.id === order.cliente_id) || { nome: order.cliente_nome || 'Consumidor', doc: '' };
+    
+    const companyName = tenant.razao_social || tenant.nome_fantasia || 'GRAFSIS - Sua Gráfica nas Nuvens';
+    const companyCNPJ = tenant.cnpj || '00.000.000/0001-00';
+    const companyPhone = tenant.telefone || tenant.celular_whatsapp || '(69) 99922-1336';
+    const companyAddress = tenant.endereco || 'Endereço Comercial';
+    const validationCode = `REC-${order.numero || order.id.substring(0,6)}-${String(Math.abs(Number(order.numero || 100) * 31 + 1047)).slice(-4).padStart(4, '7')}`;
+
+    const valorTotal = Number(order.valor_final || 0);
+    const valorPago = Number(order.valor_entrada || order.valor_recebido || 0);
+    const saldo = Math.max(0, valorTotal - valorPago);
+
+    const modalId = 'portal-receipt-view-modal';
+    document.getElementById(modalId)?.remove();
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in" onclick="this.remove()">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 text-slate-800" onclick="event.stopPropagation()">
+          <div class="flex justify-between items-center border-b pb-3">
+            <div>
+              <span class="text-[10px] font-black uppercase text-purple-600 tracking-wider">Comprovante Oficial</span>
+              <h3 class="text-base font-black text-slate-900">Recibo Digital de Pagamento</h3>
+            </div>
+            <button onclick="document.getElementById('${modalId}').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-300 font-mono text-xs space-y-2">
+            <div class="text-center pb-2 border-b border-dashed border-slate-200">
+              <strong class="text-sm block uppercase">${companyName}</strong>
+              <span class="text-[10px] text-slate-500 block">CNPJ: ${companyCNPJ}</span>
+              <span class="text-[10px] text-slate-500 block">${companyAddress} • Tel: ${companyPhone}</span>
+            </div>
+
+            <div class="space-y-1 text-[11px] pt-1">
+              <div><strong>Recibo Nº:</strong> ${validationCode}</div>
+              <div><strong>Pedido Vinculado:</strong> #${order.numero || order.id.substring(0,8)}</div>
+              <div><strong>Cliente:</strong> ${client.nome}</div>
+              <div><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div>
+              <div><strong>Forma de Pagto:</strong> ${order.forma_pagamento || 'Pix / À Vista'}</div>
+            </div>
+
+            <div class="border-t border-b border-dashed border-slate-200 py-2 my-2 space-y-1 text-xs">
+              <div class="flex justify-between">
+                <span>Valor Total do Pedido:</span>
+                <strong>R$ ${valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+              <div class="flex justify-between text-emerald-700 font-bold">
+                <span>Valor Pago / Recebido:</span>
+                <span>R$ ${valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div class="flex justify-between text-rose-600 font-bold">
+                <span>Saldo Devedor:</span>
+                <span>R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-slate-400 text-center pt-1">
+              Autenticação digital GRAFSIS Cloud • Válido como comprovante
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button onclick="window.print()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <span>🖨️ Imprimir Recibo</span>
+            </button>
+            <button onclick="document.getElementById('${modalId}').remove()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
 };
 

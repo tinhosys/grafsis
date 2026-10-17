@@ -1,4 +1,4 @@
-﻿window.financeModule = {
+window.financeModule = {
   render() {
     const finance = window.store.getFinance();
     const container = document.getElementById('view-container');
@@ -27,15 +27,15 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs text-slate-500 font-semibold uppercase">Total a Receber</span>
-            <h3 class="text-2xl font-black text-emerald-600 mt-1">R$ ${totalReceber.toFixed(2)}</h3>
+            <h3 class="text-2xl font-black text-emerald-600 mt-1">R$ ${totalReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs text-slate-500 font-semibold uppercase">Total a Pagar</span>
-            <h3 class="text-2xl font-black text-rose-600 mt-1">R$ ${totalPagar.toFixed(2)}</h3>
+            <h3 class="text-2xl font-black text-rose-600 mt-1">R$ ${totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs text-slate-500 font-semibold uppercase">Saldo Previsto</span>
-            <h3 class="text-2xl font-black ${saldo >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-1">R$ ${saldo.toFixed(2)}</h3>
+            <h3 class="text-2xl font-black ${saldo >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-1">R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
         </div>
 
@@ -64,7 +64,7 @@
                     <td class="p-3 font-semibold text-slate-800">${f.descricao}</td>
                     <td class="p-3 font-mono text-xs">${f.data_vencimento ? f.data_vencimento.split('-').reverse().join('/') : '-'}</td>
                     <td class="p-3 font-bold font-mono ${f.tipo === 'receber' ? 'text-emerald-700' : 'text-rose-700'}">
-                      R$ ${Number(f.valor||0).toFixed(2)}
+                      R$ ${Number(f.valor||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td class="p-3">
                       <span class="px-2 py-0.5 rounded text-xs font-medium ${f.status === 'pago' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-800'}">

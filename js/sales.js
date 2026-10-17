@@ -1287,10 +1287,25 @@ window.salesModule = {
 
             <!-- SEÇÃO DE ITENS DO PEDIDO -->
             <div class="bg-white rounded-xl w-full p-4 sm:p-6 shadow-sm border border-slate-200 mt-4 transition-all" id="secao-itens-pedido">
-              <div class="border border-slate-300 rounded-xl p-4 bg-white">
-                <h3 class="text-sm font-bold text-slate-800 uppercase mb-3 border-b pb-2">Itens do Pedido</h3>
+              <div class="border-2 border-blue-400 rounded-xl p-4 bg-white shadow-sm">
+                <!-- TÍTULO DA SEÇÃO: 'ITENS DO PEDIDO' COM DESTAQUE AZUL CLARO -->
+                <div class="flex items-center justify-between mb-3 border-b-2 border-sky-200 pb-2 bg-sky-50 px-3 py-2 rounded-lg">
+                  <h3 class="text-sm font-black text-sky-900 uppercase flex items-center gap-2 tracking-wide">
+                    <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <span>Itens do Pedido</span>
+                  </h3>
+                  <span class="text-[11px] font-bold text-sky-700 bg-sky-100 px-2.5 py-0.5 rounded-full border border-sky-300">Área Operacional</span>
+                </div>
                 
-                <div class="grid grid-cols-1 gap-3 bg-blue-50/50 p-3 rounded-lg text-xs border border-blue-100">
+                <!-- CONTAINER EM DESTAQUE VERDE DIFERENCIADO: LOCAL DE BUSCA E PRODUÇÃO DE ITENS ('Montagem do item') -->
+                <div class="grid grid-cols-1 gap-3 bg-emerald-50/70 p-4 rounded-xl text-xs border-2 border-emerald-400 shadow-md">
+                  <div class="flex items-center justify-between border-b border-emerald-200 pb-2 mb-1">
+                    <span class="text-xs font-black text-emerald-950 uppercase flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Montagem do item
+                    </span>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">Busca & Produção de Itens</span>
+                  </div>
                   <div class="grid grid-cols-12 gap-2">
                     <div class="col-span-12 sm:col-span-4">
                       <label class="block font-semibold mb-1 text-slate-700">Produto Base *</label>
@@ -1394,28 +1409,39 @@ window.salesModule = {
                   </div>
                 </div>
 
-                <div class="mt-2 border border-slate-200 rounded-lg overflow-hidden">
-                  <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
-                      <tr>
-                        <th class="p-3 text-center w-12" title="Liberar para O.S. (Padrão: Marcado)">
-                          <div class="flex flex-col items-center gap-0.5">
-                            <span class="text-[9px] text-blue-700 font-black">O.S.</span>
-                            <input type="checkbox" id="check-all-os" checked onchange="salesModule.toggleAllItemsOs(this.checked)" title="Marcar / Desmarcar todos para O.S." class="w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
-                          </div>
-                        </th>
-                        <th class="p-3">Produto & Item</th>
-                        <th class="p-3">Dimensoes</th>
-                        <th class="p-3 text-center">Qtd</th>
-                        <th class="p-3">Area</th>
-                        <th class="p-3">Preco</th>
-                        <th class="p-3 text-right">Total</th>
-                        <th class="p-3 text-center">Acao</th>
-                      </tr>
-                    </thead>
-                    <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
-                  </table>
+                <!-- GRID ONDE OS ITENS ESTARÃO LISTADOS APÓS A INSERÇÃO: COR DIFERENCIADA COM CONTAINER INDEPENDENTE -->
+                <div class="mt-3 border-2 border-slate-200 bg-slate-50/80 rounded-xl p-3 shadow-inner">
+                  <div class="flex items-center justify-between mb-2 px-1">
+                    <span class="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
+                      <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                      Itens Adicionados ao Pedido
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-semibold">Tabela de Peças & Especificações</span>
+                  </div>
+                  <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <table class="w-full text-sm text-left">
+                      <thead class="bg-slate-100 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
+                        <tr>
+                          <th class="p-3 text-center w-12" title="Liberar para O.S. (Padrão: Marcado)">
+                            <div class="flex flex-col items-center gap-0.5">
+                              <span class="text-[9px] text-blue-700 font-black">O.S.</span>
+                              <input type="checkbox" id="check-all-os" checked onchange="salesModule.toggleAllItemsOs(this.checked)" title="Marcar / Desmarcar todos para O.S." class="w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
+                            </div>
+                          </th>
+                          <th class="p-3">Produto & Item</th>
+                          <th class="p-3">Dimensoes</th>
+                          <th class="p-3 text-center">Qtd</th>
+                          <th class="p-3">Area</th>
+                          <th class="p-3">Preco</th>
+                          <th class="p-3 text-right">Total</th>
+                          <th class="p-3 text-center">Acao</th>
+                        </tr>
+                      </thead>
+                      <tbody id="order-items-tbody">${this.renderActiveItemsHtml()}</tbody>
+                    </table>
+                  </div>
                 </div>
+              </div>
               </div>
 
               <!-- LINHA AMARELA: ENTREGA DO PEDIDO & PRAZOS DE PRODUÇÃO (IMAGEM 2) -->

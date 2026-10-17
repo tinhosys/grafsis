@@ -144,7 +144,9 @@ window.productionModule = {
       const baseClass = isActive 
         ? 'bg-blue-600 dark:bg-blue-600 text-white shadow-lg transform -translate-y-0.5 z-10 border-b-2 border-white' 
         : 'bg-slate-100 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border-b border-slate-200 dark:border-slate-800';
-      const counterClass = isActive ? 'bg-white text-blue-700 dark:bg-slate-900 dark:text-cyan-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+      const counterClass = isActive 
+        ? 'bg-amber-300 text-slate-900 border-2 border-amber-400 shadow-md ring-2 ring-white/60' 
+        : 'bg-amber-100 text-amber-900 border border-amber-300 shadow-xs';
       
       return `
         <button 
@@ -153,7 +155,8 @@ window.productionModule = {
           ondragleave="event.currentTarget.classList.remove('ring-4', 'ring-cyan-400', 'z-20');"
           ondrop="event.currentTarget.classList.remove('ring-4', 'ring-cyan-400', 'z-20'); productionModule.handleDrop(event, '${p.id}')"
           class="flex-1 min-w-[110px] py-2.5 px-1.5 rounded-t-xl font-black text-[11px] uppercase transition-all duration-200 ${baseClass} flex flex-col items-center justify-center gap-1 relative overflow-hidden select-none">
-          <div class="absolute top-1 right-2 ${counterClass} px-2 py-0.5 rounded-full text-[10px] font-mono font-black shadow-sm">${phaseOrders.length}</div>
+          <!-- Números de processos aumentados e em destaque (amarelo) -->
+          <div class="absolute top-1 right-2 ${counterClass} px-2.5 py-0.5 rounded-full text-xs font-mono font-black scale-110 tracking-tight" title="${phaseOrders.length} processos nesta fase">${phaseOrders.length}</div>
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${p.icon}"></path></svg>
           <span class="text-center line-clamp-1 leading-tight px-1 font-bold">${p.name}</span>
         </button>
@@ -188,7 +191,8 @@ window.productionModule = {
             </div>
             
             <div class="flex items-center gap-2.5">
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${phaseOrders.length > 0 ? (isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 dark:bg-slate-700 text-white') : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">
+              <!-- Destaque amarelo aumentado para o número de processos no mobile -->
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-black shadow-sm ${phaseOrders.length > 0 ? 'bg-amber-300 text-slate-900 border border-amber-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">
                 ${phaseOrders.length}
               </span>
               <div class="w-6 h-6 rounded-full flex items-center justify-center bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
@@ -214,157 +218,167 @@ window.productionModule = {
       `;
     }).join('');
 
-    container.innerHTML = `
-      <div class="space-y-4">
-        
-        <!-- 1. Barra de KPIs Operacionais do Chão de Fábrica (Estilo Profissional Imagem 1) -->
+    // HTML da Barra de KPIs Operacionais (Totalmente ancorada na parte inferior, extensão 100% da página, cor em destaque e diferenciada)
+    const kpisHtml = `
+      <!-- BARRA DE KPIS OPERACIONAIS ANCORADA NA PARTE INFERIOR (100% DA EXTENSÃO DA PÁGINA) -->
+      <div id="mural-kpis-bottom-bar" class="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 dark:from-[#050b14] dark:via-[#09152b] dark:to-[#081329] p-3.5 rounded-2xl border-2 border-indigo-400/60 shadow-2xl mt-4">
+        <div class="flex items-center justify-between px-1 mb-2 text-white/90">
+          <span class="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            Painel Geral da Fábrica & Indicadores Operacionais
+          </span>
+          <span class="text-[10px] font-mono text-cyan-300 font-bold">Atualização em Tempo Real</span>
+        </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-          <div class="bg-white dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+          <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 shadow-sm flex items-center gap-3 text-white">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-cyan-300 flex items-center justify-center shrink-0 border border-cyan-400/30">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
             </div>
             <div>
-              <span class="text-[10px] font-bold text-slate-500 uppercase block">Fila Geral</span>
-              <strong class="text-base font-black text-slate-900 dark:text-white font-mono">${orders.length} pedidos</strong>
+              <span class="text-[10px] font-bold text-slate-300 uppercase block">Fila Geral</span>
+              <strong class="text-base font-black text-white font-mono">${orders.length} pedidos</strong>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 shadow-sm flex items-center gap-3 text-white">
+            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-400/30">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
             <div>
-              <span class="text-[10px] font-bold text-slate-500 uppercase block">Em Impressão</span>
-              <strong class="text-base font-black text-indigo-600 dark:text-indigo-400 font-mono">${countProducao} em curso</strong>
+              <span class="text-[10px] font-bold text-slate-300 uppercase block">Em Impressão</span>
+              <strong class="text-base font-black text-indigo-200 font-mono">${countProducao} em curso</strong>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+          <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 shadow-sm flex items-center gap-3 text-white">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/30">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
             </div>
             <div>
-              <span class="text-[10px] font-bold text-slate-500 uppercase block">Acabamento</span>
-              <strong class="text-base font-black text-purple-600 dark:text-purple-400 font-mono">${countAcabamento} peças</strong>
+              <span class="text-[10px] font-bold text-slate-300 uppercase block">Acabamento</span>
+              <strong class="text-base font-black text-purple-200 font-mono">${countAcabamento} peças</strong>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 shadow-sm flex items-center gap-3 text-white">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/30">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div>
-              <span class="text-[10px] font-bold text-slate-500 uppercase block">Vence Hoje</span>
-              <strong class="text-base font-black text-amber-600 dark:text-amber-400 font-mono">${countHoje} p/ hoje</strong>
+              <span class="text-[10px] font-bold text-slate-300 uppercase block">Vence Hoje</span>
+              <strong class="text-base font-black text-amber-300 font-mono">${countHoje} p/ hoje</strong>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900/90 p-3 rounded-2xl border ${countAtrasados > 0 ? 'border-rose-400 bg-rose-50/50 dark:bg-rose-950/40' : 'border-slate-200 dark:border-slate-800/80'} shadow-sm flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl ${countAtrasados > 0 ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-100 text-slate-400'} flex items-center justify-center shrink-0">
+          <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border ${countAtrasados > 0 ? 'border-rose-400 bg-rose-950/40' : 'border-white/15'} shadow-sm flex items-center gap-3 text-white">
+            <div class="w-10 h-10 rounded-xl ${countAtrasados > 0 ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'} flex items-center justify-center shrink-0">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             </div>
             <div>
-              <span class="text-[10px] font-bold ${countAtrasados > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'} uppercase block">Atrasados</span>
-              <strong class="text-base font-black ${countAtrasados > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-white'} font-mono">${countAtrasados} crítico</strong>
+              <span class="text-[10px] font-bold ${countAtrasados > 0 ? 'text-rose-300' : 'text-slate-300'} uppercase block">Atrasados</span>
+              <strong class="text-base font-black ${countAtrasados > 0 ? 'text-rose-400' : 'text-white'} font-mono">${countAtrasados} crítico</strong>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 shadow-sm flex items-center gap-3 text-white">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-400/30">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
             </div>
             <div>
-              <span class="text-[10px] font-bold text-slate-500 uppercase block">Metros Produção</span>
-              <strong class="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">${totalM2EmProducao.toFixed(1)} m²</strong>
+              <span class="text-[10px] font-bold text-slate-300 uppercase block">Metros Produção</span>
+              <strong class="text-base font-black text-emerald-300 font-mono">${totalM2EmProducao.toFixed(1)} m²</strong>
             </div>
           </div>
         </div>
+      </div>
+    `;
 
-        <!-- 2. Barra de Busca, Filtros Rápidos & Ações da Fábrica -->
-        <div class="bg-white dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+    container.innerHTML = `
+      <div class="space-y-4">
+        
+        <!-- 1. Barra de Busca Ampliada x3 & Botões Padronizados (Mesma Altura h-10 e Mesma Largura) -->
+        <div class="bg-white dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-3">
           
-          <!-- Campo de Busca em Tempo Real e Botão Limpar -->
-          <div class="flex items-center gap-2 flex-1 max-w-md">
+          <!-- Localização / Busca Aumentada x3 com a Lupa em Destaque -->
+          <div class="flex items-center gap-2 flex-1 w-full xl:max-w-2xl">
             <div class="relative flex-1">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-600 dark:text-cyan-400">
+                <!-- Ícone da Lupa aumentado x3 (de w-4 h-4 para w-7 h-7) -->
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               </div>
               <input 
                 type="text" 
                 placeholder="Buscar por O.S., Cliente ou Material..." 
                 value="${this.searchTerm}" 
                 oninput="productionModule.setSearchTerm(this.value)" 
-                class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                class="w-full h-10 pl-14 pr-4 bg-slate-50 dark:bg-slate-800/80 border-2 border-blue-200 dark:border-blue-900/60 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
             </div>
+          </div>
+
+          <!-- Grade de Botões Alinhados, Mesma Altura (h-10) e Mesma Largura (w-36) com a Grafia Solicitada -->
+          <div class="flex items-center gap-2 flex-wrap">
             <button 
               type="button" 
               onclick="productionModule.clearSearch()" 
               title="Limpar busca"
-              class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer shrink-0">
-              ✕ Limpar
+              class="h-10 w-24 sm:w-28 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer shrink-0">
+              <span>✕ limpar</span>
             </button>
-          </div>
 
-          <!-- Filtros de Urgência e Gestão de Entregas (Imagem 3) -->
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <button onclick="productionModule.setUrgencyFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}">
-              Todos
+            <button onclick="productionModule.setUrgencyFilter('all')" class="h-10 w-24 sm:w-28 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${this.filterUrgency === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'}">
+              todos
             </button>
-            <button onclick="productionModule.setUrgencyFilter('atrasado')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'atrasado' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100'}">
-              🚨 Atrasados (${countAtrasados})
-            </button>
-            <button onclick="productionModule.setUrgencyFilter('hoje')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'hoje' ? 'bg-amber-600 text-white shadow-sm' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'}">
-              ⏰ Vence Hoje (${countHoje})
-            </button>
-            <button onclick="productionModule.setUrgencyFilter('esta_semana')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${this.filterUrgency === 'esta_semana' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100'}" title="Pedidos com entrega prevista de Segunda a Domingo desta semana">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>Pedidos da Semana (${countEstaSemana})</span>
-            </button>
-            <button onclick="productionModule.setUrgencyFilter('semana_que_vem')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${this.filterUrgency === 'semana_que_vem' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'}" title="Pedidos com entrega prevista da próxima Segunda ao Domingo subsequente">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>Semana que Vem (${countSemanaQueVem})</span>
-            </button>
-            <button onclick="productionModule.setUrgencyFilter('noprazo')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.filterUrgency === 'noprazo' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'}">
-              ✅ No Prazo
-            </button>
-          </div>
 
-          <!-- Botões de Ação (Respeitando RBAC de Vendas e Produção) -->
-          <div class="flex items-center gap-2">
+            <button onclick="productionModule.setUrgencyFilter('atrasado')" class="h-10 min-w-[140px] px-3 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${this.filterUrgency === 'atrasado' ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100'}">
+              entregas atrasadas
+            </button>
+
+            <button onclick="productionModule.setUrgencyFilter('hoje')" class="h-10 min-w-[130px] px-3 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${this.filterUrgency === 'hoje' ? 'bg-amber-600 text-white shadow-sm' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'}">
+              entregas de hoje
+            </button>
+
+            <button onclick="productionModule.setUrgencyFilter('esta_semana')" class="h-10 min-w-[160px] px-3 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${this.filterUrgency === 'esta_semana' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100'}" title="Pedidos com entrega prevista da semana atual">
+              entregas da semana atual
+            </button>
+
+            <button onclick="productionModule.setUrgencyFilter('semana_que_vem')" class="h-10 min-w-[170px] px-3 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${this.filterUrgency === 'semana_que_vem' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'}" title="Pedidos com entrega prevista da próxima semana">
+              entregas da proxima semana
+            </button>
+
             ${(window.authModule && window.authModule.can('canViewSaleValues')) ? `
-              <button onclick="salesModule.openCrmModal()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5" title="Painel ARP / CRM de Clientes e Pós-Venda">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                <span>CRM & Pós-Venda</span>
+              <button onclick="salesModule.openCrmModal()" class="h-10 min-w-[120px] px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer" title="Painel de Pós-Venda e CRM">
+                <span>pós vendas</span>
               </button>
             ` : ''}
+
             ${(window.authModule && window.authModule.can('canCreateOrders')) ? `
-              <button onclick="app.openNewOrderModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-blue-500/20 transition flex items-center gap-1.5 cursor-pointer">
-                <span>+ Novo Pedido</span>
+              <button onclick="app.openNewOrderModal()" class="h-10 min-w-[130px] px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                <span>+ novo pedido</span>
               </button>
             ` : ''}
           </div>
 
         </div>
 
-        <!-- 3. Versão Desktop: Abas Horizontais com Drag & Drop -->
+        <!-- 2. Versão Desktop: Abas Horizontais com Drag & Drop -->
         <div class="hidden md:flex flex-nowrap w-full gap-1 border-b-2 border-blue-600 dark:border-blue-500 pt-1 overflow-x-auto">
           ${tabsHtml}
         </div>
 
-        <!-- 4. Versão Desktop: Grid de Cards Responsivo preenchendo a tela de forma harmoniosa -->
+        <!-- 3. Versão Desktop: Grid de Cards Responsivo preenchendo a tela de forma harmoniosa -->
         <div class="hidden md:block bg-slate-50/70 dark:bg-[#080e1a] border border-slate-200 dark:border-slate-800 rounded-b-2xl p-4 sm:p-5 min-h-[50vh]">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4" ondragover="productionModule.allowDrop(event)" ondrop="productionModule.handleDrop(event, '${activePhase.id}')">
             ${activeOrders.length === 0 ? `
               <div class="col-span-full py-16 text-center text-slate-400 dark:text-slate-500">
                 <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                 <p class="font-extrabold text-sm">Nenhum pedido nesta fase com os filtros atuais.</p>
-                <p class="text-xs text-slate-400 mt-1">Arraste pedidos para cá ou clique em "+ Novo Pedido" para alimentar a esteira.</p>
+                <p class="text-xs text-slate-400 mt-1">Arraste pedidos para cá ou clique em "+ novo pedido" para alimentar a esteira.</p>
               </div>
             ` : activeOrders.map(o => this.renderCard(o, clients)).join('')}
           </div>
         </div>
 
-        <!-- 5. Versão Mobile: Fases na Vertical Sanfona com 'Mostre e Esconde' -->
+        <!-- 4. Versão Mobile: Fases na Vertical Sanfona com 'Mostre e Esconde' -->
         <div class="md:hidden space-y-3 pb-8">
           <div class="flex justify-between items-center px-1 pt-1">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Fases de Produção</span>
@@ -376,6 +390,9 @@ window.productionModule = {
           </div>
           ${mobileAccordionHtml}
         </div>
+
+        <!-- 5. Barra de KPIs Ancorada na Parte Inferior com Destaque e 100% de Largura (Imagem 2) -->
+        ${kpisHtml}
 
       </div>
     `;

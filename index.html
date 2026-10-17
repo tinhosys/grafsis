@@ -127,14 +127,19 @@
           <span id="header-company-subtext" class="hidden"></span>
         </div>
 
-        <!-- GRUPO 1: Botão de Destaque Oficial: + Operação (Imagem 4) -->
-        <button id="btn-header-new-order" onclick="app.openNewOrderModal()" class="hidden md:flex items-center gap-2 h-10 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-md shadow-blue-500/25 transition-all transform hover:scale-[1.02] border border-blue-500 cursor-pointer select-none shrink-0" title="Abrir Nova Venda / Orçamento (+ Operação)">
-          <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-          <span>+ Operação</span>
-        </button>
+        <!-- GRUPO 1: Botão de Destaque no topo esquerdo: + Novo Pedido -->
+        <div class="flex items-center">
+          <button id="btn-header-new-order" onclick="app.openNewOrderModal()" class="hidden md:flex items-center gap-2 h-10 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-md shadow-blue-500/25 transition-all transform hover:scale-[1.02] border border-blue-500 cursor-pointer select-none shrink-0" title="Abrir Nova Venda / Orçamento (+ Novo Pedido)">
+            <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+            <span>+ Novo Pedido</span>
+          </button>
+        </div>
 
-        <!-- GRUPO 2: Navegação Superior (Todos botões h-10, mesma cor no grupo, alinhados e organizados) -->
-        <nav class="hidden md:flex items-center gap-1.5 lg:gap-2 ml-2">
+        <!-- DIVISOR VERTICAL GRUPO 1 | GRUPO 2 -->
+        <div class="hidden lg:block h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+
+        <!-- GRUPO 2: Navegação Superior (Dashboard, Clientes, Pedidos, Mural, Catálogo) -->
+        <nav class="hidden md:flex items-center gap-1.5 lg:gap-2">
           <!-- 1. Dashboard -->
           <button onclick="app.navigate('dashboard')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="dashboard">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -147,7 +152,7 @@
           </button>
 
           <!-- 2. Clientes -->
-          <button onclick="app.navigate('clients')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-600 text-white shadow-sm border border-indigo-500 shrink-0 cursor-pointer" data-tab="clients">
+          <button onclick="app.navigate('clients')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="clients">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 21a8 8 0 0 0-16 0"/>
               <circle cx="10" cy="8" r="5"/>
@@ -156,7 +161,7 @@
             <span>Clientes</span>
           </button>
 
-          <!-- 3. Operação / Pedido -->
+          <!-- 3. Pedidos (Operação / Pedido) -->
           <button onclick="app.navigate('sales')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="sales">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
@@ -166,20 +171,20 @@
               <path d="M8 11h.01"/>
               <path d="M8 16h.01"/>
             </svg>
-            <span>Operação / Pedido</span>
+            <span>Pedidos</span>
           </button>
 
-          <!-- 4. Mural de serviços -->
+          <!-- 4. Mural (Mural de serviços) -->
           <button onclick="app.navigate('production')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="production">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
               <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/>
               <rect x="6" y="14" width="12" height="8" rx="1"/>
             </svg>
-            <span>Mural de serviços</span>
+            <span>Mural</span>
           </button>
 
-          <!-- 5. Catálogo (Produtos/Serviços) -->
+          <!-- 5. Catálogo -->
           <button onclick="app.navigate('products')" class="top-nav-link h-10 px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 border border-indigo-200/80 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700 shrink-0 cursor-pointer" data-tab="products">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m7.5 4.27 9 5.15"/>
@@ -192,8 +197,14 @@
         </nav>
       </div>
 
-      <!-- GRUPO 3: Ferramentas & Status (Todos botões h-10, organizados e alinhados) -->
+      <!-- GRUPO 3: Ferramentas & Status (Calculadora de M², Dia/Noite, Notificações WhatsApp, Botões de acesso) -->
       <div class="flex items-center gap-2 sm:gap-2.5">
+
+        <!-- Botão Calculadora m² -->
+        <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 h-10 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition shadow-xs cursor-pointer" title="Calculadora de Área e Preço por Metro Quadrado">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+          <span>Calculadora m²</span>
+        </button>
 
         <!-- Botão Alternador Modo Claro / Escuro (Dia ☀️ / Noite 🌙) -->
         <button id="btn-theme-toggle" onclick="app.toggleTheme()" class="h-10 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/80 dark:bg-slate-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-slate-700 transition-all shadow-xs cursor-pointer select-none" title="Alternar entre Modo Dia (Claro) e Modo Noite (Escuro)">
@@ -210,21 +221,15 @@
           </span>
         </button>
 
-        <!-- Botão Calculadora m² -->
-        <button id="btn-header-calc" onclick="productsModule.openCalculatorModal()" class="hidden sm:flex items-center gap-1.5 h-10 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition shadow-xs cursor-pointer" title="Calculadora de Área e Preço por Metro Quadrado">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-          <span>Calculadora m²</span>
-        </button>
-
-        <!-- Ícone Notificação -->
-        <button id="btn-header-notification" onclick="app.openNotificationsModal()" class="h-10 w-10 flex items-center justify-center p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition relative cursor-pointer" title="Central de Notificações e Prazos">
+        <!-- Ícone Notificação (Soma de aprovações recebidas pelo WhatsApp) -->
+        <button id="btn-header-notification" onclick="app.openNotificationsModal()" class="h-10 w-10 flex items-center justify-center p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition relative cursor-pointer" title="Central de Notificações - Respostas de aprovação recebidas pelo WhatsApp">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
           <span id="header-notification-badge" class="hidden absolute top-1.5 right-1.5 min-w-4 h-4 px-1 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm"></span>
         </button>
 
-        <!-- Foto de Perfil do Operador com Login e Perfil Visíveis -->
+        <!-- Botões de Acesso / Perfil do Operador com Login e Perfil Visíveis -->
         <div class="relative pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-700">
-          <button onclick="app.toggleUserMenu()" class="h-10 flex items-center gap-2 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer" title="Meu Perfil">
+          <button onclick="app.toggleUserMenu()" class="h-10 flex items-center gap-2 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer" title="Botões de Acesso & Meu Perfil">
             <div class="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 flex items-center justify-center">
               <img id="top-user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-full h-full object-cover">
             </div>
