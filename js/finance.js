@@ -250,6 +250,21 @@ window.financeModule = {
                   <button onclick="financeModule.addPayment('${orderId}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded shadow-sm text-sm">Confirmar Pagto</button>
                 </div>
               </div>
+
+              <!-- Ações Rápidas Mercado Pago no Caixa -->
+              <div class="mt-3 pt-3 border-t border-slate-200 flex flex-wrap gap-2 items-center justify-between">
+                <span class="text-[11px] font-bold text-sky-700 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-sky-500"></span> Mercado Pago:
+                </span>
+                <div class="flex gap-2">
+                  <button type="button" onclick="salesModule.handleMercadoPagoPix('${order.numero || orderId}', '${escapeHtml(client.nome)}', ${balance})" class="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer">
+                    ⚡ Gerar Pix MP
+                  </button>
+                  <button type="button" onclick="salesModule.handleMercadoPagoCard('${order.numero || orderId}', '${escapeHtml(client.nome)}', ${balance})" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer">
+                    💳 Link Cartão MP
+                  </button>
+                </div>
+              </div>
             </div>
           ` : `
             <div class="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">

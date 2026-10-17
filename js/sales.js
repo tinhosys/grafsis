@@ -2466,7 +2466,7 @@ window.salesModule = {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Meio de Pagto</label>
-                <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const isParc = this.value.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid();">
+                <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none';">
                   <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
                   <option value="Cartão de crédito / A vista" ${metodoAtual === 'Cartão de crédito / A vista' ? 'selected' : ''}>Cartão de crédito / A vista</option>
                   <option value="Cartão de crédito / Parcelado" ${metodoAtual === 'Cartão de crédito / Parcelado' ? 'selected' : ''}>Cartão de crédito / Parcelado</option>
@@ -2557,6 +2557,33 @@ window.salesModule = {
               <span>Valor a Receber (Restante):</span>
               <span id="fm-restante" class="font-mono font-black">R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
+
+            <!-- Botões Rápidos de Cobrança Online Mercado Pago -->
+            <div id="fm-mp-actions-div" class="p-3 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40 rounded-xl border border-sky-200 dark:border-sky-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-black text-sky-800 dark:text-sky-300 flex items-center gap-1.5 uppercase">
+                  <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                  Cobrança Online Mercado Pago
+                </span>
+                <span class="text-[10px] text-slate-500 font-bold">Taxa Zero no Grafsis</span>
+              </div>
+
+              <!-- Botão Dinâmico de Pix (Exibido quando Pix estiver selecionado) -->
+              <div id="fm-btn-mp-pix-container" style="display: ${metodoAtual === 'Pix' ? 'block' : 'none'};">
+                <button type="button" onclick="salesModule.handleMercadoPagoPix('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                  <span>GERAR QR CODE PIX MERCADO PAGO</span>
+                </button>
+              </div>
+
+              <!-- Botão Dinâmico de Cartão (Exibido quando Cartão estiver selecionado) -->
+              <div id="fm-btn-mp-card-container" style="display: ${metodoAtual.includes('Cartão') ? 'block' : 'none'};">
+                <button type="button" onclick="salesModule.handleMercadoPagoCard('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                  <span>GERAR LINK DE CARTÃO (ATÉ 12X MERCADO PAGO)</span>
+                </button>
+              </div>
+            </div>
           </div>
           
           <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
@@ -2577,6 +2604,87 @@ window.salesModule = {
     document.getElementById('finance-modal')?.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     this.recalcInstallmentsGrid();
+  },
+
+  async handleMercadoPagoPix(orderIdStr, clientName, finalTotal) {
+    if (!window.mercadoPagoModule || !window.mercadoPagoModule.isConfigured()) {
+      alert('Para gerar Pix automático, cadastre o seu Access Token do Mercado Pago na aba "Configurações da Empresa (Sua Gráfica)".');
+      return;
+    }
+
+    const restEl = document.getElementById('fm-restante');
+    const valorPendente = restEl ? (parseFloat(restEl.innerText.replace(/[^\d,]/g, '').replace(',', '.')) || finalTotal) : finalTotal;
+    const valorCobrar = valorPendente > 0 ? valorPendente : finalTotal;
+
+    const btn = event?.currentTarget;
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Gerando Pix no Mercado Pago...`;
+    }
+
+    try {
+      const activeTenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+      const pixResult = await window.mercadoPagoModule.createPixPayment({
+        orderId: orderIdStr,
+        amount: valorCobrar,
+        description: `Grafsis - Pedido #${orderIdStr} - ${clientName || 'Cliente'}`,
+        payerEmail: activeTenant.email || 'financeiro@grafsis.com.br'
+      });
+
+      window.mercadoPagoModule.showPixModal(pixResult, orderIdStr, valorCobrar);
+    } catch (err) {
+      alert(`Falha ao gerar Pix Mercado Pago: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+  },
+
+  async handleMercadoPagoCard(orderIdStr, clientName, finalTotal) {
+    if (!window.mercadoPagoModule || !window.mercadoPagoModule.isConfigured()) {
+      alert('Para gerar Link de Cartão de Crédito, cadastre o seu Access Token do Mercado Pago na aba "Configurações da Empresa (Sua Gráfica)".');
+      return;
+    }
+
+    const restEl = document.getElementById('fm-restante');
+    const valorPendente = restEl ? (parseFloat(restEl.innerText.replace(/[^\d,]/g, '').replace(',', '.')) || finalTotal) : finalTotal;
+    const valorCobrar = valorPendente > 0 ? valorPendente : finalTotal;
+
+    const parcEl = document.getElementById('fm-parcelas');
+    const parcelas = parcEl ? (parseInt(parcEl.value) || 12) : 12;
+
+    const btn = event?.currentTarget;
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Gerando Link de Cartão...`;
+    }
+
+    try {
+      const cardResult = await window.mercadoPagoModule.createCardPreference({
+        orderId: orderIdStr,
+        title: `Pedido #${orderIdStr} - ${clientName || 'Grafsis'}`,
+        amount: valorCobrar,
+        installments: parcelas
+      });
+
+      // Busca telefone do cliente para facilitar envio no WhatsApp
+      const clients = window.store?.getClients ? window.store.getClients() : [];
+      const client = clients.find(c => c.nome === clientName) || {};
+      const clientPhone = client.celular || client.whatsapp || client.telefone || '';
+
+      window.mercadoPagoModule.showCardLinkModal(cardResult, orderIdStr, valorCobrar, clientPhone);
+    } catch (err) {
+      alert(`Falha ao gerar link Mercado Pago: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
   },
 
   recalcInstallmentsGrid() {

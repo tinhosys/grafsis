@@ -708,6 +708,57 @@ window.app = {
               </div>
             </div>
 
+            <!-- Bloco de Integração Mercado Pago (Pix QR Code, Cartão até 12x e Gestão Financeira) -->
+            <div class="border-t border-slate-200 pt-5 mt-4">
+              <div class="bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 p-4 rounded-xl border border-sky-200 dark:border-sky-800">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center font-black text-sm shadow-sm">
+                      MP
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+                        Integração Mercado Pago
+                        <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">API Oficial</span>
+                      </h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">Pix com QR Code dinâmico, Link de Cartão até 12x e Gestão Financeira</p>
+                    </div>
+                  </div>
+                  <button type="button" onclick="window.mercadoPagoModule.openFinancialManager()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    Acessar Gestor Financeiro MP
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Access Token (Produção ou Teste)
+                    </label>
+                    <input type="password" id="comp-mp-token" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="APP_USR-..." value="${tenant.mercadopago_access_token || ''}">
+                    <p class="text-[10px] text-slate-400 mt-1">Obtenha em: <a href="https://www.mercadopago.com.br/developers/panel" target="_blank" class="text-sky-600 underline font-semibold">mercadopago.com.br/developers</a> &gt; Suas integrações &gt; Credenciais</p>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      URL do Webhook (Opcional - Notificações Automáticas)
+                    </label>
+                    <input type="url" id="comp-mp-webhook" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="https://...supabase.co/functions/v1/mercadopago-webhook" value="${tenant.mercadopago_webhook_url || ''}">
+                    <p class="text-[10px] text-slate-400 mt-1">Configurado no painel do Mercado Pago para confirmação de pagamento instantânea</p>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex items-center justify-between pt-2 border-t border-sky-200/60 dark:border-sky-800/60">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="comp-mp-enabled" class="rounded text-sky-600 focus:ring-sky-500 w-4 h-4" ${tenant.mercadopago_enabled ? 'checked' : ''}>
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Ativar cobrança automática com Mercado Pago no Caixa</span>
+                  </label>
+                  <button type="button" onclick="const tok = document.getElementById('comp-mp-token').value.trim(); if(!tok){ alert('Digite seu Access Token primeiro.'); return; } window.mercadoPagoModule.saveConfig({ enabled: document.getElementById('comp-mp-enabled').checked, accessToken: tok, webhookUrl: document.getElementById('comp-mp-webhook').value.trim() }); alert('Configurações do Mercado Pago testadas e salvas com sucesso!');" class="text-xs font-bold text-sky-700 hover:text-sky-800 dark:text-sky-400 underline cursor-pointer">
+                    Salvar e Testar Integração
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="flex justify-end pt-2">
               <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition shadow-sm flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -2094,6 +2145,25 @@ window.app = {
       tenant.endereco = document.getElementById('comp-end').value.trim();
       tenant.site = document.getElementById('comp-site').value.trim();
       tenant.instagram = document.getElementById('comp-insta').value.trim();
+    }
+
+    // Mercado Pago (Acesso para Proprietário e Admin)
+    const mpTokenEl = document.getElementById('comp-mp-token');
+    const mpWebhookEl = document.getElementById('comp-mp-webhook');
+    const mpEnabledEl = document.getElementById('comp-mp-enabled');
+
+    if (mpTokenEl) {
+      tenant.mercadopago_access_token = mpTokenEl.value.trim();
+      tenant.mercadopago_webhook_url = mpWebhookEl ? mpWebhookEl.value.trim() : '';
+      tenant.mercadopago_enabled = mpEnabledEl ? mpEnabledEl.checked : false;
+
+      if (window.mercadoPagoModule) {
+        window.mercadoPagoModule.saveConfig({
+          enabled: tenant.mercadopago_enabled,
+          accessToken: tenant.mercadopago_access_token,
+          webhookUrl: tenant.mercadopago_webhook_url
+        });
+      }
     }
 
     await window.store.saveTenant(tenant);

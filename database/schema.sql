@@ -220,3 +220,8 @@ CREATE TABLE IF NOT EXISTS empresas_feed_noticias (
 ALTER TABLE produtos ADD COLUMN IF NOT EXISTS larguras_bobinas TEXT;
 ALTER TABLE produtos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 
+-- Atualizações v4.9.8.8 (Integração Oficial Mercado Pago: Pix QR Code, Link de Cartão até 12x e Webhook)
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS mercadopago_access_token TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS mercadopago_webhook_url TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS mercadopago_enabled BOOLEAN DEFAULT FALSE;
+
