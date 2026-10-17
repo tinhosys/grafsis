@@ -817,7 +817,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.7</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.8</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -825,15 +825,26 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.8.7 (Atual)</h4>
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.8 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Cobrança Mercado Pago (Pix QR Code, Cartão até 12x, Gestor & Webhooks)</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Integração Mercado Pago Oficial:</strong> Módulo completo e gratuito para cobranças online sem mensalidade ou taxa de adesão para o lojista.</li>
+            <li><strong>Pix Dinâmico com QR Code em Tela:</strong> Botão "⚡ Gerar QR Code Pix Mercado Pago" no modal de Recebimento Financeiro do Caixa, gerando imagem do QR Code em alta definição, código Copia e Cola e conferência com baixa automática.</li>
+            <li><strong>Link de Pagamento com Cartão de Crédito e Parcelamento até 12x:</strong> Botão dinâmico para gerar link seguro do Checkout Pro com opções imediatas de envio via WhatsApp com mensagem personalizada, cópia de link ou abertura de checkout.</li>
+            <li><strong>Painel de Gestão Financeira Direto:</strong> Integração com as Configurações da Empresa para ativação rápida através do Access Token do operador e atalho de acesso direto ao Gestor Financeiro do Mercado Pago.</li>
+            <li><strong>Supabase Edge Functions Prontas:</strong> Arquitetura corporativa desacoplada com endpoints para Pix, Preferences e Webhooks em conformidade com as diretrizes do Mercado Pago.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.7</h4>
             <span class="text-xs text-blue-600 font-bold">Gravar Operação, Liberação O.S., Links Técnico/Completo & Aceite Digital</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li><strong>Renomeação Oficial:</strong> Botão "Salva Operação" atualizado formalmente para "Gravar Operação", com governança imune a bloqueios e persistência segura.</li>
-            <li><strong>Liberação O.S. & Checks Persistentes:</strong> Checkboxes de liberação de item para O.S. (<code>#check-all-os</code>, <code>.item-os-check</code>), input de busca e botões "Isolar Item" e "Liberar Todos" mantêm-se sempre habilitados mesmo após o registro da operação. Por padrão os itens iniciam marcados e somente os checados são impressos na O.S. e disponibilizados no link do cliente.</li>
-            <li><strong>Link Padrão de Cópia Fácil e Botões Sempre Habilitados:</strong> O campo de link padrão permite seleção direta e cópia instantânea via <code>navigator.clipboard</code> com fallback por <code>execCommand</code> e feedback visual ("✓ Link Copiado!"). Os botões "Copiar Link", "Enviar WhatsApp" e "Visualizar" permanecem habilitados em qualquer estado do registro.</li>
-            <li><strong>4 Modalidades de Compartilhamento WhatsApp:</strong> Disponibilizados botões específicos para: (1) Link Técnico sem valores financeiros para conferência pura de arte e medidas; (2) Link Completo com demonstrativo comercial; (3) Senha de Autorização de 4 dígitos enviada separadamente; (4) Recibo Digital de Pagamento com código único de validação (ex: <code>REC-260008-XXXX</code>).</li>
-            <li><strong>Regra de Ouro do Aceite & Telemetria Completa:</strong> A senha de autorização só pode ser validada no portal caso o telefone informado pelo cliente corresponda rigorosamente ao mesmo WhatsApp cadastrado no envio. Ao validar, o sistema registra data/hora com segundos, modelo de dispositivo (Android/iOS/PC), geolocalização com link no Google Maps e notifica imediatamente a equipe interna pelo sistema.</li>
+            <li><strong>Liberação O.S. & Checks Persistentes:</strong> Checkboxes de liberação de item para O.S. (<code>#check-all-os</code>, <code>.item-os-check</code>), input de busca e botões "Isolar Item" e "Liberar Todos" mantêm-se sempre habilitados mesmo após o registro da operação.</li>
+            <li><strong>Link Padrão de Cópia Fácil e Botões Sempre Habilitados:</strong> O campo de link padrão permite seleção direta e cópia instantânea via <code>navigator.clipboard</code> com feedback visual.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
