@@ -1842,8 +1842,8 @@ window.app = {
 
             <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
               <div>
-                <span class="font-bold text-slate-800 block">Motor de Cálculo m² & Tintas</span>
-                <span class="text-[11px] text-slate-500">Regra de Ouro & CMYK</span>
+                <span class="font-bold text-slate-800 block">Motor de Cálculo m² e Tintas</span>
+                <span class="text-[11px] text-slate-500">Regra de Ouro e CMYK</span>
               </div>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
                 ● Calibrado
@@ -1852,7 +1852,7 @@ window.app = {
 
             <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
               <div>
-                <span class="font-bold text-slate-800 block">Módulo Produção & Kanban</span>
+                <span class="font-bold text-slate-800 block">Módulo Produção e Kanban</span>
                 <span class="text-[11px] text-slate-500">8 Fases em tempo real</span>
               </div>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
@@ -1862,8 +1862,8 @@ window.app = {
 
             <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
               <div>
-                <span class="font-bold text-slate-800 block">Emissão de O.S. & Recibos</span>
-                <span class="text-[11px] text-slate-500">Documentos Térmicos & A4</span>
+                <span class="font-bold text-slate-800 block">Emissão de O.S. e Recibos</span>
+                <span class="text-[11px] text-slate-500">Documentos Térmicos e A4</span>
               </div>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
                 ● Pronto
@@ -1872,8 +1872,8 @@ window.app = {
 
             <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
               <div>
-                <span class="font-bold text-slate-800 block">Gateway WhatsApp & E-mail</span>
-                <span class="text-[11px] text-slate-500">Disparo de Fases & PIX</span>
+                <span class="font-bold text-slate-800 block">Gateway WhatsApp e E-mail</span>
+                <span class="text-[11px] text-slate-500">Disparo de Fases e PIX</span>
               </div>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
                 ● Conectado
@@ -1888,7 +1888,7 @@ window.app = {
             <div>
               <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
                 <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                Usuários do Sistema & Monitor de Presença
+                Usuários do Sistema e Monitor de Presença
               </h2>
               <p class="text-xs text-slate-500 mt-0.5">Quem está online neste momento e seus respectivos níveis de permissão</p>
             </div>
@@ -2600,8 +2600,8 @@ window.app = {
                 🛡️
               </div>
               <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-amber-600">Governança & Rastreabilidade</span>
-                <h3 class="text-lg font-black text-slate-900 dark:text-white">Livro de Ocorrências & Auditoria</h3>
+                <span class="text-[10px] font-black uppercase tracking-wider text-amber-600">Governança e Rastreabilidade</span>
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">Livro de Ocorrências e Auditoria</h3>
                 <p class="text-xs text-slate-400">Registros imutáveis de edições, reaberturas e alterações em pedidos finalizados</p>
               </div>
             </div>
@@ -3043,7 +3043,7 @@ window.app = {
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
                   : (isTechnicalMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300')
               }">
-                ${isApproved ? '✅ ARTE & PRODUÇÃO APROVADAS' : (isTechnicalMode ? '📐 CONFERÊNCIA TÉCNICA' : '🟡 AGUARDANDO SUA APROVAÇÃO')}
+                ${isApproved ? '✅ ARTE E PRODUÇÃO APROVADAS' : (isTechnicalMode ? '📐 CONFERÊNCIA TÉCNICA' : '🟡 AGUARDANDO SUA APROVAÇÃO')}
               </span>
               <div class="text-xs font-mono font-bold text-slate-500">Pedido #${order.numero}</div>
             </div>
@@ -3071,7 +3071,7 @@ window.app = {
             ${order.observacoes ? `
               <div class="p-3.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl">
                 <h4 class="text-xs font-black uppercase text-amber-900 dark:text-amber-200 mb-1 flex items-center gap-1.5">
-                  📌 Observações & Instruções da Operação:
+                  📌 Observações e Instruções da Operação:
                 </h4>
                 <p class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
                   ${order.observacoes}
@@ -3300,14 +3300,14 @@ window.app = {
                   ✓
                 </div>
                 <div class="space-y-1">
-                  <h3 class="text-xl font-black uppercase tracking-wide">Aceite do Pedido & Arte Confirmado</h3>
+                  <h3 class="text-xl font-black uppercase tracking-wide">Aceite do Pedido e Arte Confirmado</h3>
                   <p class="text-xs text-emerald-100 max-w-lg mx-auto leading-relaxed">
                     Arte conferida com sucesso, valores e prazos autorizados. Pedido encaminhado com carimbo digital para início imediato da produção gráfica.
                   </p>
                 </div>
                 
                 <div class="bg-black/20 backdrop-blur-sm p-4 rounded-xl font-mono text-[11px] text-emerald-50 text-left space-y-1.5 max-w-md mx-auto">
-                  <div><strong>Data & Hora:</strong> ${order.aprovado_cliente?.data_formatada || `${new Date().toLocaleDateString('pt-BR')} com segundos`}</div>
+                  <div><strong>Data e Hora:</strong> ${order.aprovado_cliente?.data_formatada || `${new Date().toLocaleDateString('pt-BR')} com segundos`}</div>
                   <div><strong>Responsável:</strong> ${order.aprovado_cliente?.aprovador || client.nome}</div>
                   <div><strong>Telefone Validado:</strong> ${order.aprovado_cliente?.telefone || order.telefone_autorizacao || 'Registrado'}</div>
                   <div><strong>Dispositivo:</strong> ${order.aprovado_cliente?.dispositivo || 'Smartphone / Web'}</div>
@@ -3329,7 +3329,7 @@ window.app = {
               <div class="space-y-4">
                 <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
                   <div class="font-black flex items-center gap-1.5 text-sm text-amber-800 dark:text-amber-300">
-                    ⚠️ Termo de Aceite & Conferência de Produção:
+                    ⚠️ Termo de Aceite e Conferência de Produção:
                   </div>
                   <p>
                     Ao clicar em <strong>"Concordo e Aprovo a Produção"</strong>, você declara estar de pleno acordo com as dimensões, arte visual, acabamentos${!isTechnicalMode ? ', valores contratados' : ''} e prazos estipulados acima.

@@ -225,7 +225,7 @@ window.productionModule = {
         <div class="flex items-center justify-between px-1 mb-2 text-white/90">
           <span class="text-xs font-black uppercase tracking-wider flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
-            Painel Geral da Fábrica & Indicadores Operacionais
+            Painel Geral da Fábrica e Indicadores Operacionais
           </span>
           <span class="text-[10px] font-mono text-cyan-300 font-bold">Atualização em Tempo Real</span>
         </div>

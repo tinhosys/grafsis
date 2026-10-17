@@ -13,7 +13,7 @@ window.salesModule = {
     let html = `
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 class="text-2xl font-black text-slate-800">Vendas & Pré-Vendas</h1>
+          <h1 class="text-2xl font-black text-slate-800">Vendas e Pré-Vendas</h1>
           <p class="text-slate-500 text-sm">Emissão de orçamentos, vendas, layouts e protocolos</p>
         </div>
         
@@ -95,7 +95,7 @@ window.salesModule = {
                 <th class="p-4">Data</th>
                 <th class="p-4">Código</th>
                 <th class="p-4">Cliente</th>
-                <th class="p-4">Valor & Saldo</th>
+                <th class="p-4">Valor e Saldo</th>
                 <th class="p-4">Fase Atual</th>
                 <th class="p-4 text-right">Ações</th>
               </tr>
@@ -753,21 +753,29 @@ window.salesModule = {
       wrapperChaveGerente.style.display = 'none';
     }
 
-    // 10. Governança e Paleta dos 6 Botões de Ação Inferiores
-    // 1. cancela = 'Cancelar Edição', deixe enable true quando tiver editando
-    // 2. edita = 'Editar Operação' (Marcação Laranja - Imune)
-    // 3. Gravar Operação (Marcação Laranja - Imune)
-    // 4. 'Registrar Operação' (Amarelo, fonte preto) / 'Operação Registrada' (Verde bandeira, fonte branca)
-    // 5. Botão cinza: 'Emitir Orçamento', 'Emitir Pré-Venda', 'Emitir Venda', 'Emitir Patrocínio', 'Emitir Permuta'
-    // 6. Botão laranja: Emitir O.S. (desabilitado para Orçamento e Pré-Venda; habilitado para Venda, Patrocínio, Permuta)
+    // 10. Governança e Paleta dos 8 Botões de Ação Inferiores (2 Linhas x 4 Botões)
+    // Linha 1: 1. Cancelar Edição | 2. Editar [Operação] | 3. Gravar [Operação] | 4. Gerar Link
+    // Linha 2: 5. Registrar [Operação] / Operação Registrada | 6. Emitir [Operação] | 7. Emitir O.S. | 8. Caixa
     const btnCancelar = document.getElementById('btn-cancel-action') || document.querySelector('#secao-botoes-acoes button[onclick*="handleCancelEdit"]') || document.querySelector('#secao-botoes-acoes button[onclick*="render"]');
     const btnEdita = document.getElementById('btn-edit-order');
     const btnSalvaOperacao = document.getElementById('btn-save-draft');
+    const btnGerarLink = document.getElementById('btn-gerar-link');
     const btnSubmit = document.getElementById('btn-submit-order');
     const btnEmitirPedido = document.getElementById('btn-emitir-pedido');
     const btnEmitirOS = document.getElementById('btn-emitir-os');
+    const btnCaixaOperacao = document.getElementById('btn-caixa-operacao');
 
-    // 1. Botão Cancelar: cancela = 'Cancelar Edição'
+    const opNames = {
+      'orcamento': 'Orçamento',
+      'pre-venda': 'Pré-Venda',
+      'prevenda': 'Pré-Venda',
+      'venda': 'Venda',
+      'patrocinio': 'Patrocínio',
+      'permuta': 'Permuta'
+    };
+    const opLabel = opNames[op] || 'Operação';
+
+    // 1. Botão Cancelar: 'Cancelar Edição'
     if (btnCancelar) {
       btnCancelar.innerHTML = `<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Cancelar Edição`;
       if (this.isEditingActive) {
@@ -781,67 +789,102 @@ window.salesModule = {
       }
     }
 
-    // 2. Botão Edita: edita = 'Editar Operação' (Marcação Laranja - Sempre Imune)
+    // 2. Botão Editar Operação: dinâmico 'Editar Orçamento', 'Editar Venda', etc.
+    // Restrito a Gerente/Proprietário se já estiver registrado
     if (btnEdita) {
-      btnEdita.innerHTML = `<svg class="w-4 h-4 text-amber-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> Editar Operação`;
+      btnEdita.innerHTML = `<svg class="w-4 h-4 text-amber-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> Editar ${opLabel}`;
       btnEdita.disabled = false;
       btnEdita.className = "w-full h-12 text-sm font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 border border-amber-500 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
-      btnEdita.title = isRegistered ? "Editar dados e itens da operação registrada (Requer Gerente)" : "Editar dados e itens da operação";
+      btnEdita.title = isRegistered ? `Editar ${opLabel} registrada (Requer permissão de Gerente ou Proprietário)` : `Editar dados e itens da ${opLabel}`;
     }
 
-    // 3. Botão Gravar Operação: 'Gravar Operação' (Marcação Laranja - Sempre Imune)
+    // 3. Botão Gravar Operação: dinâmico 'Gravar Orçamento', 'Gravar Venda', etc.
+    // Desabilitado se já estiver registrado sem alteração ativa ou sem dados pendentes na memória
     if (btnSalvaOperacao) {
-      btnSalvaOperacao.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Gravar Operação`;
-      btnSalvaOperacao.disabled = false;
-      btnSalvaOperacao.className = "w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
-      btnSalvaOperacao.title = "Gravar alterações da operação no sistema";
+      btnSalvaOperacao.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Gravar ${opLabel}`;
+      const isSaveDisabled = isRegistered && !this.isEditingActive;
+      if (isSaveDisabled) {
+        btnSalvaOperacao.disabled = true;
+        btnSalvaOperacao.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
+        btnSalvaOperacao.title = "Operação já gravada e registrada no sistema. Clique em 'Editar' para realizar novas alterações.";
+      } else {
+        btnSalvaOperacao.disabled = false;
+        btnSalvaOperacao.className = "w-full h-12 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnSalvaOperacao.title = `Gravar alterações da ${opLabel} na memória e no sistema`;
+      }
     }
 
-    // 4. Botão Registrar Operação / Operação Registrada (Imagem 4)
-    // Antes de registrar: 'Registrar Operação', amarelo, fonte preto.
+    // 4. Botão Gerar Link: Habilitado logo após salvar/gravar a operação
+    if (btnGerarLink) {
+      const hasOrderSavedOrAssigned = isSavedOrder || (activeDisplayId && activeDisplayId !== '#NOVO');
+      if (hasOrderSavedOrAssigned) {
+        btnGerarLink.disabled = false;
+        btnGerarLink.className = "w-full h-12 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnGerarLink.title = "Gerar e exibir link de aprovação online para o cliente";
+      } else {
+        btnGerarLink.disabled = false; // permite clicar para orientar a gravar
+        btnGerarLink.className = "w-full h-12 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnGerarLink.title = "Gera o link após gravar a operação";
+      }
+    }
+
+    // 5. Botão Registrar Operação / Operação Registrada
+    // Antes de registrar: 'Registrar [Operação]', amarelo, fonte preto.
     // Depois de registrar: 'Operação Registrada', botão verde bandeira, fonte branca.
     if (btnSubmit) {
-      btnSubmit.disabled = false;
       if (isRegistered) {
+        btnSubmit.disabled = false;
         btnSubmit.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Operação Registrada`;
         btnSubmit.className = 'w-full h-12 text-sm font-bold text-white bg-[#009b3a] hover:bg-[#008230] rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
         btnSubmit.title = "Operação já registrada no sistema";
       } else {
-        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar Operação`;
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar ${opLabel}`;
         btnSubmit.className = 'w-full h-12 text-sm font-bold text-slate-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-500 rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
-        btnSubmit.title = "Registrar operação oficial no sistema";
+        btnSubmit.title = `Registrar ${opLabel} oficial no sistema`;
       }
     }
 
-    // 5. Botão Cinza: 'Emitir Orçamento', 'Emitir Pré-Venda', 'Emitir Venda', 'Emitir Patrocínio', 'Emitir Permuta'
+    // 6. Botão Cinza: 'Emitir Orçamento', 'Emitir Pré-Venda', 'Emitir Venda', 'Emitir Patrocínio', 'Emitir Permuta'
     if (btnEmitirPedido) {
       btnEmitirPedido.disabled = false;
-      let emitirLabel = 'Emitir Pedido';
-      if (op === 'orcamento') emitirLabel = 'Emitir Orçamento';
-      else if (op === 'pre-venda') emitirLabel = 'Emitir Pré-Venda';
-      else if (op === 'venda') emitirLabel = 'Emitir Venda';
-      else if (op === 'patrocinio') emitirLabel = 'Emitir Patrocínio';
-      else if (op === 'permuta') emitirLabel = 'Emitir Permuta';
-
-      btnEmitirPedido.innerHTML = `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> ${emitirLabel}`;
+      btnEmitirPedido.innerHTML = `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Emitir ${opLabel}`;
       btnEmitirPedido.className = "w-full h-12 text-sm font-bold text-slate-800 bg-slate-200 hover:bg-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
     }
 
-    // 6. Botão Emitir O.S. (Laranja)
-    // REGRA CLARA:
-    // Orçamento: NÃO emite O.S. (desabilitado)
-    // Pré-Venda: NÃO emite O.S. (desabilitado)
-    // A O.S. só fica liberada se a operação for: 'venda', 'patrocinio', 'permuta'
+    // 7. Botão Emitir O.S. (Laranja)
+    // Liberada somente após aprovação e restrita a Venda, Patrocínio ou Permuta
     if (btnEmitirOS) {
       const isLiberadaOS = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
       if (isLiberadaOS) {
         btnEmitirOS.disabled = false;
         btnEmitirOS.className = "w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
-        btnEmitirOS.title = "Emitir Ordem de Serviço Técnica em A4 Paisagem";
+        btnEmitirOS.title = "Emitir Ordem de Serviço Técnica em A4 Paisagem (chão de fábrica sem valores financeiros)";
       } else {
         btnEmitirOS.disabled = true;
         btnEmitirOS.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
         btnEmitirOS.title = "Emissão de O.S. liberada exclusivamente para Venda, Patrocínio ou Permuta (Orçamento e Pré-Venda não emitem O.S.)";
+      }
+    }
+
+    // 8. Botão Caixa: só se habilita se houver saldo restante em aberto (> 0.01)
+    if (btnCaixaOperacao) {
+      const subtotalVal = (this.activeItems || []).reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
+      const descValRaw = document.getElementById('order-discount')?.value || '0';
+      const descVal = parseFloat(String(descValRaw).replace(/\./g, '').replace(',', '.')) || 0;
+      const finalTot = Math.max(0, subtotalVal - descVal);
+      const entradaRaw = document.getElementById('order-valor-entrada')?.value || document.getElementById('order-valor-recebido')?.value || '0';
+      const entradaVal = parseFloat(String(entradaRaw).replace(/\./g, '').replace(',', '.')) || 0;
+      const saldoRestante = Math.max(0, finalTot - entradaVal);
+
+      if (saldoRestante > 0.01) {
+        btnCaixaOperacao.disabled = false;
+        btnCaixaOperacao.className = "w-full h-12 text-sm font-black text-slate-900 bg-yellow-400 hover:bg-yellow-500 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnCaixaOperacao.title = `Abrir Caixa para lançar recebimento ou parcelamento (Saldo em aberto: R$ ${saldoRestante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})`;
+      } else {
+        btnCaixaOperacao.disabled = true;
+        btnCaixaOperacao.className = "w-full h-12 text-sm font-black text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
+        btnCaixaOperacao.title = "Caixa desabilitado: operação sem saldo restante em aberto (100% quitada ou sem valor).";
       }
     }
   },
@@ -997,20 +1040,69 @@ window.salesModule = {
 
   editItem(idx) {
     const it = this.activeItems[idx];
+    if (!it) return;
+
     const prodSelect = document.getElementById('item-prod-select');
-    prodSelect.value = it.produto_id || '';
-    if (prodSelect.value) { this.handleProdSelect(prodSelect); }
+    if (prodSelect) {
+      prodSelect.value = it.produto_id || '';
+      prodSelect.disabled = true; // Produto base travado durante a edição do item
+      prodSelect.classList.add('bg-slate-100', 'cursor-not-allowed');
+    }
     
-    document.getElementById('item-desc').value = it.descricao || '';
-    document.getElementById('item-type').value = it.tipo_calculo || 'm2';
+    const descInput = document.getElementById('item-desc');
+    if (descInput) {
+      descInput.value = it.descricao || '';
+      descInput.disabled = false;
+      descInput.focus();
+    }
+
+    const typeHidden = document.getElementById('item-type');
+    if (typeHidden) typeHidden.value = it.tipo_calculo || 'm2';
+    
     const typeDisplay = document.getElementById('item-type-display');
     if (typeDisplay) {
       typeDisplay.value = this.getTypeDisplayName(it.tipo_calculo || 'm2', it.unidade_medida);
     }
-    document.getElementById('item-price').value = it.preco_base || '0.00';
-    document.getElementById('item-width').value = it.largura_x || '0.00';
-    document.getElementById('item-height').value = it.comprimento_y || '0.00';
-    document.getElementById('item-qty').value = it.quantidade || '1';
+
+    const priceInput = document.getElementById('item-price');
+    if (priceInput) {
+      priceInput.value = it.preco_base || '0.00';
+    }
+
+    const isFracionado = (it.tipo_calculo === 'm2' || it.tipo_calculo === 'linear');
+
+    const widthInput = document.getElementById('item-width');
+    if (widthInput) {
+      widthInput.value = it.largura_x || '0.00';
+      widthInput.disabled = !isFracionado;
+      if (isFracionado) {
+        widthInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        widthInput.classList.add('bg-white');
+      } else {
+        widthInput.classList.remove('bg-white');
+        widthInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+      }
+    }
+
+    const heightInput = document.getElementById('item-height');
+    if (heightInput) {
+      heightInput.value = it.comprimento_y || '0.00';
+      const isM2 = (it.tipo_calculo === 'm2');
+      heightInput.disabled = !isM2;
+      if (isM2) {
+        heightInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+        heightInput.classList.add('bg-white');
+      } else {
+        heightInput.classList.remove('bg-white');
+        heightInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+      }
+    }
+
+    const qtyInput = document.getElementById('item-qty');
+    if (qtyInput) {
+      qtyInput.value = it.quantidade || '1';
+      qtyInput.disabled = false;
+    }
     
     const itemArteInput = document.getElementById('item-arte-url');
     if (itemArteInput) itemArteInput.value = it.arte_url || '';
@@ -1033,7 +1125,6 @@ window.salesModule = {
       }
     }
 
-    this.toggleDimensionInputs();
     this.calcPiecePrice();
     this.removeItem(idx);
     
@@ -1042,19 +1133,25 @@ window.salesModule = {
       cancelBtn = document.createElement('button');
       cancelBtn.id = 'cancel-edit-btn';
       cancelBtn.type = 'button';
-      cancelBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2';
+      cancelBtn.className = 'bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded shadow-sm text-[11px] h-[38px] uppercase whitespace-nowrap ml-2 cursor-pointer';
+      cancelBtn.innerHTML = `Cancelar Edição Item`;
       cancelBtn.onclick = async () => {
         const confirmar = await window.grafsisConfirm({
-          title: 'GRAFSIS',
-          message: 'Cancelar edição e limpar formulário do item?',
-          confirmText: 'Sim, Cancelar',
+          title: 'Cancelar Edição do Item',
+          message: 'Deseja cancelar a alteração e restaurar o item original no pedido?',
+          confirmText: 'Sim, Cancelar Edição',
           cancelText: 'Continuar Editando'
         });
         if (confirmar) {
           salesModule.activeItems.splice(idx, 0, it);
           document.getElementById('order-items-tbody').innerHTML = salesModule.renderActiveItemsHtml();
           document.getElementById('item-desc').value = '';
-          document.getElementById('item-prod-select').value = '';
+          const prodSel = document.getElementById('item-prod-select');
+          if (prodSel) {
+            prodSel.value = '';
+            prodSel.disabled = false;
+            prodSel.classList.remove('bg-slate-100', 'cursor-not-allowed');
+          }
           document.getElementById('item-price').value = '0.00';
           document.getElementById('item-width').value = '0.00';
           document.getElementById('item-height').value = '0.00';
@@ -1304,7 +1401,7 @@ window.salesModule = {
                       <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       Montagem do item
                     </span>
-                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">Busca & Produção de Itens</span>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">Busca e Produção de Itens</span>
                   </div>
                   <div class="grid grid-cols-12 gap-2">
                     <div class="col-span-12 sm:col-span-4">
@@ -1416,7 +1513,7 @@ window.salesModule = {
                       <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                       Itens Adicionados ao Pedido
                     </span>
-                    <span class="text-[10px] text-slate-500 font-semibold">Tabela de Peças & Especificações</span>
+                    <span class="text-[10px] text-slate-500 font-semibold">Tabela de Peças e Especificações</span>
                   </div>
                   <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
                     <table class="w-full text-sm text-left">
@@ -1428,7 +1525,7 @@ window.salesModule = {
                               <input type="checkbox" id="check-all-os" checked onchange="salesModule.toggleAllItemsOs(this.checked)" title="Marcar / Desmarcar todos para O.S." class="w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
                             </div>
                           </th>
-                          <th class="p-3">Produto & Item</th>
+                          <th class="p-3">Produto e Item</th>
                           <th class="p-3">Dimensoes</th>
                           <th class="p-3 text-center">Qtd</th>
                           <th class="p-3">Area</th>
@@ -1444,12 +1541,12 @@ window.salesModule = {
               </div>
               </div>
 
-              <!-- LINHA AMARELA: ENTREGA DO PEDIDO & PRAZOS DE PRODUÇÃO (IMAGEM 2) -->
+              <!-- LINHA AMARELA: ENTREGA DO PEDIDO E PRAZOS DE PRODUÇÃO (IMAGEM 2) -->
               <div class="border-t-4 border-yellow-400 bg-amber-50/40 p-4 rounded-xl border border-slate-200 mt-4 transition-all" id="secao-entrega-pedido">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                   <h3 class="text-xs font-black text-slate-800 uppercase flex items-center gap-2">
                     <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
-                    Entrega do Pedido & Prazos de Produção
+                    Entrega do Pedido e Prazos de Produção
                   </h3>
                   <span id="entrega-badge-info" class="text-xs font-bold text-emerald-600">● Habilitado para Produção</span>
                 </div>
@@ -1468,10 +1565,10 @@ window.salesModule = {
                 </div>
               </div>
 
-              <!-- DADOS DA PRODUÇÃO & FECHAMENTO FINANCEIRO -->
+              <!-- DADOS DA PRODUÇÃO E FECHAMENTO FINANCEIRO -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-producao-validacoes">
-                  <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Produção & Validações</h3>
+                  <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Dados da Produção e Validações</h3>
                   
                   <div>
                     <label class="block text-xs font-semibold mb-1 text-slate-700">Observações Técnicas</label>
@@ -1484,7 +1581,7 @@ window.salesModule = {
                       <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-blue-600 animate-pulse"></span>
                         <div>
-                          <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Identificação & Status</div>
+                          <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Identificação e Status</div>
                           <div class="text-sm font-black text-slate-800 flex items-center gap-1.5">
                             <span>Operação <strong id="display-order-numero-tag" class="font-mono text-blue-700">#${displayId}</strong></span>
                           </div>
@@ -1571,19 +1668,7 @@ window.salesModule = {
                   </div>
 
                   <div class="mt-2 pt-2 border-t border-blue-100">
-                    <button type="button" id="btn-detalhes-recibo" onclick="salesModule.openFinanceModal()" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black rounded-lg shadow-sm flex justify-center items-center gap-2 transition cursor-pointer" title="Lançar recebimento, entrada, pagamentos e emitir recibo no Caixa">
-                      <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <!-- Baú de Moedas -->
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" fill="#FEF08A"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10c0-3 3-5 8-5s8 2 8 5"/>
-                        <circle cx="12" cy="13" r="1.5" fill="#854D0E" stroke="none"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14.5V16.5"/>
-                        <circle cx="8" cy="5" r="2.5" fill="#FACC15" stroke="#CA8A04" stroke-width="1"/>
-                        <circle cx="16" cy="5" r="2.5" fill="#FACC15" stroke="#CA8A04" stroke-width="1"/>
-                      </svg>
-                      Caixa
-                    </button>
-                    <div class="text-center mt-3 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
+                    <div class="text-center mt-1 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
                       <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
                       <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
                       <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || order.valor_entrada || 0) : 0}">
@@ -1597,7 +1682,28 @@ window.salesModule = {
               <!-- BARRA DE BOTÕES & CONTROLE OPERACIONAL (Grid de 6 Botões Padronizados) -->
               <input type="hidden" name="status_fase" value="${order ? (order.status_fase || 'orcamento') : 'orcamento'}">
               <div class="pt-6 mt-4 border-t bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                <!-- Seletor de Tipo de Aprovação Oficial (Antes do Registro) -->
+                <div class="mb-4 p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5" id="bloco-tipo-aprovacao-regra">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full ${isRegistered ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}"></span>
+                    <div>
+                      <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider block">Governança e Validação de Entrada</span>
+                      <span class="text-xs font-bold text-slate-800">Tipo de Aprovação para Registro Oficial:</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 hover:text-blue-600">
+                      <input type="radio" name="tipo_aprovacao_origem" id="aprov-radio-cliente" value="cliente" onchange="salesModule.handleApprovalOriginChange('cliente')" class="text-blue-600 focus:ring-blue-500" ${(!order || order.tipo_aprovacao_origem !== 'vendedor') ? 'checked' : ''} ${isRegistered ? 'disabled' : ''}>
+                      <span>Aprovação pelo Cliente</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 hover:text-blue-600">
+                      <input type="radio" name="tipo_aprovacao_origem" id="aprov-radio-vendedor" value="vendedor" onchange="salesModule.handleApprovalOriginChange('vendedor')" class="text-blue-600 focus:ring-blue-500" ${(order && order.tipo_aprovacao_origem === 'vendedor') ? 'checked' : ''} ${isRegistered ? 'disabled' : ''}>
+                      <span>Aprovação pelo Vendedor</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
                   <!-- LINHA SUPERIOR (3 BOTÕES) -->
                   <!-- 1. Cancelar Edição (Com cor Rose/Vinho bem definida conforme Imagem 5) -->
                   <button type="button" id="btn-cancel-action" onclick="salesModule.handleCancelEdit()" class="w-full h-12 text-sm font-bold text-rose-800 bg-rose-100 hover:bg-rose-200 border-2 border-rose-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Cancelar alterações e voltar">
@@ -1617,38 +1723,44 @@ window.salesModule = {
                     Gravar Operação
                   </button>
 
-                  <!-- LINHA INFERIOR (3 BOTÕES) -->
-                  <!-- 4. Registrar Operação / Operação Registrada (Imagem 4) -->
+                  <!-- 4. Gerar Link (Azul Cobalto) -->
+                  <button type="button" id="btn-gerar-link" onclick="salesModule.handleGerarLinkAction('${order ? order.id : ''}')" class="w-full h-12 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Gerar link de aprovação online e liberar envio para o cliente">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    Gerar Link
+                  </button>
+
+                  <!-- LINHA INFERIOR (4 BOTÕES) -->
+                  <!-- 5. Registrar Operação / Operação Registrada (Imagem 4) -->
                   <button type="button" id="btn-submit-order" onclick="salesModule.saveOrder(event, '${order ? order.id : ''}', '${displayId}')" class="w-full h-12 text-sm font-bold ${isRegistered ? 'text-white bg-[#009b3a] hover:bg-[#008230]' : 'text-slate-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-500'} rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer" title="${isRegistered ? 'Operação já registrada no sistema' : 'Registrar operação oficial no sistema'}">
                     <svg class="w-4 h-4 ${isRegistered ? 'text-white' : 'text-slate-900'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     ${isRegistered ? 'Operação Registrada' : 'Registrar Operação'}
                   </button>
 
-                  <!-- 5. Emitir Operação (Cinza) + Chave ON/OFF Edição Gerente -->
-                  <div class="flex flex-col gap-1 w-full" id="col-emitir-operacao">
-                    <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="w-full h-12 text-sm font-bold text-slate-800 bg-slate-200 hover:bg-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Emitir Operação em A4">
-                      <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                      Emitir Pedido
-                    </button>
-                    <!-- Chave ON/OFF Edição Gerente -->
-                    <div id="wrapper-chave-edicao-gerente" class="flex items-center justify-between px-3 py-1 bg-amber-100 border border-amber-300 rounded-lg text-xs" style="display: none;">
-                      <span class="text-[11px] font-black text-amber-900 flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                        Edição Gerente:
-                      </span>
-                      <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-gerente-edicao" onchange="salesModule.handleGerenteToggle(this.checked)" class="sr-only peer">
-                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                        <span id="label-gerente-toggle" class="ml-1.5 text-[10px] font-black text-slate-700 uppercase">OFF</span>
-                      </label>
-                    </div>
-                  </div>
+                  <!-- 6. Emitir Operação (Cinza) -->
+                  <button type="button" id="btn-emitir-pedido" onclick="salesModule.printOrder('pedido')" class="w-full h-12 text-sm font-bold text-slate-800 bg-slate-200 hover:bg-slate-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Emitir Operação em A4">
+                    <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Emitir Pedido
+                  </button>
 
-                  <!-- 6. Emitir O.S. (Laranja) -->
-                  <button type="button" id="btn-emitir-os" onclick="salesModule.printOrder('os')" class="w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Emitir Ordem de Serviço Técnica em A4 Paisagem">
+                  <!-- 7. Emitir O.S. (Laranja - Liberada após aprovação e restrita a Venda, Patrocínio ou Permuta) -->
+                  <button type="button" id="btn-emitir-os" onclick="salesModule.printOrder('os')" class="w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Emitir Ordem de Serviço Técnica em A4 Paisagem (chão de fábrica sem valores financeiros)">
                     <svg class="w-4 h-4 text-orange-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                     Emitir O.S.
                   </button>
+
+                  <!-- 8. Caixa (Amarelo Ouro - Só se habilita se houver saldo restante em aberto > 0.01) -->
+                  <button type="button" id="btn-caixa-operacao" onclick="salesModule.openFinanceModal()" class="w-full h-12 text-sm font-black text-slate-900 bg-yellow-400 hover:bg-yellow-500 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer" title="Lançar recebimento, entrada, pagamentos e emitir recibo no Caixa">
+                    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" fill="#FEF08A"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10c0-3 3-5 8-5s8 2 8 5"/>
+                      <circle cx="12" cy="13" r="1.5" fill="#854D0E" stroke="none"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14.5V16.5"/>
+                      <circle cx="8" cy="5" r="2.5" fill="#FACC15" stroke="#CA8A04" stroke-width="1"/>
+                      <circle cx="16" cy="5" r="2.5" fill="#FACC15" stroke="#CA8A04" stroke-width="1"/>
+                    </svg>
+                    Caixa
+                  </button>
+                </div>
 
                   <!-- BARRA DE PROGRESSO OPERACIONAL (MARCAÇÃO ROSA IMAGEM 5) -->
                   <div id="inline-action-progress-container" class="hidden col-span-1 sm:col-span-3 mt-2 pt-3 border-t border-slate-200 transition-all duration-300">
@@ -1689,10 +1801,24 @@ window.salesModule = {
                           Liberado para Envio
                         </span>
                       </div>
-                      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <div class="relative flex-1">
-                          <input type="text" id="padrao-approval-link-input" value="${approvalLinkValue}" class="w-full px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 select-all shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-text" onclick="this.select()" onfocus="this.select()">
-                        </div>
+                    <!-- CAMPO DO WHATSAPP DO CLIENTE LOGO ACIMA DO LINK -->
+                    <div class="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-2">
+                      <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <label class="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide shrink-0">
+                          WhatsApp do Cliente:
+                        </label>
+                        <input type="text" id="order-client-whatsapp-input" value="${order ? (order.telefone_autorizacao || (foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : '') || order.cliente_telefone || '') : ((foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : ''))}" placeholder="(00) 0 0000-0000" oninput="salesModule.formatPhoneMask(this)" class="w-full sm:w-56 px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-400">
+                      </div>
+                      <button type="button" onclick="salesModule.saveClientAdditionalPhone('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0" title="Salva novo telefone no cadastro e grava no histórico do cliente">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        + Telefone
+                      </button>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <div class="relative flex-1">
+                        <input type="text" id="padrao-approval-link-input" readonly value="${approvalLinkValue}" class="w-full px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-slate-50 dark:bg-slate-900 font-mono text-xs text-slate-800 dark:text-slate-100 select-all shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-text" onclick="this.select()" onfocus="this.select()" title="Link protegido para compartilhamento (somente leitura)">
+                      </div>
                         <button type="button" onclick="salesModule.copyStandardApprovalLink()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
                           Copiar Link
@@ -3312,7 +3438,16 @@ window.salesModule = {
   },
   addItemToOrder() {
     const desc = document.getElementById('item-desc').value.trim();
-    if (!desc) { alert('Informe os detalhes/especificações do item (ex: Homem-Aranha, Superman, Candidato Fulano...)'); return; }
+    if (!desc) { 
+      const msg = 'Por favor, informe a descrição e os detalhes do item (ex: cor, personagem, medidas específicas, tema do evento ou acabamento especial).';
+      if (window.grafsisAlert) {
+        window.grafsisAlert(msg, 'GRAFSIS');
+      } else {
+        alert(msg);
+      }
+      document.getElementById('item-desc')?.focus();
+      return; 
+    }
     const prodSelect = document.getElementById('item-prod-select');
     if (!prodSelect.value) { alert('Selecione um Produto Base'); return; }
     const opt = prodSelect.options[prodSelect.selectedIndex];
@@ -3382,6 +3517,24 @@ window.salesModule = {
     this.recalcTotals('val');
     this.updateOsStatusInfo();
     document.getElementById('item-prod-select').focus();
+  },
+  async confirmRemoveItem(idx) {
+    const it = this.activeItems[idx];
+    if (!it) return;
+    const prodNome = it.produto_nome || 'Produto';
+    const descNome = it.descricao ? ` - "${it.descricao}"` : '';
+    const itemCode = it.item_id ? ` #${String(it.item_id).replace(/^#+/, '')}` : '';
+
+    const confirmar = await window.grafsisConfirm({
+      title: 'Excluir Item do Pedido',
+      message: `Deseja realmente excluir o item${itemCode} (${prodNome}${descNome}) do pedido?`,
+      confirmText: 'Sim, Excluir',
+      cancelText: 'Cancelar'
+    });
+
+    if (confirmar) {
+      this.removeItem(idx);
+    }
   },
   removeItem(idx) {
     this.activeItems.splice(idx, 1);
@@ -3498,9 +3651,13 @@ window.salesModule = {
             ${((this.isOrderRegistered || this.isOrderLockedByApproval) && !this.isEditingActive) || this.isReadOnlyFinancial ? `
               <span class="text-[11px] font-bold text-slate-400 italic">Travado</span>
             ` : `
-              <div class="flex justify-end gap-1">
-                <button type="button" onclick="salesModule.editItem(${idx})" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded cursor-pointer" title="Editar Item">&#9998;</button>
-                <button type="button" onclick="salesModule.removeItem(${idx})" class="text-rose-600 hover:bg-rose-50 p-1.5 rounded cursor-pointer" title="Remover Item">&times;</button>
+              <div class="flex justify-end gap-1.5 items-center">
+                <button type="button" onclick="salesModule.editItem(${idx})" class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Editar Detalhes, Dimensões e Quantidade do Item">
+                  <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                </button>
+                <button type="button" onclick="salesModule.confirmRemoveItem(${idx})" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Excluir Item">
+                  <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
               </div>
             `}
           </td>
@@ -4033,7 +4190,14 @@ window.salesModule = {
         valor_final: (this.isReadOnlyFinancial && oldOrder) ? oldOrder.valor_final : finalTotal,
         itens: (this.isReadOnlyFinancial && oldOrder && oldOrder.itens) ? oldOrder.itens : this.activeItems,
         repositorio_arquivos: this.activeRepositoryItems || (oldOrder ? oldOrder.repositorio_arquivos : []) || [],
-        historico: historico
+        historico: historico,
+        tipo_aprovacao_origem: document.querySelector('input[name="tipo_aprovacao_origem"]:checked')?.value || 'cliente',
+        aprovado_vendedor: (document.querySelector('input[name="tipo_aprovacao_origem"]:checked')?.value === 'vendedor') ? {
+          vendedor: window.app?.currentUser?.nome || "Vendedor",
+          data_hora: new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          iso: new Date().toISOString()
+        } : (oldOrder ? oldOrder.aprovado_vendedor : null),
+        telefone_autorizacao: document.getElementById('order-client-whatsapp-input')?.value?.replace(/\D/g, '') || clienteTelFinal
       };
 
       const saved = await window.store.saveOrder(orderData);
@@ -6648,6 +6812,162 @@ window.salesModule = {
     }
     const countSpan = document.getElementById('crm-notes-count');
     if (countSpan) countSpan.innerText = `${client.anotacoes_crm.length} notas`;
+  },
+
+  // =========================================================================
+  // GESTÃO DE APROVAÇÃO, LINKS E WHATSAPP DO CLIENTE (SOLICITAÇÕES IMAGEM 3, 4 E 5)
+  // =========================================================================
+
+  handleApprovalOriginChange(type) {
+    const secaoLink = document.getElementById('secao-link-aprovacao-padrao');
+    const btnGerarLink = document.getElementById('btn-gerar-link');
+
+    if (type === 'cliente') {
+      if (secaoLink) secaoLink.classList.remove('hidden');
+      if (btnGerarLink) {
+        btnGerarLink.classList.add('animate-pulse');
+        setTimeout(() => btnGerarLink.classList.remove('animate-pulse'), 1500);
+      }
+    } else {
+      // Vendedor: avisa que carimbará o vendedor atual com data e hora ao registrar
+      const nowStr = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const currentUserName = window.app?.currentUser?.nome || 'Vendedor Autenticado';
+      if (window.grafsisAlert) {
+        window.grafsisAlert(`Aprovação pelo Vendedor selecionada!\n\nAo registrar a operação, serão carimbados automaticamente:\n• Vendedor: ${currentUserName}\n• Data e Hora: ${nowStr}\n\nO registro oficial prosseguirá com liberação direta da produção.`, 'GRAFSIS');
+      }
+    }
+  },
+
+  handleGerarLinkAction(orderId) {
+    let finalId = orderId;
+    if (!finalId) {
+      finalId = document.getElementById('current-display-id')?.value?.replace('#', '') || document.getElementById('display-order-id-label')?.innerText?.replace('#', '')?.trim();
+    }
+
+    if (!finalId || finalId === 'NOVO' || finalId.includes('NOVO')) {
+      alert('Grave ou salve a operação antes de gerar o link de aprovação online.');
+      const btnGrava = document.getElementById('btn-save-draft');
+      if (btnGrava) {
+        btnGrava.focus();
+        btnGrava.classList.add('ring-4', 'ring-emerald-300');
+        setTimeout(() => btnGrava.classList.remove('ring-4', 'ring-emerald-300'), 2000);
+      }
+      return;
+    }
+
+    const secaoLink = document.getElementById('secao-link-aprovacao-padrao');
+    if (secaoLink) {
+      secaoLink.classList.remove('hidden');
+    }
+
+    const linkInput = document.getElementById('padrao-approval-link-input');
+    const fullLink = `${window.location.origin}${window.location.pathname}#aprovacao?id=${finalId}`;
+    if (linkInput) {
+      linkInput.value = fullLink;
+    }
+
+    const openLinkA = document.getElementById('padrao-approval-link-open');
+    if (openLinkA) {
+      openLinkA.href = fullLink;
+    }
+
+    if (linkInput) {
+      linkInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      linkInput.focus();
+      linkInput.select();
+    }
+
+    if (window.grafsisAlert) {
+      window.grafsisAlert(`Link de Aprovação Online gerado com sucesso!\n\n${fullLink}\n\nVocê pode copiar o link ou enviar diretamente ao WhatsApp do cliente logo acima.`, 'GRAFSIS');
+    } else {
+      alert(`Link de Aprovação gerado com sucesso!\n\n${fullLink}`);
+    }
+  },
+
+  formatPhoneMask(input) {
+    if (!input) return;
+    let v = input.value.replace(/\D/g, '');
+    if (v.length > 11) v = v.substring(0, 11);
+    
+    // Máscara canônica: (00) 0 0000-0000 para 11 dígitos, ou (00) 0000-0000 para 10 dígitos
+    if (v.length > 6) {
+      if (v.length === 11) {
+        v = v.replace(/^(\d{2})(\d{1})(\d{4})(\d{4})$/, '($1) $2 $3-$4');
+      } else {
+        v = v.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+      }
+    } else if (v.length > 2) {
+      v = v.replace(/^(\d{2})(\d+)/, '($1) $2');
+    } else if (v.length > 0) {
+      v = v.replace(/^(\d*)/, '($1');
+    }
+    input.value = v;
+  },
+
+  async saveClientAdditionalPhone(clientId, orderId) {
+    const input = document.getElementById('order-client-whatsapp-input');
+    const rawVal = input ? input.value.trim() : '';
+    const digits = rawVal.replace(/\D/g, '');
+
+    if (!digits || digits.length < 10) {
+      alert('Informe um número de telefone com DDD válido no padrão (00) 0 0000-0000.');
+      if (input) input.focus();
+      return;
+    }
+
+    // Busca cliente pelo clientId ou selecionado na tela
+    let client = window.store.getClients().find(c => String(c.id) === String(clientId));
+    if (!client) {
+      const selectClient = document.querySelector('select[name="cliente_id"]');
+      if (selectClient && selectClient.value) {
+        client = window.store.getClients().find(c => String(c.id) === String(selectClient.value));
+      }
+    }
+
+    if (!client) {
+      alert('Selecione um cliente válido para vincular o novo telefone.');
+      return;
+    }
+
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const orderDisplay = orderId ? '#' + String(orderId).replace(/^#+/, '') : 'Operação';
+
+    // Repositório / histórico de telefones do cliente
+    client.telefones_adicionais = client.telefones_adicionais || [];
+    const novoRegistro = {
+      telefone: rawVal,
+      data_hora: formattedDate,
+      pedido_id: orderDisplay,
+      registrado_por: window.app?.currentUser?.nome || 'Operador'
+    };
+    client.telefones_adicionais.push(novoRegistro);
+
+    // Se o cliente não tinha WhatsApp principal ou deseja atualizar, preserva o principal
+    if (!client.telefone_whatsapp) {
+      client.telefone_whatsapp = rawVal;
+    }
+
+    // Salva cliente
+    await window.store.saveClient(client);
+
+    // Se a ordem já existir na memória ou no banco, atualiza nela também
+    if (orderId && orderId !== 'NOVO' && !orderId.includes('NOVO')) {
+      const orders = window.store.getOrders();
+      const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+      if (order) {
+        order.telefone_autorizacao = digits;
+        order.telefones_adicionais = order.telefones_adicionais || [];
+        order.telefones_adicionais.push(novoRegistro);
+        await window.store.saveOrder(order);
+      }
+    }
+
+    if (window.grafsisAlert) {
+      window.grafsisAlert(`✅ Telefone registrado com sucesso no cadastro do cliente!\n\nNúmero: ${rawVal}\nRegistrado em: ${formattedDate}\nVínculo: ${orderDisplay}\nCliente: ${client.nome || 'Cliente'}`, 'GRAFSIS');
+    } else {
+      alert(`Telefone ${rawVal} registrado com sucesso para ${client.nome || 'o cliente'}!`);
+    }
   }
 
 };
