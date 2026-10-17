@@ -52,36 +52,39 @@ window.mercadoPagoModule = {
     }
 
     const supabaseConfig = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : { url: '' };
-    const edgeFunctionUrl = `${supabaseConfig.url}/functions/v1/mercadopago-pix`;
+    // Tenta primeiro via Supabase Edge Function se configurado
+    if (supabaseConfig && supabaseConfig.url) {
+      try {
+        const response = await fetch(edgeFunctionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseConfig.key || ''}`,
+            'apikey': supabaseConfig.key || ''
+          },
+          body: JSON.stringify({
+            orderId: params.orderId,
+            amount: params.amount,
+            description: params.description || `Grafsis - Pedido #${params.orderId}`,
+            payerEmail: params.payerEmail,
+            payerCpf: params.payerCpf,
+            accessToken: config.accessToken,
+            webhookUrl: config.webhookUrl
+          })
+        });
 
-    // Tenta primeiro via Supabase Edge Function
-    try {
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseConfig.key || ''}`,
-          'apikey': supabaseConfig.key || ''
-        },
-        body: JSON.stringify({
-          orderId: params.orderId,
-          amount: params.amount,
-          description: params.description || `Grafsis - Pedido #${params.orderId}`,
-          payerEmail: params.payerEmail,
-          payerCpf: params.payerCpf,
-          accessToken: config.accessToken,
-          webhookUrl: config.webhookUrl
-        })
-      });
-
-      if (response.ok) {
-        return await response.json();
+        if (response.ok) {
+          const edgeData = await response.json();
+          if (edgeData && (edgeData.qr_code || edgeData.qr_code_base64 || edgeData.init_point)) {
+            return edgeData;
+          }
+        }
+      } catch (e) {
+        console.warn('Edge function indisponível, tentando API direta:', e);
       }
-    } catch (e) {
-      console.warn('Edge function indisponível, utilizando fallback REST direto:', e);
     }
 
-    // Fallback: Chamada REST oficial direta com X-Idempotency-Key
+    // Fallback 1: Chamada REST oficial direta /v1/payments
     const cleanCpf = (params.payerCpf || '').replace(/\D/g, '');
     const reqBody = {
       transaction_amount: Number(params.amount),
@@ -101,27 +104,70 @@ window.mercadoPagoModule = {
       reqBody.notification_url = config.webhookUrl;
     }
 
-    const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
+    try {
+      const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': `pix-${params.orderId}-${Date.now()}`
+        },
+        body: JSON.stringify(reqBody)
+      });
+
+      if (mpRes.ok) {
+        const data = await mpRes.json();
+        return {
+          id: data.id,
+          status: data.status,
+          qr_code: data.point_of_interaction?.transaction_data?.qr_code,
+          qr_code_base64: data.point_of_interaction?.transaction_data?.qr_code_base64,
+          ticket_url: data.point_of_interaction?.transaction_data?.ticket_url
+        };
+      }
+    } catch (err) {
+      console.warn('Endpoint /v1/payments direto bloqueado pelo navegador (CORS/Network), gerando via Preference Checkout Pix:', err);
+    }
+
+    // Fallback 2: Preference oficial do Mercado Pago direcionada para Pix (Totalmente compatível com navegador / CORS-free)
+    const prefBody = {
+      items: [
+        {
+          id: String(params.orderId),
+          title: params.description || `Grafsis - Pedido #${params.orderId}`,
+          quantity: 1,
+          currency_id: 'BRL',
+          unit_price: Number(params.amount)
+        }
+      ],
+      external_reference: String(params.orderId),
+      payment_methods: {
+        default_payment_method_id: 'pix',
+        installments: 1
+      }
+    };
+
+    const prefRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${config.accessToken}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': `pix-${params.orderId}-${Date.now()}`
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(reqBody)
+      body: JSON.stringify(prefBody)
     });
 
-    const data = await mpRes.json();
-    if (!mpRes.ok) {
-      throw new Error(data.message || data.error || 'Erro ao processar Pix no Mercado Pago');
+    const prefData = await prefRes.json();
+    if (!prefRes.ok) {
+      throw new Error(prefData.message || prefData.error || 'Erro ao comunicar com Mercado Pago.');
     }
 
+    const payUrl = prefData.init_point || prefData.sandbox_init_point;
     return {
-      id: data.id,
-      status: data.status,
-      qr_code: data.point_of_interaction?.transaction_data?.qr_code,
-      qr_code_base64: data.point_of_interaction?.transaction_data?.qr_code_base64,
-      ticket_url: data.point_of_interaction?.transaction_data?.ticket_url
+      id: prefData.id,
+      status: 'pending',
+      init_point: payUrl,
+      ticket_url: payUrl,
+      is_preference: true
     };
   },
 
@@ -228,6 +274,14 @@ window.mercadoPagoModule = {
 
   // Abre o modal de QR Code do Pix na tela
   showPixModal(pixData, orderId, valorRecebido) {
+    const isPreference = !!pixData.is_preference;
+    const checkoutUrl = pixData.init_point || pixData.ticket_url || '';
+    const qrImgSrc = pixData.qr_code_base64 
+      ? `data:image/png;base64,${pixData.qr_code_base64}` 
+      : (pixData.qr_code 
+          ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pixData.qr_code)}`
+          : `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(checkoutUrl)}`);
+
     const modalHtml = `
       <div id="mp-pix-modal" class="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-sky-200 dark:border-sky-900 text-center animate-fade-in">
@@ -236,16 +290,13 @@ window.mercadoPagoModule = {
               <span class="w-3 h-3 rounded-full bg-sky-500 animate-pulse"></span>
               <span class="text-xs font-black tracking-wider uppercase text-sky-700 dark:text-sky-400">Pix Mercado Pago</span>
             </div>
-            <button onclick="document.getElementById('mp-pix-modal')?.remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl">&times;</button>
+            <button onclick="document.getElementById('mp-pix-modal')?.remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer">&times;</button>
           </div>
 
           <div class="my-4">
-            <p class="text-xs text-slate-500 dark:text-slate-400">Escaneie o QR Code com o app do seu banco ou copie a chave:</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Escaneie o QR Code com o celular do cliente:</p>
             <div class="mt-3 bg-white p-3 rounded-2xl border-2 border-sky-400 shadow-md inline-block">
-              ${pixData.qr_code_base64 
-                ? `<img src="data:image/png;base64,${pixData.qr_code_base64}" alt="QR Code Pix" class="w-48 h-48 mx-auto object-contain">`
-                : `<div class="w-48 h-48 flex items-center justify-center text-xs text-slate-400">QR Code gerado</div>`
-              }
+              <img src="${qrImgSrc}" alt="QR Code Pix" class="w-48 h-48 mx-auto object-contain">
             </div>
             <div class="mt-2 font-black text-xl text-emerald-700 dark:text-emerald-400">
               R$ ${Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -254,17 +305,25 @@ window.mercadoPagoModule = {
           </div>
 
           <div class="space-y-2 mt-4">
-            <button type="button" onclick="window.mercadoPagoModule.copyPixCode('${encodeURIComponent(pixData.qr_code || '')}')" class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-              <span>COPIAR CÓDIGO PIX (COPIA E COLA)</span>
-            </button>
+            ${pixData.qr_code ? `
+              <button type="button" onclick="window.mercadoPagoModule.copyPixCode('${encodeURIComponent(pixData.qr_code)}')" class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                <span>COPIAR CÓDIGO PIX (COPIA E COLA)</span>
+              </button>
+            ` : ''}
+
+            ${checkoutUrl ? `
+              <button type="button" onclick="window.open('${checkoutUrl}', '_blank')" class="w-full py-2 px-4 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                <span>ABRIR TELA DO PIX MERCADO PAGO</span>
+              </button>
+            ` : ''}
 
             <button type="button" onclick="window.mercadoPagoModule.verifyAndConfirmPix('${pixData.id}', '${orderId}', ${valorRecebido})" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-              <span>VERIFICAR & CONFIRMAR BAIXA</span>
+              <span>CONFIRMAR RECEBIMENTO NO CAIXA</span>
             </button>
 
-            <button type="button" onclick="document.getElementById('mp-pix-modal')?.remove()" class="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+            <button type="button" onclick="document.getElementById('mp-pix-modal')?.remove()" class="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer">
               Fechar
             </button>
           </div>
