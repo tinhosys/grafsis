@@ -142,7 +142,6 @@ window.mercadoPagoModule = {
       ],
       external_reference: String(params.orderId),
       payment_methods: {
-        default_payment_method_id: 'pix',
         installments: 1
       }
     };
