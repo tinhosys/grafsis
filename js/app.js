@@ -179,7 +179,7 @@ window.app = {
       this._hashListenerAttached = true;
       window.addEventListener('hashchange', () => {
         const h = (window.location.hash || '').toLowerCase();
-        if (h.startsWith('#aprovacao') || h.startsWith('#portal')) {
+        if (h.startsWith('#aprovacao') || h.startsWith('#portal') || h.startsWith('#recibo')) {
           document.documentElement.classList.add('portal-mode');
           this.renderPublicClientApprovalPortal(window.location.hash);
         } else {
@@ -201,9 +201,9 @@ window.app = {
       });
     }
 
-    // Verificação de rota pública: Portal de Aprovação de Cliente (Sem Senha)
+    // Verificação de rota pública: Portal de Aprovação de Cliente ou Validação de Recibo (Sem Senha)
     const currentHash = (window.location.hash || '').toLowerCase();
-    if (currentHash.startsWith('#aprovacao') || currentHash.startsWith('#portal')) {
+    if (currentHash.startsWith('#aprovacao') || currentHash.startsWith('#portal') || currentHash.startsWith('#recibo')) {
       document.documentElement.classList.add('portal-mode');
       this.renderPublicClientApprovalPortal(window.location.hash);
       return;
@@ -2849,10 +2849,19 @@ window.app = {
       window.authModule.closeLoginModal(true);
     }
 
-    // 2. Extrai o identificador do pedido da URL
+    // 2. Extrai o identificador do pedido ou token de validação da URL
     let orderId = '';
+    let isDirectReceiptVal = false;
     const lowerHash = hash.toLowerCase();
-    if (lowerHash.includes('id=')) {
+    if (lowerHash.includes('val=')) {
+      const idx = lowerHash.indexOf('val=') + 4;
+      orderId = hash.slice(idx).split('&')[0];
+      isDirectReceiptVal = true;
+    } else if (lowerHash.includes('recibo=')) {
+      const idx = lowerHash.indexOf('recibo=') + 7;
+      orderId = hash.slice(idx).split('&')[0];
+      isDirectReceiptVal = true;
+    } else if (lowerHash.includes('id=')) {
       const idx = lowerHash.indexOf('id=') + 3;
       orderId = hash.slice(idx).split('&')[0];
     } else if (lowerHash.includes('order=')) {
@@ -2861,18 +2870,22 @@ window.app = {
     } else if (hash.includes('?')) {
       orderId = hash.split('?')[1].split('&')[0];
     } else {
-      orderId = hash.replace(/#aprovacao/i, '').replace(/#portal/i, '').replace('/', '');
+      orderId = hash.replace(/#recibo/i, '').replace(/#aprovacao/i, '').replace(/#portal/i, '').replace('/', '');
     }
     orderId = decodeURIComponent(orderId).trim();
 
     if (!orderId) {
-      this.renderPortalNotFound(portalRoot, 'Nenhum identificador de pedido foi informado no link.');
+      this.renderPortalNotFound(portalRoot, 'Nenhum identificador de pedido ou token de validação foi informado no link.');
       return;
     }
 
-    // 3. Procura no armazenamento local primeiro
+    // 3. Procura no armazenamento local primeiro (por id, numero ou token de recibo)
     const orders = (window.store && window.store.getOrders()) || [];
-    let order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+    let order = orders.find(o => 
+      String(o.id) === String(orderId) || 
+      String(o.numero) === String(orderId) || 
+      (o.recibo_token_10 && String(o.recibo_token_10).toUpperCase() === String(orderId).toUpperCase())
+    );
 
     // 4. Se não encontrar localmente (ex: cliente abrindo no WhatsApp do celular), busca na nuvem Supabase
     if (!order) {
@@ -2923,6 +2936,13 @@ window.app = {
     // 6. Detecta modalidade solicitada no link (modo técnico sem financeiro vs completo)
     const isTechnicalMode = hash.toLowerCase().includes('modo=tecnico') || hash.toLowerCase().includes('sem_valor=1');
     this.renderPortalOrderView(portalRoot, order, { isTechnicalMode });
+
+    // Se a rota for de validação direta de recibo (#recibo ou val=), abre imediatamente o recibo oficial
+    if (isDirectReceiptVal || hash.toLowerCase().startsWith('#recibo')) {
+      setTimeout(() => {
+        this.viewPortalReceiptModal(order.id || order.numero);
+      }, 150);
+    }
   },
 
   renderPortalNotFound(container, message) {
@@ -3575,11 +3595,30 @@ window.app = {
     const companyCNPJ = tenant.cnpj || '00.000.000/0001-00';
     const companyPhone = tenant.telefone || tenant.celular_whatsapp || '(69) 99922-1336';
     const companyAddress = tenant.endereco || 'Endereço Comercial';
-    const validationCode = `REC-${order.numero || order.id.substring(0,6)}-${String(Math.abs(Number(order.numero || 100) * 31 + 1047)).slice(-4).padStart(4, '7')}`;
 
     const valorTotal = Number(order.valor_final || 0);
     const valorPago = Number(order.valor_entrada || order.valor_recebido || 0);
     const saldo = Math.max(0, valorTotal - valorPago);
+    const ext = window.salesModule && typeof window.salesModule.numeroPorExtenso === 'function' ? window.salesModule.numeroPorExtenso(valorPago) : '';
+    const valorExtensoStr = ext ? `(${ext})` : '';
+
+    // Criptografia / Token único de 10 dígitos (Letras e Números) para validação do recibo
+    if (!order.recibo_token_10) {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let tok = '';
+      const seed = Math.abs(Number(order.numero || 100) * 1664525 + 1013904223);
+      for (let i = 0; i < 10; i++) {
+        tok += chars.charAt((seed + i * 37 + (order.id ? order.id.charCodeAt(i % order.id.length) : i * 11)) % chars.length);
+      }
+      order.recibo_token_10 = tok;
+      if (window.store && typeof window.store.saveOrder === 'function') {
+        window.store.saveOrder(order);
+      }
+    }
+    const tokenRecibo10 = order.recibo_token_10;
+    const validationCode = `REC-${tokenRecibo10}`;
+    const dataHoraEmissao = `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`;
+    const orderNumStr = order.numero || (order.id ? order.id.substring(0, 8) : '0000');
 
     const modalId = 'portal-receipt-view-modal';
     document.getElementById(modalId)?.remove();
@@ -3602,11 +3641,16 @@ window.app = {
               <span class="text-[10px] text-slate-500 block">${companyAddress} • Tel: ${companyPhone}</span>
             </div>
 
+            <!-- Redação Oficial do Recibo -->
+            <div class="p-3 bg-white rounded-xl border border-slate-200 text-slate-700 leading-relaxed text-[11px] font-sans">
+              A empresa <strong>${companyName}</strong> recebeu de <strong>${client.nome}</strong> o valor de <strong>R$ ${valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> ${valorExtensoStr}, referente ao pagamento do pedido <strong>#${orderNumStr}</strong>, emitido em <strong>${dataHoraEmissao}</strong>.
+            </div>
+
             <div class="space-y-1 text-[11px] pt-1">
               <div><strong>Recibo Nº:</strong> ${validationCode}</div>
-              <div><strong>Pedido Vinculado:</strong> #${order.numero || order.id.substring(0,8)}</div>
+              <div><strong>Pedido Vinculado:</strong> #${orderNumStr}</div>
               <div><strong>Cliente:</strong> ${client.nome}</div>
-              <div><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div>
+              <div><strong>Data de Emissão:</strong> ${dataHoraEmissao}</div>
               <div><strong>Forma de Pagto:</strong> ${order.forma_pagamento || 'Pix / À Vista'}</div>
             </div>
 
@@ -3625,16 +3669,25 @@ window.app = {
               </div>
             </div>
 
-            <div class="text-[10px] text-slate-400 text-center pt-1">
-              Autenticação digital GRAFSIS Cloud • Válido como comprovante
+            <!-- Marcação em Verde Limão: Criptografia de 10 Dígitos (Letras e Números) para Validação do Recibo -->
+            <div class="p-2.5 rounded-xl bg-lime-100 dark:bg-lime-950/40 border-2 border-lime-500 text-center space-y-1">
+              <div class="text-[10px] uppercase font-black tracking-wider text-lime-900 dark:text-lime-200">
+                🔒 Código de Autenticação Digital (10 Dígitos):
+              </div>
+              <div class="font-mono text-base font-black tracking-widest text-lime-950 dark:text-lime-300 bg-white/80 dark:bg-slate-900/80 py-1 px-3 rounded-lg border border-lime-400 inline-block shadow-xs">
+                ${tokenRecibo10}
+              </div>
+              <div class="text-[9px] text-lime-800 dark:text-lime-300 font-sans block">
+                Validação pública: acesse <a href="#recibo?val=${tokenRecibo10}" target="_blank" class="underline font-bold">grafsis/#recibo?val=${tokenRecibo10}</a> para conferir a autenticidade deste recibo a qualquer momento.
+              </div>
             </div>
           </div>
 
           <div class="flex justify-end gap-2 pt-2">
-            <button onclick="window.print()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+            <button onclick="window.print()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
               <span>🖨️ Imprimir Recibo</span>
             </button>
-            <button onclick="document.getElementById('${modalId}').remove()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition">
+            <button onclick="document.getElementById('${modalId}').remove()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
               Fechar
             </button>
           </div>

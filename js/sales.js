@@ -2428,16 +2428,22 @@ window.salesModule = {
     const metodoAtual = document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash';
     let parcelasAtual = parseInt(document.getElementById('order-parcelas')?.value || '1') || 1;
     if (parcelasAtual < 1) parcelasAtual = 1;
-    if (parcelasAtual > 6) parcelasAtual = 6;
+    if (parcelasAtual > 12) parcelasAtual = 12;
     const obsAtual = document.getElementById('order-obs-pagto')?.value || '';
     
-    // Verde bandeira: Quantidade de parcelas máximo 6x (1x a 6x)
-    const parcelasOptions = [1, 2, 3, 4, 5, 6].map(p => `<option value="${p}" ${parcelasAtual === p ? 'selected' : ''}>${p}x parcela${p > 1 ? 's' : ''}</option>`).join('');
+    // Verde bandeira: Quantidade de parcelas máximo 12x (1x a 12x)
+    const parcelasOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(p => `<option value="${p}" ${parcelasAtual === p ? 'selected' : ''}>${p}x parcela${p > 1 ? 's' : ''}</option>`).join('');
 
     // Verde limão: Data da primeira parcela (+30 dias por padrão)
     const d1 = new Date();
     d1.setDate(d1.getDate() + 30);
     const defaultDataPrimeiraParcela = d1.toISOString().split('T')[0];
+
+    // Data máxima para iniciar a pagar: até 12 meses (365 dias)
+    const dMax = new Date();
+    dMax.setFullYear(dMax.getFullYear() + 1);
+    const maxDataPrimeiraParcela = dMax.toISOString().split('T')[0];
+    const minDataPrimeiraParcela = new Date().toISOString().split('T')[0];
 
     this.installmentsState = {};
 
@@ -2475,15 +2481,15 @@ window.salesModule = {
               </div>
             </div>
 
-            <!-- Bloco de Parcelamento com as 4 Cores Solicitadas -->
+            <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Carência de até 12 Meses -->
             <div id="fm-parcelas-div" class="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700" style="display: ${metodoAtual.includes('Parcelado') ? 'block' : 'none'};">
               <!-- Linha Verde Bandeira, Amarelo e Verde Limão -->
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                <!-- Verde Bandeira: Quantidade de Parcelas (Máximo 6x) -->
+                <!-- Verde Bandeira: Quantidade de Parcelas (Máximo 12x) -->
                 <div>
                   <label class="block text-[11px] font-black mb-1 text-emerald-700 dark:text-emerald-400 uppercase tracking-tight flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-                    Parcelas (Máx 6x)
+                    Parcelas (Máx 12x)
                   </label>
                   <select id="fm-parcelas" class="w-full p-2 border-2 border-emerald-600 rounded-lg text-xs bg-white dark:bg-slate-800 font-black text-emerald-800 dark:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" onchange="salesModule.recalcInstallmentsGrid()">
                     ${parcelasOptions}
@@ -2502,14 +2508,20 @@ window.salesModule = {
                   </div>
                 </div>
 
-                <!-- Verde Limão: Data da Primeira Parcela -->
+                <!-- Verde Limão: Data da Primeira Parcela (Até 12 meses para iniciar) -->
                 <div>
                   <label class="block text-[11px] font-black mb-1 text-lime-700 dark:text-lime-400 uppercase tracking-tight flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full bg-lime-500 inline-block"></span>
-                    1ª Parcela
+                    1ª Parcela (Até 12m)
                   </label>
-                  <input type="date" id="fm-data-primeira-parcela" value="${defaultDataPrimeiraParcela}" class="w-full p-1.5 border-2 border-lime-500 bg-lime-50/50 dark:bg-lime-950/20 dark:text-white rounded-lg font-bold text-xs focus:outline-none focus:ring-2 focus:ring-lime-400" onchange="salesModule.recalcInstallmentsGrid()">
+                  <input type="date" id="fm-data-primeira-parcela" min="${minDataPrimeiraParcela}" max="${maxDataPrimeiraParcela}" value="${defaultDataPrimeiraParcela}" class="w-full p-1.5 border-2 border-lime-500 bg-lime-50/50 dark:bg-lime-950/20 dark:text-white rounded-lg font-bold text-xs focus:outline-none focus:ring-2 focus:ring-lime-400" onchange="salesModule.recalcInstallmentsGrid()">
                 </div>
+              </div>
+
+              <!-- Indicador de Carência e Juros por Dia -->
+              <div id="fm-carencia-info" class="p-2 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 flex justify-between items-center">
+                <span id="fm-carencia-dias-label">Carência: 30 dias até o 1º pagamento</span>
+                <span id="fm-carencia-juros-label" class="font-mono font-bold">Juros diários calculados</span>
               </div>
 
               <!-- Azul Royal: A Grid das Parcelas -->
@@ -2518,7 +2530,7 @@ window.salesModule = {
                   <span>Demonstrativo das Parcelas</span>
                   <span id="fm-grid-resumo" class="font-mono text-[11px] font-bold"></span>
                 </div>
-                <div class="max-h-40 overflow-y-auto">
+                <div class="max-h-48 overflow-y-auto">
                   <table class="w-full text-xs text-left">
                     <thead class="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-bold border-b border-blue-200 dark:border-blue-800 sticky top-0">
                       <tr>
@@ -2584,7 +2596,7 @@ window.salesModule = {
     const fmParcelas = document.getElementById('fm-parcelas');
     let qtde = parseInt(fmParcelas ? fmParcelas.value : 1) || 1;
     if (qtde < 1) qtde = 1;
-    if (qtde > 6) qtde = 6;
+    if (qtde > 12) qtde = 12;
 
     const jurosInput = document.getElementById('fm-juros');
     let jurosMensal = parseFloat(jurosInput ? jurosInput.value : 0) || 0;
@@ -2596,6 +2608,9 @@ window.salesModule = {
 
     const data1Input = document.getElementById('fm-data-primeira-parcela');
     let data1Str = data1Input ? data1Input.value : '';
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
     if (!data1Str) {
       const dInit = new Date();
       dInit.setDate(dInit.getDate() + 30);
@@ -2603,17 +2618,53 @@ window.salesModule = {
       if (data1Input) data1Input.value = data1Str;
     }
 
-    // Cálculo das parcelas com juros compostos mês a mês e parcelas iguais (Tabela Price)
-    // saldo da dívida = valor do pedido - valor recebido
-    // valor de cada parcela = saldo da dívida / qtde de parcelas (se juros 0)
-    // valor de cada parcela no grid = juro composto mês a mês (amarelo) com parcelas iguais
+    const [y1, m1, d1] = data1Str.split('-').map(Number);
+    const dataPrimeira = new Date(y1, m1 - 1, d1);
+    dataPrimeira.setHours(0, 0, 0, 0);
+
+    // Cálculo exato dos dias de carência até a primeira parcela
+    const diffMs = dataPrimeira.getTime() - hoje.getTime();
+    const diasCarencia = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+
+    // Cálculo dos juros diários proporcionais: taxa diária = (1 + i_mensal)^(1/30) - 1
+    // Quanto mais tempo demorar a iniciar (dias de carência além do padrão ou no período),
+    // o saldo inicial é corrigido pelos juros dos dias transcorridos e as parcelas são reajustadas
+    let saldoComJurosDias = saldoDivida;
+    let fatorJuroDiario = 0;
+    if (jurosMensal > 0 && diasCarencia > 0) {
+      const iMensal = jurosMensal / 100;
+      const iDiario = Math.pow(1 + iMensal, 1 / 30) - 1;
+      fatorJuroDiario = Math.pow(1 + iDiario, diasCarencia);
+      // Reajuste pelo tempo de carência diária
+      saldoComJurosDias = saldoDivida * (fatorJuroDiario / (1 + iMensal)); // normaliza para 30 dias padrão
+      if (diasCarencia <= 30) {
+        saldoComJurosDias = saldoDivida * Math.pow(1 + iDiario, Math.max(0, diasCarencia - 30));
+      } else {
+        saldoComJurosDias = saldoDivida * Math.pow(1 + iDiario, diasCarencia - 30);
+      }
+    }
+
+    // Atualiza badges informativos de carência diária
+    const carenciaDiasLabel = document.getElementById('fm-carencia-dias-label');
+    const carenciaJurosLabel = document.getElementById('fm-carencia-juros-label');
+    if (carenciaDiasLabel) {
+      carenciaDiasLabel.innerText = `Carência: ${diasCarencia} dias até o 1º pagamento (${diasCarencia > 30 ? `+${diasCarencia - 30} dias além do padrão` : 'prazo padrão'})`;
+    }
+    if (carenciaJurosLabel) {
+      const acrestimo = Math.max(0, saldoComJurosDias - saldoDivida);
+      carenciaJurosLabel.innerText = jurosMensal > 0 
+        ? `Juros diários: +R$ ${acrestimo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+        : 'Sem juros diários';
+    }
+
+    // Cálculo das parcelas (Tabela Price) a partir do saldo reajustado
     let valorParcela = 0;
     if (saldoDivida > 0 && qtde > 0) {
       if (jurosMensal <= 0) {
         valorParcela = saldoDivida / qtde;
       } else {
         const i = jurosMensal / 100;
-        valorParcela = saldoDivida * (i * Math.pow(1 + i, qtde)) / (Math.pow(1 + i, qtde) - 1);
+        valorParcela = saldoComJurosDias * (i * Math.pow(1 + i, qtde)) / (Math.pow(1 + i, qtde) - 1);
       }
     }
 
@@ -2625,7 +2676,6 @@ window.salesModule = {
     this.installmentsState = this.installmentsState || {};
     this.currentGeneratedInstallments = [];
 
-    const [y1, m1, d1] = data1Str.split('-').map(Number);
     const totalFinanciado = valorParcela * qtde;
 
     if (resumoEl) {
@@ -2634,12 +2684,10 @@ window.salesModule = {
         : `${qtde}x de R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
+    // As parcelas serão a cada 30 dias em sequência a partir da data da 1ª parcela
     for (let k = 1; k <= qtde; k++) {
-      // Vencimento da parcela k
-      const dVenc = new Date(y1, m1 - 1 + (k - 1), d1);
-      if (dVenc.getDate() !== d1) {
-        dVenc.setDate(0);
-      }
+      const dVenc = new Date(dataPrimeira);
+      dVenc.setDate(dVenc.getDate() + ((k - 1) * 30));
       const vencStr = dVenc.toLocaleDateString('pt-BR');
 
       // Status: pago (verde) ou pendente (vermelho)
@@ -5430,14 +5478,14 @@ window.salesModule = {
               <div class="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl">
                 <span class="font-black text-blue-900 dark:text-blue-200 block mb-1">1. Link Técnico (Sem Valores):</span>
                 <div class="flex gap-1.5 items-center">
-                  <input type="text" id="share-link-tecnico" value="${linkTecnico}" class="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded font-mono text-[10px] text-slate-700 dark:text-slate-200 select-all" onclick="this.select()">
+                  <input type="text" id="share-link-tecnico" readonly value="${linkTecnico}" class="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded font-mono text-[10px] text-slate-700 dark:text-slate-200 select-all cursor-text focus:outline-none" onclick="this.select()" onkeydown="if(event.key==='Backspace'||event.key==='Delete'){event.preventDefault();}" title="Link gerado (apenas leitura, selecione ou copie com o botão)">
                   <button type="button" onclick="navigator.clipboard.writeText('${linkTecnico}'); window.grafsisAlert('Link Técnico copiado!', 'GRAFSIS');" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-[10px] transition cursor-pointer">Copiar</button>
                 </div>
               </div>
               <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
                 <span class="font-black text-emerald-900 dark:text-emerald-200 block mb-1">2. Link Completo (Com Financeiro):</span>
                 <div class="flex gap-1.5 items-center">
-                  <input type="text" id="share-link-completo" value="${linkCompleto}" class="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded font-mono text-[10px] text-slate-700 dark:text-slate-200 select-all" onclick="this.select()">
+                  <input type="text" id="share-link-completo" readonly value="${linkCompleto}" class="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded font-mono text-[10px] text-slate-700 dark:text-slate-200 select-all cursor-text focus:outline-none" onclick="this.select()" onkeydown="if(event.key==='Backspace'||event.key==='Delete'){event.preventDefault();}" title="Link gerado (apenas leitura, selecione ou copie com o botão)">
                   <button type="button" onclick="navigator.clipboard.writeText('${linkCompleto}'); window.grafsisAlert('Link Completo copiado!', 'GRAFSIS');" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[10px] transition cursor-pointer">Copiar</button>
                 </div>
               </div>
@@ -5514,8 +5562,23 @@ window.salesModule = {
     // Vincula explicitamente o número autorizado para conferência (Regra de Ouro)
     order.telefone_autorizacao = rawPhone;
 
-    // Código único de validação do recibo
-    const validationCode = `REC-${order.numero}-${String(Math.abs(Number(order.numero) * 31 + 1047)).slice(-4).padStart(4, '7')}`;
+    // Personalização de Tratamento por Perfil do Cliente (PF vs PJ)
+    const allClientsList = window.store?.getClients ? window.store.getClients() : [];
+    const clientRecord = allClientsList.find(c => c.id === order.cliente_id || String(c.id) === String(order.cliente_id)) || {};
+    const clientDocDigits = (clientRecord.cpf_cnpj || clientRecord.doc || order.cliente_cpf || '').replace(/\D/g, '');
+    const isEmpresa = (clientRecord.tipo_pessoa === 'PJ') || (clientDocDigits.length === 14) || (clientRecord.razao_social && clientRecord.razao_social.trim().length > 0);
+
+    const clientDisplayName = isEmpresa 
+      ? (clientRecord.razao_social || clientRecord.nome || order.cliente_nome || 'Empresa')
+      : (clientRecord.nome || order.cliente_nome || 'Cliente');
+
+    // Saudação personalizada: informal/amigável para Pessoa Física, sério/corporativo para Pessoa Jurídica
+    const saudacao = isEmpresa 
+      ? `Prezados da *${clientDisplayName}*, esperamos que este contato os encontre bem.`
+      : `Olá, *${clientDisplayName}*! Tudo bem com você?`;
+
+    const tokenRecibo10 = order.recibo_token_10 || `REC-${order.numero}-${String(Math.abs(Number(order.numero) * 31 + 1047)).slice(-4).padStart(4, '7')}`;
+    const validationCode = `REC-${tokenRecibo10}`;
 
     // Monta itens liberados para envio
     const allItems = order.itens || [];
@@ -5540,8 +5603,10 @@ window.salesModule = {
 
     let msg = '';
     if (mode === 'tecnico') {
-      msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
-        `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência técnica de arte, medidas e acabamentos.\n\n` +
+      msg = `${saudacao}\n\n` +
+        (isEmpresa 
+          ? `Informamos que o pedido *#${order.numero}* junto à *${empresaNome}* encontra-se disponível para conferência técnica de layout, especificações e dimensões.\n\n` 
+          : `Seu pedido *#${order.numero}* na *${empresaNome}* já está pronto para conferência técnica de arte, medidas e acabamentos!\n\n`) +
         `📋 *ITENS DA OPERAÇÃO:*\n${itemsSummaryTecnico}\n` +
         `${obsBlock}\n` +
         `👉 *Acesse o Link Técnico para Visualizar o Layout e Artes:*\n` +
@@ -5549,24 +5614,27 @@ window.salesModule = {
         `🔐 *Senha de Autorização:* Enviaremos a sua senha de 4 dígitos exclusiva para este seu número para que você possa aprovar digitalmente a produção.`;
     } else if (mode === 'codigo') {
       msg = `🔐 *${empresaNome} - SENHA DE AUTORIZAÇÃO*\n\n` +
-        `Olá, *${clientName}*!\n` +
-        `Sua Senha de 4 Dígitos para conferência e autorização do Pedido *#${order.numero}* é:\n\n` +
+        `${saudacao}\n` +
+        `A senha de 4 dígitos para conferência e validação oficial do Pedido *#${order.numero}* é:\n\n` +
         `🔑 *${randomPin}*\n\n` +
-        `⚠️ *Regra de Segurança:* Esta senha só pode ser validada no portal acessando a partir deste seu número de WhatsApp (${rawPhone}). Digite-a no link para liberar a produção com segurança.`;
+        `⚠️ *Protocolo de Segurança:* Esta autenticação é vinculada exclusivamente a este contato de WhatsApp (${rawPhone}). Digite-a no link para liberar a ordem de produção com total segurança.`;
     } else if (mode === 'recibo') {
-      msg = `🧾 *${empresaNome} - RECIBO DIGITAL DE PAGAMENTO*\n\n` +
+      msg = `🧾 *${empresaNome} - COMPROVANTE OFICIAL DE PAGAMENTO*\n\n` +
         `*Pedido:* #${order.numero}\n` +
-        `*Cliente:* ${clientName}\n` +
+        `*Cliente / Empresa:* ${clientDisplayName}\n` +
         `*Data/Hora:* ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}\n` +
         `*Valor do Pedido:* R$ ${valorStr}\n` +
         `*Valor Recebido / Entrada:* R$ ${entradaStr}\n` +
         `*Saldo Restante:* R$ ${saldoStr}\n` +
         `*Forma de Pagamento:* ${formaPagto}\n\n` +
-        `🔒 *Código de Autenticação Digital:* *${validationCode}*\n\n` +
-        `Este documento comprova o pagamento e lançamento financeiro da operação junto à ${empresaNome}.`;
+        `🔒 *Código de Autenticação Digital (10 Dígitos):* *${tokenRecibo10}*\n` +
+        `🌐 *Validação Pública:* ${window.location.origin}${window.location.pathname}#recibo?val=${tokenRecibo10}\n\n` +
+        `Este documento comprova o recebimento financeiro e lançamento da operação junto à ${empresaNome}.`;
     } else if (mode === 'full') {
-      msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
-        `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência e aprovação.\n\n` +
+      msg = `${saudacao}\n\n` +
+        (isEmpresa
+          ? `Apresentamos a proposta comercial e técnica do pedido *#${order.numero}* na *${empresaNome}* para validação e aprovação corporativa.\n\n`
+          : `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência e aprovação!\n\n`) +
         `📋 *ITENS DA OPERAÇÃO:*\n${itemsSummaryCompleto}\n` +
         `${obsBlock}\n` +
         `💰 *RESUMO FINANCEIRO:*\n` +
@@ -5580,8 +5648,10 @@ window.salesModule = {
         `⚠️ Informe a senha *${randomPin}* no portal para validar o aceite e autorizar o início da produção gráfica!`;
     } else {
       // completo
-      msg = `Olá, *${clientName}*! Tudo bem?\n\n` +
-        `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência completa.\n\n` +
+      msg = `${saudacao}\n\n` +
+        (isEmpresa
+          ? `Disponibilizamos a conferência completa do pedido *#${order.numero}* na *${empresaNome}*.\n\n`
+          : `Seu pedido *#${order.numero}* na *${empresaNome}* está pronto para conferência completa!\n\n`) +
         `📋 *ITENS DA OPERAÇÃO:*\n${itemsSummaryCompleto}\n` +
         `${obsBlock}\n` +
         `💰 *CONDIÇÕES COMERCIAIS:*\n` +
