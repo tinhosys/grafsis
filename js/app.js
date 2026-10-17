@@ -1953,6 +1953,7 @@ window.app = {
               <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
                 <tr>
                   <th class="p-3">Operador / Usuário</th>
+                  <th class="p-3 text-center">CPF / Segurança</th>
                   <th class="p-3">Cargo / Perfil</th>
                   <th class="p-3">Unidade / Empresa</th>
                   <th class="p-3">Status</th>
@@ -1961,7 +1962,9 @@ window.app = {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                ${onlineUsers.map(u => `
+                ${onlineUsers.map(u => {
+                  const cpfFormatado = u.cpf ? window.authModule.maskCpf(u.cpf) : (u.login || '--');
+                  return `
                   <tr class="hover:bg-slate-50/80 transition">
                     <td class="p-3 flex items-center gap-2.5">
                       <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-600">
@@ -1969,7 +1972,22 @@ window.app = {
                       </div>
                       <div>
                         <span class="font-bold text-slate-800 block">${u.nome}</span>
-                        <span class="text-[10px] text-slate-400 font-mono">${u.login || u.cpf || '--'}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">${u.operador ? `@${u.operador}` : (u.login || '--')}</span>
+                      </div>
+                    </td>
+                    <td class="p-3 text-center">
+                      <div class="inline-flex flex-col items-center gap-1">
+                        <span class="font-mono font-bold text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
+                          ${cpfFormatado}
+                        </span>
+                        <button 
+                          type="button" 
+                          onclick="window.authModule.resetUserPasswordToDefault('${u.id}')" 
+                          class="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 border border-amber-300 rounded-md transition shadow-2xs flex items-center gap-1 cursor-pointer" 
+                          title="Resetar senha deste usuário para '0000'">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                          Reset Senha ('0000')
+                        </button>
                       </div>
                     </td>
                     <td class="p-3">
@@ -1994,7 +2012,8 @@ window.app = {
                     <td class="p-3 text-slate-600 font-mono text-[11px]">${u.ultimoAcesso}</td>
                     <td class="p-3 text-slate-500 text-[11px]">${u.dispositivo}</td>
                   </tr>
-                `).join('')}
+                  `;
+                }).join('')}
               </tbody>
             </table>
           </div>

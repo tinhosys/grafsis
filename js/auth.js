@@ -608,6 +608,63 @@ class GrafsisAuth {
     return { success: true, message: 'Senha pessoal atualizada com sucesso!' };
   }
 
+  async resetUserPasswordToDefault(userId) {
+    const users = this.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+      alert('Usuário não encontrado.');
+      return false;
+    }
+
+    const nomeUsuario = user.nome || user.operador || user.login || 'Usuário';
+    const cpfFormatado = user.cpf ? this.maskCpf(user.cpf) : (user.login || 'Sem CPF');
+
+    const confirmou = confirm(
+      `CONFIRMAÇÃO DE RESET DE SENHA:\n\n` +
+      `Deseja realmente resetar a senha do usuário:\n` +
+      `Nome: ${nomeUsuario}\n` +
+      `CPF/Login: ${cpfFormatado}\n\n` +
+      `A nova senha provisória será redefinida para: "0000".\n\n` +
+      `Clique em OK para confirmar o reset.`
+    );
+
+    if (!confirmou) {
+      return false;
+    }
+
+    user.senha = '0000';
+    user.pin = '0000';
+    user.tentativas_senha_padrao = 10; // Reinicia o contador para 10 tentativas provisórias
+
+    this.saveUserWithoutValidation(user);
+
+    // Se o usuário resetado for o mesmo logado no momento, atualiza a sessão
+    const current = this.getCurrentUser();
+    if (current && current.id === user.id) {
+      this.setCurrentUser(user);
+    }
+
+    if (window.store && window.store.supabaseClient) {
+      try {
+        await window.store.supabaseClient.from('usuarios').update({
+          senha: '0000',
+          pin: '0000',
+          tentativas_senha_padrao: 10
+        }).eq('id', user.id);
+      } catch (e) {
+        console.warn('[Supabase] Erro ao sincronizar reset de senha:', e);
+      }
+    }
+
+    alert(`✓ Senha do usuário "${nomeUsuario}" resetada com sucesso para "0000"!`);
+
+    // Atualiza a visualização caso esteja aberta
+    if (window.app && window.app.currentTab === 'settings') {
+      window.app.renderSettings();
+    }
+    return true;
+  }
+
   async syncUsersWithCloud(supabaseClient) {
     if (!supabaseClient) return;
     try {
