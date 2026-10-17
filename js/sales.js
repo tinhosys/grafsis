@@ -828,15 +828,21 @@ window.salesModule = {
       }
     }
 
-    // 5. Botão Registrar Operação / Pedido Registrado
+    // 5. Botão Registrar Operação / Operação Registrada
     // Antes de registrar: 'Registrar [Operação]', amarelo, fonte preto.
-    // Depois de registrar: 'Pedido Registrado', botão verde bandeira, fonte branca.
+    // Depois de registrar: '[Operação] Registrada' (ex: 'Venda Registrada', 'Patrocínio Registrado', 'Permuta Registrada'), botão verde bandeira, fonte branca.
     if (btnSubmit) {
       if (isRegistered) {
+        let registeredLabel = 'Venda Registrada';
+        if (op === 'patrocinio') registeredLabel = 'Patrocínio Registrado';
+        else if (op === 'permuta') registeredLabel = 'Permuta Registrada';
+        else if (op === 'orcamento') registeredLabel = 'Orçamento Registrado';
+        else if (op === 'pre-venda') registeredLabel = 'Pré-Venda Registrada';
+
         btnSubmit.disabled = false;
-        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Pedido Registrado`;
+        btnSubmit.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> ${registeredLabel}`;
         btnSubmit.className = 'w-full h-12 text-sm font-bold text-white bg-[#009b3a] hover:bg-[#008230] rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer';
-        btnSubmit.title = "Pedido já registrado no sistema";
+        btnSubmit.title = `${registeredLabel} no sistema`;
       } else {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = `<svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Registrar ${opLabel}`;
@@ -1426,7 +1432,7 @@ window.salesModule = {
                         <span id="item-price-ref-text">Base m² / un</span>
                         <span class="text-[9px] text-slate-400 font-normal">2x clique (4s)</span>
                       </label>
-                      <input type="number" step="0.01" id="item-price" value="0.00" oninput="salesModule.calcPiecePrice()" onmouseenter="salesModule.handlePriceHover(this, true)" onmouseleave="salesModule.handlePriceHover(this, false)" ondblclick="salesModule.revealPrice4s(this)" style="color: transparent; text-shadow: none;" class="w-full p-2 border border-slate-300 rounded bg-white font-mono font-bold transition-all duration-200 cursor-pointer selection:text-transparent" title="Preço base - Passe o mouse ou dê duplo clique para visualizar por 4 segundos">
+                      <input type="number" step="0.01" min="0" id="item-price" value="0.00" onkeydown="if(event.key === '-' || event.key === 'e') event.preventDefault();" oninput="if(this.value < 0) this.value = 0; salesModule.calcPiecePrice()" onmouseenter="salesModule.handlePriceHover(this, true)" onmouseleave="salesModule.handlePriceHover(this, false)" ondblclick="salesModule.revealPrice4s(this)" style="color: transparent; text-shadow: none;" class="w-full p-2 border border-slate-300 rounded bg-white font-mono font-bold transition-all duration-200 cursor-pointer selection:text-transparent" title="Preço base - Passe o mouse ou dê duplo clique para visualizar por 4 segundos">
                     </div>
                     <div class="col-span-6 sm:col-span-2 flex items-end">
                       <button type="button" onclick="salesModule.openQuickProductModal()" class="w-full h-[38px] bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition whitespace-nowrap cursor-pointer" title="Adicionar Novo Produto no Catálogo">
@@ -1436,19 +1442,19 @@ window.salesModule = {
                     </div>
                   </div>
 
-                  <!-- LINHA DE MEDIDAS, QUANTIDADE, PREÇOS E BOTÃO INSERIR ITEM -->
+                  <!-- LINHA DE MEDIDAS, QUANTIDADE, PREÇOS E BOTÃO INSERIR ITEM (SOMENTE POSITIVO, NADA DE '-') -->
                   <div class="grid grid-cols-12 gap-2 items-end">
                     <div class="col-span-2" id="div-width">
                       <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Largura X (m)</label>
-                      <input type="number" step="0.01" id="item-width" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                      <input type="number" step="0.01" min="0" id="item-width" value="0.00" onkeydown="if(event.key === '-' || event.key === 'e') event.preventDefault();" oninput="if(this.value < 0) this.value = 0; salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
                     </div>
                     <div class="col-span-2" id="div-height">
                       <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Compr. Y (m)</label>
-                      <input type="number" step="0.01" id="item-height" value="0.00" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
+                      <input type="number" step="0.01" min="0" id="item-height" value="0.00" onkeydown="if(event.key === '-' || event.key === 'e') event.preventDefault();" oninput="if(this.value < 0) this.value = 0; salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-mono text-xs">
                     </div>
                     <div class="col-span-2 sm:col-span-1">
                       <label class="block text-[10px] uppercase font-bold mb-1 text-slate-700">Qtd</label>
-                      <input type="number" step="1" id="item-qty" value="1" min="1" oninput="salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-xs">
+                      <input type="number" step="1" min="1" id="item-qty" value="1" onkeydown="if(event.key === '-' || event.key === 'e') event.preventDefault();" oninput="if(this.value < 1) this.value = 1; salesModule.calcPiecePrice()" class="w-full p-2 border border-slate-300 rounded bg-white font-bold text-center text-xs">
                     </div>
                     <div class="col-span-3 sm:col-span-2">
                       <label class="block text-[10px] uppercase font-bold mb-1 text-red-600">V. Unit. (R$)</label>
@@ -2350,9 +2356,10 @@ window.salesModule = {
   },
   calcPiecePrice() {
     const type = document.getElementById('item-type')?.value || 'm2';
-    let w = parseFloat(document.getElementById('item-width')?.value); if(isNaN(w)) w = 0;
-    let h = parseFloat(document.getElementById('item-height')?.value); if(isNaN(h)) h = 0;
-    const price = parseFloat(document.getElementById('item-price')?.value) || 0;
+    let w = parseFloat(document.getElementById('item-width')?.value); if(isNaN(w) || w < 0) w = 0;
+    let h = parseFloat(document.getElementById('item-height')?.value); if(isNaN(h) || h < 0) h = 0;
+    let price = parseFloat(document.getElementById('item-price')?.value) || 0;
+    if (price < 0) price = 0;
     
     let piecePrice = 0;
     if (type === 'm2') {
@@ -2363,6 +2370,7 @@ window.salesModule = {
       // unidade, servico, diaria, hora, L
       piecePrice = price;
     }
+    if (piecePrice < 0) piecePrice = 0;
 
     const displayEl = document.getElementById('item-piece-price');
     if (displayEl) displayEl.innerText = `R$ ${piecePrice.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -2482,6 +2490,7 @@ window.salesModule = {
               <div>
                 <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Valor Recebido R$</label>
                 <input type="text" id="fm-recebido" class="w-full p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-center bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
+                <p id="fm-recebido-aviso" class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 hidden text-center">⚠️ O valor recebido não pode ultrapassar o total do pedido.</p>
               </div>
             </div>
 
@@ -2611,9 +2620,20 @@ window.salesModule = {
   },
 
   handleRecebidoInput(input) {
+    const finalTotal = this.currentFinanceFinalTotal != null ? this.currentFinanceFinalTotal : (this.recalcTotals().finalTotal || 0);
     let clean = (input.value || '').replace(/\D/g, '');
     let num = parseFloat(clean) / 100;
     if (isNaN(num)) num = 0;
+
+    // Regra da Imagem 1: O valor recebido não pode ser maior que o valor a receber / pedido
+    if (num > finalTotal && finalTotal > 0) {
+      num = finalTotal;
+      const aviso = document.getElementById('fm-recebido-aviso');
+      if (aviso) {
+        aviso.classList.remove('hidden');
+        setTimeout(() => aviso.classList.add('hidden'), 3500);
+      }
+    }
     input.value = num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     this.updateModalRestante();
   },

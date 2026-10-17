@@ -293,10 +293,25 @@ window.mercadoPagoModule = {
           </div>
 
           <div class="my-4">
-            <p class="text-xs text-slate-500 dark:text-slate-400">Escaneie o QR Code com o celular do cliente:</p>
-            <div class="mt-3 bg-white p-3 rounded-2xl border-2 border-sky-400 shadow-md inline-block">
-              <img src="${qrImgSrc}" alt="QR Code Pix" class="w-48 h-48 mx-auto object-contain">
-            </div>
+            ${pixData.qr_code ? `
+              <p class="text-xs text-slate-500 dark:text-slate-400">Escaneie o QR Code com o app do seu banco ou use Copia e Cola:</p>
+              <div class="mt-3 bg-white p-3 rounded-2xl border-2 border-sky-400 shadow-md inline-block">
+                <img src="${qrImgSrc}" alt="QR Code Pix" class="w-48 h-48 mx-auto object-contain">
+              </div>
+            ` : `
+              <div class="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-2xl border border-sky-200 dark:border-sky-800 text-left space-y-2">
+                <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                  <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <span>Ambiente Seguro Mercado Pago</span>
+                </div>
+                <p class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Para pagar via Pix ou Cartão no ambiente oficial, clique no botão azul abaixo para abrir a tela de pagamento ou aponte a câmera comum do celular para abrir o link:
+                </p>
+                <div class="text-center pt-2">
+                  <img src="${qrImgSrc}" alt="QR Code Link Mercado Pago" class="w-40 h-40 mx-auto object-contain bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+                </div>
+              </div>
+            `}
             <div class="mt-2 font-black text-xl text-emerald-700 dark:text-emerald-400">
               R$ ${Number(valorRecebido).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
@@ -304,14 +319,21 @@ window.mercadoPagoModule = {
           </div>
 
           <div class="space-y-2 mt-4">
-            <button type="button" onclick="window.mercadoPagoModule.copyPixCode('${encodeURIComponent(pixData.qr_code || checkoutUrl || '')}')" class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-              <span>COPIAR CÓDIGO PIX (COPIA E COLA)</span>
-            </button>
+            ${pixData.qr_code ? `
+              <button type="button" onclick="window.mercadoPagoModule.copyPixCode('${encodeURIComponent(pixData.qr_code)}')" class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                <span>COPIAR CÓDIGO PIX (COPIA E COLA)</span>
+              </button>
+            ` : `
+              <button type="button" onclick="window.mercadoPagoModule.copyPixCode('${encodeURIComponent(checkoutUrl)}')" class="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                <span>COPIAR LINK DE PAGAMENTO PIX</span>
+              </button>
+            `}
 
             ${checkoutUrl ? `
-              <button type="button" onclick="window.open('${checkoutUrl}', '_blank')" class="w-full py-2 px-4 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
-                <span>ABRIR TELA DO PIX MERCADO PAGO</span>
+              <button type="button" onclick="window.open('${checkoutUrl}', '_blank')" class="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                <span>ABRIR TELA DO PIX NO MERCADO PAGO</span>
               </button>
             ` : ''}
 

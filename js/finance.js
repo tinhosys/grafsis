@@ -11,7 +11,7 @@ window.financeModule = {
       <div class="space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 class="text-2xl font-bold text-slate-800">Contas a Pagar & Receber</h1>
+            <h1 class="text-2xl font-bold text-slate-800">Contas a Pagar, Receber</h1>
             <p class="text-slate-500 text-sm">Fluxo financeiro integrado com pedidos e compras de suprimentos</p>
           </div>
           <div class="flex gap-2">
@@ -25,17 +25,17 @@ window.financeModule = {
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs text-slate-500 font-semibold uppercase">Total a Receber</span>
-            <h3 class="text-2xl font-black text-emerald-600 mt-1">R$ ${totalReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-right">
+            <span class="text-xs text-slate-500 font-semibold uppercase block text-left">Total a Receber</span>
+            <h3 class="text-2xl font-black text-emerald-600 mt-1 text-right">R$ ${totalReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs text-slate-500 font-semibold uppercase">Total a Pagar</span>
-            <h3 class="text-2xl font-black text-rose-600 mt-1">R$ ${totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-right">
+            <span class="text-xs text-slate-500 font-semibold uppercase block text-left">Total a Pagar</span>
+            <h3 class="text-2xl font-black text-rose-600 mt-1 text-right">R$ ${totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs text-slate-500 font-semibold uppercase">Saldo Previsto</span>
-            <h3 class="text-2xl font-black ${saldo >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-1">R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-right">
+            <span class="text-xs text-slate-500 font-semibold uppercase block text-left">Saldo Previsto</span>
+            <h3 class="text-2xl font-black ${saldo >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-1 text-right">R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
         </div>
 
