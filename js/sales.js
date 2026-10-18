@@ -41,11 +41,17 @@ window.salesModule = {
       
       <!-- CONTROLE DE BUSCA -->
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
-        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          Filtro Avançado de Pedidos
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 border-b border-slate-100 pb-3">
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Filtro Avançado de Pedidos
+          </h3>
+          <button type="button" onclick="salesModule.clearFilters()" class="self-start sm:self-auto px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Limpar todos os filtros e parâmetros de busca">
+            <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            <span>Limpar Todos os Parâmetros</span>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div>
             <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Cliente</label>
             <input type="text" id="filter-cliente" oninput="salesModule.updateFilters()" placeholder="Nome ou Documento" class="w-full text-sm px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.cliente}">
@@ -76,15 +82,13 @@ window.salesModule = {
               <option value="pago" ${this.filters.pagamento==='pago'?'selected':''}>Totalmente Pagos</option>
             </select>
           </div>
-          <div class="flex gap-2">
-            <div class="flex-1">
-              <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Início</label>
-              <input type="date" id="filter-data-inicio" onchange="salesModule.updateFilters()" class="w-full text-sm px-2 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.dataInicio}">
-            </div>
-            <div class="flex-1">
-              <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Fim</label>
-              <input type="date" id="filter-data-fim" onchange="salesModule.updateFilters()" class="w-full text-sm px-2 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.dataFim}">
-            </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Início</label>
+            <input type="date" id="filter-data-inicio" onchange="salesModule.updateFilters()" class="w-full text-sm px-2.5 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.dataInicio}">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Data Fim</label>
+            <input type="date" id="filter-data-fim" onchange="salesModule.updateFilters()" class="w-full text-sm px-2.5 py-2 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all" value="${this.filters.dataFim}">
           </div>
         </div>
       </div>
@@ -113,12 +117,30 @@ window.salesModule = {
   },
 
   updateFilters() {
-    this.filters.cliente = document.getElementById('filter-cliente').value.toLowerCase();
-    this.filters.produto = document.getElementById('filter-produto').value.toLowerCase();
-    this.filters.status = document.getElementById('filter-status').value;
-    this.filters.dataInicio = document.getElementById('filter-data-inicio').value;
-    this.filters.dataFim = document.getElementById('filter-data-fim').value;
-    this.filters.pagamento = document.getElementById('filter-pagamento').value;
+    this.filters.cliente = (document.getElementById('filter-cliente')?.value || '').toLowerCase();
+    this.filters.produto = (document.getElementById('filter-produto')?.value || '').toLowerCase();
+    this.filters.status = document.getElementById('filter-status')?.value || '';
+    this.filters.dataInicio = document.getElementById('filter-data-inicio')?.value || '';
+    this.filters.dataFim = document.getElementById('filter-data-fim')?.value || '';
+    this.filters.pagamento = document.getElementById('filter-pagamento')?.value || '';
+    this.renderTable();
+  },
+
+  clearFilters() {
+    this.filters = {
+      cliente: '',
+      produto: '',
+      status: '',
+      dataInicio: '',
+      dataFim: '',
+      pagamento: ''
+    };
+    const c = document.getElementById('filter-cliente'); if (c) c.value = '';
+    const p = document.getElementById('filter-produto'); if (p) p.value = '';
+    const s = document.getElementById('filter-status'); if (s) s.value = '';
+    const di = document.getElementById('filter-data-inicio'); if (di) di.value = '';
+    const df = document.getElementById('filter-data-fim'); if (df) df.value = '';
+    const pg = document.getElementById('filter-pagamento'); if (pg) pg.value = '';
     this.renderTable();
   },
 
@@ -230,8 +252,8 @@ window.salesModule = {
             </button>
           </td>
           <td class="p-4 font-bold text-slate-800 uppercase truncate max-w-[200px]" title="${cName}">${cName}</td>
-          <td class="p-4 text-left">
-            <div class="text-left">
+          <td class="p-4 text-left align-middle">
+            <div class="text-left flex flex-col items-start justify-start">
               <span class="block font-black text-slate-800 text-sm">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               ${balanceBadge}
             </div>
@@ -545,10 +567,10 @@ window.salesModule = {
     if (finContainer) finContainer.style.opacity = hasClient ? '1' : '0.45';
     if (botoesContainer) botoesContainer.style.opacity = hasClient ? '1' : '0.45';
 
-    // 2. Se NÃO houver cliente selecionado, desabilita todos os inputs e botões (exceto o próprio select de cliente)
+    // 2. Se NÃO houver cliente selecionado, desabilita todos os inputs e botões (exceto o próprio select de cliente e campo de WhatsApp)
     if (!hasClient) {
       if (opSelect) opSelect.disabled = true;
-      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"])');
+      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]):not(#order-client-whatsapp-input):not(#padrao-approval-link-input), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"]):not([onclick*="saveClientAdditionalPhone"]):not([onclick*="swapClientPhone"])');
       allFormElements.forEach(el => {
         el.disabled = true;
       });
@@ -4225,18 +4247,24 @@ window.salesModule = {
         it.quantidade = Math.max(1, novaQtd);
       }
 
+      const basePrice = (parseFloat(it.preco_base) > 0 ? parseFloat(it.preco_base) : (parseFloat(it.preco_unitario) || 0));
+      it.preco_base = basePrice;
+
       if (it.tipo_calculo === 'm2') {
-        if (largInput) it.largura_x = parseFloat(largInput.value) || it.largura_x || 0;
-        if (compInput) it.comprimento_y = parseFloat(compInput.value) || it.comprimento_y || 0;
+        if (largInput) it.largura_x = parseFloat(String(largInput.value).replace(',', '.')) || it.largura_x || 0;
+        if (compInput) it.comprimento_y = parseFloat(String(compInput.value).replace(',', '.')) || it.comprimento_y || 0;
         it.area_m2 = (it.largura_x * it.comprimento_y);
         it.area_total = it.area_m2 * it.quantidade;
-        it.valor_total = it.area_total * (parseFloat(it.preco_unitario) || 0);
+        it.preco_unitario = it.area_m2 * basePrice;
+        it.valor_total = it.preco_unitario * it.quantidade;
       } else if (it.tipo_calculo === 'linear') {
-        if (largInput) it.largura_x = parseFloat(largInput.value) || it.largura_x || 0;
+        if (largInput) it.largura_x = parseFloat(String(largInput.value).replace(',', '.')) || it.largura_x || 0;
         it.area_total = it.largura_x * it.quantidade;
-        it.valor_total = it.area_total * (parseFloat(it.preco_unitario) || 0);
+        it.preco_unitario = it.largura_x * basePrice;
+        it.valor_total = it.preco_unitario * it.quantidade;
       } else {
-        it.valor_total = it.quantidade * (parseFloat(it.preco_unitario) || 0);
+        it.preco_unitario = basePrice;
+        it.valor_total = it.quantidade * basePrice;
       }
 
       this.editingItemInlineIdx = null;
@@ -7518,13 +7546,28 @@ window.salesModule = {
 
   async saveClientAdditionalPhone(clientId, orderId) {
     const input = document.getElementById('order-client-whatsapp-input');
-    const rawVal = input ? input.value.trim() : '';
-    const digits = rawVal.replace(/\D/g, '');
+    let rawVal = input ? input.value.trim() : '';
+    let digits = rawVal.replace(/\D/g, '');
+
+    // Se o campo estiver vazio ou o usuário quiser digitar um novo telefone para empilhar:
+    if (!digits || digits.length < 10) {
+      const promptPhone = prompt('Digite o novo número de telefone com DDD (Ex: 11987654321):', '');
+      if (!promptPhone) return;
+      rawVal = promptPhone.trim();
+      digits = rawVal.replace(/\D/g, '');
+    }
 
     if (!digits || digits.length < 10) {
       alert('Informe um número de telefone com DDD válido no padrão (00) 0 0000-0000.');
       if (input) input.focus();
       return;
+    }
+
+    // Aplica formatação canônica
+    if (digits.length === 11) {
+      rawVal = digits.replace(/^(\d{2})(\d{1})(\d{4})(\d{4})$/, '($1) $2 $3-$4');
+    } else {
+      rawVal = digits.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
     }
 
     // Busca cliente pelo clientId ou selecionado na tela

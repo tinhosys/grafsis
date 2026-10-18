@@ -54,13 +54,15 @@ window.mercadoPagoModule = {
     const supabaseConfig = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : { url: '' };
     // Tenta primeiro via Supabase Edge Function se configurado
     if (supabaseConfig && supabaseConfig.url) {
+      const edgeFunctionUrl = `${supabaseConfig.url.replace(/\/+$/, '')}/functions/v1/mercadopago-pix`;
       try {
         const response = await fetch(edgeFunctionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${supabaseConfig.key || ''}`,
-            'apikey': supabaseConfig.key || ''
+            'apikey': supabaseConfig.key || '',
+            'X-Idempotency-Key': `pix-${params.orderId}-${Date.now()}`
           },
           body: JSON.stringify({
             orderId: params.orderId,
