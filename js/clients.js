@@ -437,9 +437,32 @@ window.clientsModule = {
                 </div>
               </div>
 
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Telefone WhatsApp *</label>
-                <input type="text" name="telefone_whatsapp" required value="${client ? client.telefone_whatsapp : ''}" placeholder="(00) 0 0000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="this.value = clientsModule.maskPhone(this.value)">
+              <!-- TELEFONE WHATSAPP PRINCIPAL & QUADRO STANDBY (IMAGEM 1) -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label class="block text-xs font-semibold text-slate-600">Telefone WhatsApp *</label>
+                  <button type="button" onclick="clientsModule.addNewClientPhonePrompt('${client ? client.id : ''}')" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Cadastrar novo telefone adicional para este cliente">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    + Novo Telefone
+                  </button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 items-start">
+                  <input type="text" id="client-modal-phone-input" name="telefone_whatsapp" required value="${client ? client.telefone_whatsapp : ''}" placeholder="(00) 0 0000-0000" class="w-full sm:flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono font-bold" oninput="this.value = clientsModule.maskPhone(this.value)">
+                </div>
+
+                <!-- Quadro Standby com até 3 Linhas -->
+                <div class="bg-amber-50/80 border border-amber-300 rounded-lg p-2 mt-1">
+                  <div class="flex items-center justify-between mb-1 border-b border-amber-200/80 pb-0.5">
+                    <span class="text-[10px] font-black uppercase text-amber-900 flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      Telefones Standby
+                    </span>
+                    <span class="text-[9px] text-amber-700 font-semibold">Clique para alternar com o principal</span>
+                  </div>
+                  <div id="client-modal-standby-phones-list" class="space-y-1">
+                    ${this.renderStandbyPhonesHtml(client ? client.id : '')}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -955,6 +978,14 @@ window.clientsModule = {
     const isEdit = !!targetId;
     clientData.id = targetId;
 
+    // Preserva telefones adicionais existentes do cliente
+    if (targetId) {
+      const existingClient = allClients.find(c => String(c.id) === String(targetId));
+      if (existingClient && existingClient.telefones_adicionais) {
+        clientData.telefones_adicionais = existingClient.telefones_adicionais;
+      }
+    }
+
     // 1. Validação de Telefone WhatsApp: OBRIGATÓRIO SEMPRE e deve conter DDD válido
     const cleanPhone = (clientData.telefone_whatsapp || '').replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
@@ -1038,6 +1069,137 @@ window.clientsModule = {
     if (confirm('Tem certeza que deseja remover este cliente?')) {
       window.store.deleteClient(id);
       this.render();
+    }
+  },
+
+  renderStandbyPhonesHtml(clientId) {
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
+    let adicionais = [];
+    if (client && Array.isArray(client.telefones_adicionais)) {
+      adicionais = client.telefones_adicionais.map(t => typeof t === 'object' ? (t.telefone || '') : String(t)).filter(Boolean);
+    }
+
+    const currentInputVal = document.getElementById('client-modal-phone-input')?.value || (client?.telefone_whatsapp || '');
+    const cleanCurrent = currentInputVal.replace(/\D/g, '');
+    const uniqueStandbys = [];
+    adicionais.forEach(t => {
+      const clean = t.replace(/\D/g, '');
+      if (clean && clean !== cleanCurrent && !uniqueStandbys.some(u => u.replace(/\D/g, '') === clean)) {
+        uniqueStandbys.push(t);
+      }
+    });
+
+    const lines = [];
+    for (let i = 0; i < 3; i++) {
+      const phone = uniqueStandbys[i];
+      if (phone) {
+        lines.push(`
+          <div onclick="clientsModule.swapClientPhone(${i}, '${client ? client.id : ''}')" class="flex items-center justify-between px-2 py-1 bg-white hover:bg-amber-100 border border-amber-200 rounded text-[11px] font-mono font-bold text-slate-800 cursor-pointer transition group" title="Clique para alternar e tornar este o WhatsApp principal">
+            <span class="truncate group-hover:text-amber-800">📞 ${phone}</span>
+            <span class="text-[9px] font-sans text-amber-600 font-extrabold uppercase ml-1 shrink-0">Usar ⇄</span>
+          </div>
+        `);
+      } else {
+        lines.push(`
+          <div class="px-2 py-1 bg-white/40 border border-dashed border-amber-200/60 rounded text-[10px] text-amber-700/60 italic flex items-center justify-between">
+            <span>Standby ${i + 1}: (vazio)</span>
+            <span class="text-[8px] font-normal uppercase">Livre</span>
+          </div>
+        `);
+      }
+    }
+    return lines.join('');
+  },
+
+  async swapClientPhone(index, clientId) {
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
+    const input = document.getElementById('client-modal-phone-input');
+    const currentPrincipal = input ? input.value.trim() : (client?.telefone_whatsapp || '');
+
+    if (!client) {
+      // Se for novo cliente sem id salvo ainda, apenas troca com campo se houver
+      return;
+    }
+
+    let adicionais = Array.isArray(client.telefones_adicionais) ? [...client.telefones_adicionais] : [];
+    const cleanCurrent = currentPrincipal.replace(/\D/g, '');
+    const standbyEntries = [];
+    adicionais.forEach((t, origIdx) => {
+      const phoneStr = typeof t === 'object' ? (t.telefone || '') : String(t);
+      const clean = phoneStr.replace(/\D/g, '');
+      if (clean && clean !== cleanCurrent && !standbyEntries.some(e => e.phone.replace(/\D/g, '') === clean)) {
+        standbyEntries.push({ phone: phoneStr, origIdx, entry: t });
+      }
+    });
+
+    const target = standbyEntries[index];
+    if (!target) return;
+
+    const novoPrincipal = target.phone;
+    if (input) input.value = novoPrincipal;
+
+    client.telefone_whatsapp = novoPrincipal;
+    if (currentPrincipal) {
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (typeof target.entry === 'object') {
+        client.telefones_adicionais[target.origIdx] = {
+          ...target.entry,
+          telefone: currentPrincipal,
+          data_hora: formattedDate
+        };
+      } else {
+        client.telefones_adicionais[target.origIdx] = currentPrincipal;
+      }
+    }
+
+    await window.store.saveClient(client);
+
+    const standbyContainer = document.getElementById('client-modal-standby-phones-list');
+    if (standbyContainer) {
+      standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+  },
+
+  async addNewClientPhonePrompt(clientId) {
+    const raw = prompt('Digite o novo telefone de contato / WhatsApp com DDD:\n(Exemplo: 69 99999-8888)');
+    if (!raw) return;
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length < 10) {
+      alert('Número inválido. Informe o DDD e pelo menos 8 ou 9 dígitos.');
+      return;
+    }
+
+    let formatted = raw;
+    if (digits.length === 11) {
+      formatted = digits.replace(/^(\d{2})(\d{1})(\d{4})(\d{4})$/, '($1) $2 $3-$4');
+    } else if (digits.length === 10) {
+      formatted = digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+    }
+
+    let client = clientId ? window.store?.getClients()?.find(c => String(c.id) === String(clientId)) : null;
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const novoRegistro = {
+      telefone: formatted,
+      data_hora: formattedDate,
+      registrado_por: window.app?.currentUser?.nome || 'Operador'
+    };
+
+    if (client) {
+      client.telefones_adicionais = client.telefones_adicionais || [];
+      client.telefones_adicionais.push(novoRegistro);
+      await window.store.saveClient(client);
+
+      const standbyContainer = document.getElementById('client-modal-standby-phones-list');
+      if (standbyContainer) {
+        standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+      }
+      alert(`Telefone ${formatted} adicionado à lista standby deste cliente!`);
+    } else {
+      // Se estiver criando cliente novo, joga direto no input principal se vazio
+      const input = document.getElementById('client-modal-phone-input');
+      if (input) input.value = formatted;
     }
   }
 };

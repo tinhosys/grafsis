@@ -619,19 +619,21 @@
       </div>
 
       <!-- Abas Internas do Painel do Proprietário -->
-      <div class="bg-amber-50/70 dark:bg-slate-800/80 border-b border-amber-200 dark:border-amber-900/40 px-5 flex flex-wrap gap-2 pt-2 shrink-0">
-        <button onclick="app.switchOwnerTab('empresa')" id="owner-tab-btn-empresa" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-black uppercase tracking-wide border-b-2 border-amber-600 text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-          🏢 Dados da Empresa & Proprietário
-        </button>
-        <button onclick="app.switchOwnerTab('usuarios')" id="owner-tab-btn-usuarios" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer">
-          👥 Equipe & Controle de Bloqueio
-        </button>
-        <button onclick="app.switchOwnerTab('producao')" id="owner-tab-btn-producao" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer">
-          📊 Produção por Colaborador & Auditoria
-        </button>
-        <button onclick="app.switchOwnerTab('mercadolivre')" id="owner-tab-btn-mercadolivre" class="owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-400 hover:text-sky-800 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer">
-          💳 Cobrança Mercado Pago / Mercado Livre
-        </button>
+      <div class="bg-amber-50/70 dark:bg-slate-800/80 border-b border-amber-200 dark:border-amber-900/40 px-3 sm:px-5 py-2 shrink-0">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 items-stretch w-full">
+          <button onclick="app.switchOwnerTab('empresa')" id="owner-tab-btn-empresa" class="owner-tab-btn h-14 sm:h-12 w-full px-2 py-1.5 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wide border-2 border-amber-600 text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 shadow-xs transition flex items-center justify-center text-center gap-1.5 cursor-pointer leading-tight">
+            🏢 Dados da Empresa & Proprietário
+          </button>
+          <button onclick="app.switchOwnerTab('usuarios')" id="owner-tab-btn-usuarios" class="owner-tab-btn h-14 sm:h-12 w-full px-2 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 border border-transparent hover:text-amber-700 hover:bg-white/60 transition flex items-center justify-center text-center gap-1.5 cursor-pointer leading-tight">
+            👥 Equipe & Controle de Bloqueio
+          </button>
+          <button onclick="app.switchOwnerTab('producao')" id="owner-tab-btn-producao" class="owner-tab-btn h-14 sm:h-12 w-full px-2 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 border border-transparent hover:text-amber-700 hover:bg-white/60 transition flex items-center justify-center text-center gap-1.5 cursor-pointer leading-tight">
+            📊 Produção por Colaborador & Auditoria
+          </button>
+          <button onclick="app.switchOwnerTab('mercadolivre')" id="owner-tab-btn-mercadolivre" class="owner-tab-btn h-14 sm:h-12 w-full px-2 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-400 border border-transparent hover:text-sky-800 hover:bg-white/60 transition flex items-center justify-center text-center gap-1.5 cursor-pointer leading-tight">
+            💳 Cobrança Mercado Pago / Mercado Livre
+          </button>
+        </div>
       </div>
 
       <!-- Conteúdo das Abas do Painel -->

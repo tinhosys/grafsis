@@ -639,11 +639,11 @@ window.app = {
   switchOwnerTab(tab) {
     this.currentOwnerTab = tab;
     document.querySelectorAll('.owner-tab-btn').forEach(btn => {
-      btn.className = 'owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 hover:text-amber-700 hover:bg-white/60 transition flex items-center gap-1.5 cursor-pointer';
+      btn.className = 'owner-tab-btn h-14 sm:h-12 w-full px-2 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400 border border-transparent hover:text-amber-700 hover:bg-white/60 transition flex items-center justify-center text-center gap-1.5 cursor-pointer leading-tight';
     });
     const activeBtn = document.getElementById(`owner-tab-btn-${tab}`);
     if (activeBtn) {
-      activeBtn.className = 'owner-tab-btn px-4 py-2.5 rounded-t-xl text-xs font-black uppercase tracking-wide border-b-2 border-amber-600 text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 shadow-xs transition flex items-center gap-1.5 cursor-pointer';
+      activeBtn.className = 'owner-tab-btn h-14 sm:h-12 w-full px-2 py-1.5 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wide border-2 border-amber-600 text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 shadow-xs transition flex items-center justify-center text-center gap-1.5 cursor-pointer leading-tight';
     }
     this.renderOwnerContent();
   },

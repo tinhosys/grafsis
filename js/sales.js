@@ -1,12 +1,14 @@
 window.salesModule = {
   isFormOpen: false,
   activeItems: [],
+  editingItemInlineIdx: null,
   filters: { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' },
   
   render() {
     this.isFormOpen = false;
     this.currentEditingOrderId = null;
     this.editingItemIdx = null;
+    this.editingItemInlineIdx = null;
     const container = document.getElementById('view-container');
     if (!this.filters) this.filters = { cliente: '', produto: '', status: '', dataInicio: '', dataFim: '', pagamento: '' };
     
@@ -222,15 +224,17 @@ window.salesModule = {
         <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0 group">
           <td class="p-4 text-xs font-bold text-slate-500">${orderDateStr}</td>
           <td class="p-4 font-mono font-black text-blue-600">
-            <button type="button" onclick="salesModule.openModal({orderId: '${o.id}'})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-900 border border-blue-200 transition font-mono font-black text-xs shadow-2xs group cursor-pointer" title="Clique para abrir e carregar este Pedido #${o.numero}">
+            <button type="button" onclick="salesModule.openModal({orderId: '${o.id}'})" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-900 border-2 border-blue-200 hover:border-blue-300 transition font-mono font-black text-sm shadow-xs group cursor-pointer" title="Clique para abrir e carregar este Pedido #${o.numero}">
               <span>#${o.numero || o.id.substring(0,6)}</span>
-              <svg class="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-700 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              <svg class="w-4 h-4 text-blue-400 group-hover:text-blue-700 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </button>
           </td>
           <td class="p-4 font-bold text-slate-800 uppercase truncate max-w-[200px]" title="${cName}">${cName}</td>
-          <td class="p-4">
-            <span class="font-black text-slate-800">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            ${balanceBadge}
+          <td class="p-4 text-left">
+            <div class="text-left">
+              <span class="block font-black text-slate-800 text-sm">R$ ${Number(o.valor_final).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              ${balanceBadge}
+            </div>
           </td>
           <td class="p-4">${this.getPhaseBadge(o.status_fase)}</td>
           <td class="p-4 text-right space-x-1 opacity-80 group-hover:opacity-100 transition">
@@ -720,12 +724,25 @@ window.salesModule = {
       if (descPctInput) descPctInput.disabled = true;
       if (descValInput) descValInput.disabled = true;
 
+      // 6. Governança e Validação de Entrada: após o registro oficial, o bloco de opções de liberação fica inabilitado (Imagem 1)
+      const blocoGovernanca = document.getElementById('bloco-tipo-aprovacao-regra');
+      if (blocoGovernanca) {
+        blocoGovernanca.classList.add('opacity-60', 'pointer-events-none');
+        blocoGovernanca.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+      }
+
       // A seção do link de aprovação e seus botões (Copiar Link, Enviar WhatsApp, Visualizar) SEMPRE ficam habilitados (Marcação Verde Imagem 1)
       const linkSectionElements = document.querySelectorAll('#secao-link-aprovacao-padrao input, #secao-link-aprovacao-padrao button, #secao-link-aprovacao-padrao a');
       linkSectionElements.forEach(el => {
         el.disabled = false;
       });
     } else {
+      // ANTES DE REGISTRAR:
+      const blocoGovernanca = document.getElementById('bloco-tipo-aprovacao-regra');
+      if (blocoGovernanca) {
+        blocoGovernanca.classList.remove('opacity-60', 'pointer-events-none');
+        blocoGovernanca.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = false);
+      }
       // ANTES DE REGISTRAR (OU LIBERADO PELO GERENTE):
       if (opSelect) {
         opSelect.disabled = false;
@@ -1830,18 +1847,32 @@ window.salesModule = {
                           Liberado para Envio
                         </span>
                       </div>
-                    <!-- CAMPO DO WHATSAPP DO CLIENTE LOGO ACIMA DO LINK -->
-                    <div class="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-2">
+                    <!-- CAMPO DO WHATSAPP DO CLIENTE LOGO ACIMA DO LINK COM TELEFONES STANDBY (IMAGEM 1) -->
+                    <div class="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-700 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-2">
                       <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
                         <label class="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide shrink-0">
                           WhatsApp do Cliente:
                         </label>
-                        <input type="text" id="order-client-whatsapp-input" value="${order ? (order.telefone_autorizacao || (foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : '') || order.cliente_telefone || '') : ((foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : ''))}" placeholder="(00) 0 0000-0000" oninput="salesModule.formatPhoneMask(this)" class="w-full sm:w-56 px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-400">
+                        <input type="text" id="order-client-whatsapp-input" value="${order ? (order.telefone_autorizacao || (foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : '') || order.cliente_telefone || '') : ((foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : ''))}" placeholder="(00) 0 0000-0000" oninput="salesModule.formatPhoneMask(this)" class="w-full sm:w-52 px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-400">
+                        <button type="button" onclick="salesModule.saveClientAdditionalPhone('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs" title="Salva novo telefone no cadastro e grava no histórico do cliente">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                          + Novo Telefone
+                        </button>
                       </div>
-                      <button type="button" onclick="salesModule.saveClientAdditionalPhone('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0" title="Salva novo telefone no cadastro e grava no histórico do cliente">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Novo Telefone
-                      </button>
+
+                      <!-- Quadro Laranja ao Lado: 3 Linhas Standby de Telefones Alternativos -->
+                      <div class="shrink-0 w-full md:w-64 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-2 shadow-2xs">
+                        <div class="flex items-center justify-between mb-1 border-b border-amber-200/80 pb-0.5">
+                          <span class="text-[10px] font-black uppercase text-amber-900 dark:text-amber-300 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            Telefones Standby
+                          </span>
+                          <span class="text-[9px] text-amber-700 dark:text-amber-400 font-semibold">Clique para alternar</span>
+                        </div>
+                        <div id="standby-phones-list" class="space-y-1">
+                          ${this.renderStandbyPhonesHtml(foundClient ? foundClient.id : initialClientId)}
+                        </div>
+                      </div>
                     </div>
 
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -2492,20 +2523,19 @@ window.salesModule = {
 
     const modalHtml = `
       <div id="finance-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-6xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
           <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
             <h3 class="font-black text-xl text-yellow-600 dark:text-yellow-400 uppercase tracking-wide flex items-center gap-2">
               <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
               Recebimento Financeiro & Caixa
             </h3>
-            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-yellow-100 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-300 rounded-lg">Pedido #${orderIdStr}</span>
+            <span class="text-sm sm:text-base font-mono font-black px-3.5 py-1.5 bg-yellow-100 text-yellow-950 dark:bg-yellow-950 dark:text-yellow-300 rounded-xl border border-yellow-300 shadow-xs">Pedido #${orderIdStr}</span>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <!-- COLUNA ESQUERDA: FORMULÁRIO DE RECEBIMENTO E PARCELAMENTO (lg:col-span-6) -->
-            <div class="lg:col-span-6 space-y-3">
+            <!-- COLUNA ESQUERDA: FORMULÁRIO DE RECEBIMENTO E PARCELAMENTO (lg:col-span-5) -->
+            <div class="lg:col-span-5 space-y-3">
               <div class="space-y-1.5 text-xs text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                <div class="flex justify-between"><strong>ID do Pedido:</strong> <span class="font-mono bg-white dark:bg-slate-900 px-2 rounded border border-slate-300 dark:border-slate-700 shadow-sm">#${orderIdStr}</span></div>
                 <div class="flex justify-between"><strong>Cliente:</strong> <span class="font-bold text-blue-800 dark:text-blue-300">${clientName}</span></div>
                 <div class="flex justify-between"><strong>Data:</strong> <span>${dateStr}</span></div>
               </div>
@@ -2514,10 +2544,10 @@ window.salesModule = {
                 <span>Valor do Pedido:</span> <span class="font-mono">R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
               
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <div>
                   <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Meio de Pagto</label>
-                  <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none'; salesModule.updateModalRestante();">
+                  <select id="fm-metodo" class="w-full h-12 p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none'; salesModule.updateModalRestante();">
                     <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
                     <option value="Cartão de crédito / A vista" ${metodoAtual === 'Cartão de crédito / A vista' ? 'selected' : ''}>Cartão de crédito / A vista</option>
                     <option value="Cartão de crédito / Parcelado" ${metodoAtual === 'Cartão de crédito / Parcelado' ? 'selected' : ''}>Cartão de crédito / Parcelado</option>
@@ -2528,7 +2558,7 @@ window.salesModule = {
                 </div>
                 <div>
                   <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Valor Recebido R$</label>
-                  <input type="text" id="fm-recebido" class="w-full p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-right bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
+                  <input type="text" id="fm-recebido" class="w-full h-12 p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-right bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
                   <p id="fm-recebido-aviso" class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 hidden text-right">⚠️ Não pode ultrapassar o total do pedido.</p>
                 </div>
               </div>
@@ -2639,9 +2669,9 @@ window.salesModule = {
               </div>
             </div>
 
-            <!-- COLUNA DIREITA: GRID DE RECIBOS CONFIRMADOS DO PEDIDO (lg:col-span-6) -->
+            <!-- COLUNA DIREITA: GRID DE RECIBOS CONFIRMADOS DO PEDIDO (lg:col-span-7) -->
             <!-- REGRA IMAGEM 1: Confirma o valor e só depois de confirmar este recibo vai para um grid com ID Venda, ID Recibo, Data, Tipo Pagto, Valor e ao lado na linha o botão Emitir Recibo -->
-            <div class="lg:col-span-6 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-5">
+            <div class="lg:col-span-7 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-5">
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="text-xs font-black uppercase text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -4024,65 +4054,198 @@ window.salesModule = {
       if (!this.activeItems || this.activeItems.length === 0) {
         return `<tr><td colspan="8" class="p-4 text-center text-slate-400 font-semibold bg-slate-50">Nenhum item adicionado ao pedido.</td></tr>`;
       }
-      return this.activeItems.map((it, idx) => `
-        <tr class="border-b hover:bg-slate-50 transition ${it.liberado_os === false ? 'bg-amber-50/50 opacity-90' : ''}">
-          <td class="p-3 text-center">
-            <input type="checkbox" ${it.liberado_os !== false ? 'checked' : ''} onchange="salesModule.toggleItemOs(${idx}, this.checked)" title="Liberar item para O.S. (Desmarque para reter)" class="item-os-check w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
-          </td>
-          <td class="p-3">
-            <div class="flex items-center gap-3">
-              ${it.arte_url 
-                ? `<div class="relative group cursor-pointer flex-shrink-0" onclick="salesModule.viewItemDetails(${idx})" title="Clique para ver arte ampliada">
-                     <img src="${it.arte_url}" class="w-12 h-12 object-cover rounded-lg border-2 border-blue-400 shadow-sm group-hover:scale-105 transition-transform">
-                     <span class="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-0.5 text-[8px]" title="Arte Anexada">🔍</span>
-                   </div>` 
-                : `<div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-[9px] text-slate-400 flex-shrink-0 font-bold">
-                     <span>SEM</span><span>ARTE</span>
-                   </div>`
-              }
-              <div>
-                <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
-                  <span class="text-[10px] font-mono ${it.liberado_os !== false ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'} border px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200 transition" onclick="salesModule.isolateItemForOs(${idx})" title="Clique para isolar este item na O.S. / visualização">#${String(it.item_id || '----').replace(/^#+/, '')}</span>
-                  ${it.produto_nome || ''}
-                  ${it.liberado_os === false ? '<span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Aguardando Liberação</span>' : ''}
+      return this.activeItems.map((it, idx) => {
+        const isInlineEditing = (this.editingItemInlineIdx === idx);
+
+        if (isInlineEditing) {
+          // Linha no Modo de Edição Inline (Imagem 3: Descrição, Dimensões e Quantidade abertos para edição no local)
+          const isM2 = it.tipo_calculo === 'm2';
+          const isLinear = it.tipo_calculo === 'linear';
+
+          return `
+            <tr class="border-b bg-amber-50/70 border-amber-300 transition ring-2 ring-amber-400">
+              <td class="p-3 text-center">
+                <input type="checkbox" ${it.liberado_os !== false ? 'checked' : ''} onchange="salesModule.toggleItemOs(${idx}, this.checked)" title="Liberar item para O.S." class="item-os-check w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
+              </td>
+              <td class="p-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-10 h-10 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center font-bold text-amber-800 text-[10px] shrink-0">
+                    EDIT
+                  </div>
+                  <div class="w-full space-y-1">
+                    <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                      <span class="text-[10px] font-mono bg-blue-100 text-blue-800 border border-blue-300 px-1.5 py-0.5 rounded font-black">#${String(it.item_id || '----').replace(/^#+/, '')}</span>
+                      <span class="font-bold text-slate-800">${it.produto_nome || ''}</span>
+                    </div>
+                    <input type="text" id="inline-desc-${idx}" value="${escapeHtml(it.descricao || '')}" class="w-full px-2 py-1 text-xs border border-amber-400 rounded bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner" placeholder="Descrição / Detalhes do item">
+                  </div>
                 </div>
-                <div class="text-[11px] text-slate-500 font-medium mt-0.5">${it.descricao}</div>
+              </td>
+              <td class="p-3 font-mono text-xs">
+                ${isM2 ? `
+                  <div class="flex items-center gap-1">
+                    <input type="number" step="0.01" id="inline-largura-${idx}" value="${it.largura_x || 0}" class="w-14 px-1.5 py-1 text-xs text-center border border-amber-400 rounded bg-white font-mono font-bold focus:ring-1 focus:ring-amber-500" title="Largura (m)">
+                    <span class="font-bold text-slate-400">x</span>
+                    <input type="number" step="0.01" id="inline-comprimento-${idx}" value="${it.comprimento_y || 0}" class="w-14 px-1.5 py-1 text-xs text-center border border-amber-400 rounded bg-white font-mono font-bold focus:ring-1 focus:ring-amber-500" title="Comprimento (m)">
+                  </div>
+                ` : (isLinear ? `
+                  <div class="flex items-center gap-1">
+                    <input type="number" step="0.01" id="inline-largura-${idx}" value="${it.largura_x || 0}" class="w-16 px-1.5 py-1 text-xs text-center border border-amber-400 rounded bg-white font-mono font-bold focus:ring-1 focus:ring-amber-500" title="Metros Lineares">
+                    <span class="text-[10px] text-slate-500 font-bold">m lin</span>
+                  </div>
+                ` : `
+                  <span class="text-xs text-slate-500 italic">${it.tipo_calculo || 'Unidade'}</span>
+                `)}
+              </td>
+              <td class="p-3 text-center">
+                <input type="number" step="1" min="1" id="inline-qtd-${idx}" value="${it.quantidade || 1}" class="w-14 px-1.5 py-1 text-xs text-center border border-amber-400 rounded bg-white font-mono font-black text-blue-700 focus:ring-1 focus:ring-amber-500" title="Quantidade">
+              </td>
+              <td class="p-3 font-mono text-xs text-purple-700 font-bold">${
+                it.tipo_calculo === 'm2' ? ((it.area_m2 || (it.largura_x * it.comprimento_y)) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' :
+                (it.tipo_calculo === 'linear' ? ((it.largura_x || 0) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m' : '-')
+              }</td>
+              <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td class="p-3 text-right">
+                <div class="flex justify-end gap-1.5 items-center">
+                  <!-- Botão Salvar Edição Inline (Verde) -->
+                  <button type="button" onclick="salesModule.saveInlineItemEdit(${idx})" class="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center transition cursor-pointer" title="Gravar alterações deste item">
+                    <svg class="w-4 h-4 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                  </button>
+                  <!-- Botão Cancelar Edição Inline (Cinza) -->
+                  <button type="button" onclick="salesModule.cancelInlineItemEdit()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Cancelar edição deste item">
+                    <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                  <!-- Botão Excluir Item (Permitido mesmo durante edição inline) -->
+                  <button type="button" onclick="salesModule.confirmRemoveItem(${idx})" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Excluir Item">
+                    <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+
+        return `
+          <tr class="border-b hover:bg-slate-50 transition ${it.liberado_os === false ? 'bg-amber-50/50 opacity-90' : ''}">
+            <td class="p-3 text-center">
+              <input type="checkbox" ${it.liberado_os !== false ? 'checked' : ''} onchange="salesModule.toggleItemOs(${idx}, this.checked)" title="Liberar item para O.S. (Desmarque para reter)" class="item-os-check w-4 h-4 rounded border-slate-300 cursor-pointer accent-blue-600">
+            </td>
+            <td class="p-3">
+              <div class="flex items-center gap-3">
+                ${it.arte_url 
+                  ? `<div class="relative group cursor-pointer flex-shrink-0" onclick="salesModule.viewItemDetails(${idx})" title="Clique para ver arte ampliada">
+                       <img src="${it.arte_url}" class="w-12 h-12 object-cover rounded-lg border-2 border-blue-400 shadow-sm group-hover:scale-105 transition-transform">
+                       <span class="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-0.5 text-[8px]" title="Arte Anexada">🔍</span>
+                     </div>` 
+                  : `<div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-[9px] text-slate-400 flex-shrink-0 font-bold">
+                       <span>SEM</span><span>ARTE</span>
+                     </div>`
+                }
+                <div>
+                  <div class="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-mono ${it.liberado_os !== false ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'} border px-1.5 py-0.5 rounded font-black cursor-pointer hover:bg-blue-200 transition" onclick="salesModule.isolateItemForOs(${idx})" title="Clique para isolar este item na O.S. / visualização">#${String(it.item_id || '----').replace(/^#+/, '')}</span>
+                    ${it.produto_nome || ''}
+                    ${it.liberado_os === false ? '<span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Aguardando Liberação</span>' : ''}
+                  </div>
+                  <div class="text-[11px] text-slate-500 font-medium mt-0.5">${it.descricao}</div>
+                </div>
               </div>
-            </div>
-          </td>
-          <td class="p-3 font-mono text-xs text-slate-700">${
-            it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` :
-            (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` :
-            (it.tipo_calculo === 'unidade' ? 'Unidade' :
-            (it.tipo_calculo === 'servico' ? 'Serviço' :
-            (it.tipo_calculo === 'diaria' ? 'Diária' :
-            (it.tipo_calculo === 'hora' ? 'Hora' :
-            (it.tipo_calculo === 'L' ? 'Litro (L)' : 'Unidade'))))))
-          }</td>
-          <td class="p-3 font-bold text-center text-xs">${it.quantidade}</td>
-          <td class="p-3 font-mono text-xs text-purple-700 font-bold">${
-            it.tipo_calculo === 'm2' ? ((it.area_m2 || (it.largura_x * it.comprimento_y)) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' :
-            (it.tipo_calculo === 'linear' ? ((it.largura_x || 0) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m' : '-')
-          }</td>
-          <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-          <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-          <td class="p-3 text-right">
-            ${((this.isOrderRegistered || this.isOrderLockedByApproval) && !this.isEditingActive) || this.isReadOnlyFinancial ? `
-              <span class="text-[11px] font-bold text-slate-400 italic">Travado</span>
-            ` : `
-              <div class="flex justify-end gap-1.5 items-center">
-                <button type="button" onclick="salesModule.editItem(${idx})" class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Editar Detalhes, Dimensões e Quantidade do Item">
-                  <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                </button>
-                <button type="button" onclick="salesModule.confirmRemoveItem(${idx})" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Excluir Item">
-                  <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
-              </div>
-            `}
-          </td>
-        </tr>
-      `).join('');
+            </td>
+            <td class="p-3 font-mono text-xs text-slate-700">${
+              it.tipo_calculo === 'm2' ? `${it.largura_x}m x ${it.comprimento_y}m` :
+              (it.tipo_calculo === 'linear' ? `${it.largura_x}m linear` :
+              (it.tipo_calculo === 'unidade' ? 'Unidade' :
+              (it.tipo_calculo === 'servico' ? 'Serviço' :
+              (it.tipo_calculo === 'diaria' ? 'Diária' :
+              (it.tipo_calculo === 'hora' ? 'Hora' :
+              (it.tipo_calculo === 'L' ? 'Litro (L)' : 'Unidade'))))))
+            }</td>
+            <td class="p-3 font-bold text-center text-xs">${it.quantidade}</td>
+            <td class="p-3 font-mono text-xs text-purple-700 font-bold">${
+              it.tipo_calculo === 'm2' ? ((it.area_m2 || (it.largura_x * it.comprimento_y)) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' :
+              (it.tipo_calculo === 'linear' ? ((it.largura_x || 0) * it.quantidade).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m' : '-')
+            }</td>
+            <td class="p-3 font-mono text-xs text-slate-700">R$ ${Number(it.preco_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3 font-bold text-blue-700 text-xs">R$ ${Number(it.valor_total).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3 text-right">
+              ${((this.isOrderRegistered || this.isOrderLockedByApproval) && !this.isEditingActive) || this.isReadOnlyFinancial ? `
+                <span class="text-[11px] font-bold text-slate-400 italic">Travado</span>
+              ` : `
+                <div class="flex justify-end gap-1.5 items-center">
+                  <button type="button" onclick="salesModule.startInlineItemEdit(${idx})" class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Editar este item na linha (Descrição, Dimensões e Quantidade)">
+                    <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                  </button>
+                  <button type="button" onclick="salesModule.confirmRemoveItem(${idx})" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs flex items-center justify-center transition cursor-pointer" title="Excluir Item">
+                    <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </div>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
     },
+
+    startInlineItemEdit(idx) {
+      this.editingItemInlineIdx = idx;
+      const tbody = document.getElementById('order-items-tbody');
+      if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+      const descInput = document.getElementById(`inline-desc-${idx}`);
+      if (descInput) {
+        descInput.focus();
+        descInput.select();
+      }
+    },
+
+    cancelInlineItemEdit() {
+      this.editingItemInlineIdx = null;
+      const tbody = document.getElementById('order-items-tbody');
+      if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+    },
+
+    saveInlineItemEdit(idx) {
+      const it = this.activeItems ? this.activeItems[idx] : null;
+      if (!it) {
+        this.cancelInlineItemEdit();
+        return;
+      }
+
+      const descInput = document.getElementById(`inline-desc-${idx}`);
+      const largInput = document.getElementById(`inline-largura-${idx}`);
+      const compInput = document.getElementById(`inline-comprimento-${idx}`);
+      const qtdInput = document.getElementById(`inline-qtd-${idx}`);
+
+      if (descInput) {
+        it.descricao = descInput.value.trim() || it.descricao;
+      }
+
+      if (qtdInput) {
+        const novaQtd = parseInt(qtdInput.value) || 1;
+        it.quantidade = Math.max(1, novaQtd);
+      }
+
+      if (it.tipo_calculo === 'm2') {
+        if (largInput) it.largura_x = parseFloat(largInput.value) || it.largura_x || 0;
+        if (compInput) it.comprimento_y = parseFloat(compInput.value) || it.comprimento_y || 0;
+        it.area_m2 = (it.largura_x * it.comprimento_y);
+        it.area_total = it.area_m2 * it.quantidade;
+        it.valor_total = it.area_total * (parseFloat(it.preco_unitario) || 0);
+      } else if (it.tipo_calculo === 'linear') {
+        if (largInput) it.largura_x = parseFloat(largInput.value) || it.largura_x || 0;
+        it.area_total = it.largura_x * it.quantidade;
+        it.valor_total = it.area_total * (parseFloat(it.preco_unitario) || 0);
+      } else {
+        it.valor_total = it.quantidade * (parseFloat(it.preco_unitario) || 0);
+      }
+
+      this.editingItemInlineIdx = null;
+      const tbody = document.getElementById('order-items-tbody');
+      if (tbody) tbody.innerHTML = this.renderActiveItemsHtml();
+      this.recalcTotals();
+      this.updateOsStatusInfo();
+    },
+
   formatCurrencyInput(input, source = 'entrada') {
     if (!input) return;
     const clean = String(input.value || '').trim().replace(/\./g, '').replace(',', '.');
@@ -7416,6 +7579,123 @@ window.salesModule = {
       window.grafsisAlert(`✅ Telefone registrado com sucesso no cadastro do cliente!\n\nNúmero: ${rawVal}\nRegistrado em: ${formattedDate}\nVínculo: ${orderDisplay}\nCliente: ${client.nome || 'Cliente'}`, 'GRAFSIS');
     } else {
       alert(`Telefone ${rawVal} registrado com sucesso para ${client.nome || 'o cliente'}!`);
+    }
+
+    // Atualiza a lista de telefones standby na tela
+    const standbyContainer = document.getElementById('standby-phones-list');
+    if (standbyContainer) {
+      standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+  },
+
+  renderStandbyPhonesHtml(clientId) {
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
+    if (!client) {
+      const selectClient = document.querySelector('select[name="cliente_id"]');
+      if (selectClient && selectClient.value) {
+        client = window.store?.getClients()?.find(c => String(c.id) === String(selectClient.value));
+      }
+    }
+
+    let adicionais = [];
+    if (client && Array.isArray(client.telefones_adicionais)) {
+      adicionais = client.telefones_adicionais.map(t => typeof t === 'object' ? (t.telefone || '') : String(t)).filter(Boolean);
+    }
+
+    // Remove duplicatas e número principal atual do input
+    const currentInputVal = document.getElementById('order-client-whatsapp-input')?.value || (client?.telefone_whatsapp || '');
+    const cleanCurrent = currentInputVal.replace(/\D/g, '');
+    const uniqueStandbys = [];
+    adicionais.forEach(t => {
+      const clean = t.replace(/\D/g, '');
+      if (clean && clean !== cleanCurrent && !uniqueStandbys.some(u => u.replace(/\D/g, '') === clean)) {
+        uniqueStandbys.push(t);
+      }
+    });
+
+    const lines = [];
+    for (let i = 0; i < 3; i++) {
+      const phone = uniqueStandbys[i];
+      if (phone) {
+        lines.push(`
+          <div onclick="salesModule.swapClientPhone(${i}, '${client ? client.id : ''}')" class="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 rounded text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 cursor-pointer transition group" title="Clique para trocar este número para o WhatsApp principal">
+            <span class="truncate group-hover:text-amber-800 dark:group-hover:text-amber-300">📞 ${phone}</span>
+            <span class="text-[9px] font-sans text-amber-600 dark:text-amber-400 font-extrabold uppercase ml-1 shrink-0">Usar ⇄</span>
+          </div>
+        `);
+      } else {
+        lines.push(`
+          <div class="px-2 py-1 bg-white/40 dark:bg-slate-900/40 border border-dashed border-amber-200/60 dark:border-amber-800/60 rounded text-[10px] text-amber-700/60 dark:text-amber-400/60 italic flex items-center justify-between">
+            <span>Standby ${i + 1}: (vazio)</span>
+            <span class="text-[8px] font-normal uppercase">Livre</span>
+          </div>
+        `);
+      }
+    }
+    return lines.join('');
+  },
+
+  async swapClientPhone(index, clientId) {
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
+    if (!client) {
+      const selectClient = document.querySelector('select[name="cliente_id"]');
+      if (selectClient && selectClient.value) {
+        client = window.store?.getClients()?.find(c => String(c.id) === String(selectClient.value));
+      }
+    }
+    if (!client) {
+      alert('Cliente não identificado para realizar a troca de telefone.');
+      return;
+    }
+
+    const input = document.getElementById('order-client-whatsapp-input');
+    const currentPrincipal = input ? input.value.trim() : (client.telefone_whatsapp || '');
+
+    let adicionais = Array.isArray(client.telefones_adicionais) ? [...client.telefones_adicionais] : [];
+    // Filtra únicos diferentes do principal
+    const cleanCurrent = currentPrincipal.replace(/\D/g, '');
+    const standbyEntries = [];
+    adicionais.forEach((t, origIdx) => {
+      const phoneStr = typeof t === 'object' ? (t.telefone || '') : String(t);
+      const clean = phoneStr.replace(/\D/g, '');
+      if (clean && clean !== cleanCurrent && !standbyEntries.some(e => e.phone.replace(/\D/g, '') === clean)) {
+        standbyEntries.push({ phone: phoneStr, origIdx, entry: t });
+      }
+    });
+
+    const target = standbyEntries[index];
+    if (!target) return;
+
+    const novoPrincipal = target.phone;
+    if (input) input.value = novoPrincipal;
+
+    // Atualiza cadastro do cliente: novo principal e coloca o antigo no array
+    client.telefone_whatsapp = novoPrincipal;
+    if (currentPrincipal) {
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      // Substitui a entrada antiga ou acrescenta
+      if (typeof target.entry === 'object') {
+        client.telefones_adicionais[target.origIdx] = {
+          ...target.entry,
+          telefone: currentPrincipal,
+          data_hora: formattedDate
+        };
+      } else {
+        client.telefones_adicionais[target.origIdx] = currentPrincipal;
+      }
+    }
+
+    await window.store.saveClient(client);
+
+    // Atualiza container standby na tela
+    const standbyContainer = document.getElementById('standby-phones-list');
+    if (standbyContainer) {
+      standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+
+    if (window.grafsisAlert) {
+      window.grafsisAlert(`🔄 Telefone alternado com sucesso!\n\nNovo WhatsApp Principal: ${novoPrincipal}\nTelefone anterior mantido em standby: ${currentPrincipal}`, 'GRAFSIS');
     }
   }
 
