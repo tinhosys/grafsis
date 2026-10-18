@@ -1,11 +1,41 @@
 window.financeModule = {
+  filters: {
+    startDate: '',
+    endDate: '',
+    tipo: 'todos'
+  },
+
   render() {
-    const finance = window.store.getFinance();
+    const allFinance = window.store.getFinance();
     const container = document.getElementById('view-container');
 
-    const totalReceber = finance.filter(f => f.tipo === 'receber' && f.status !== 'pago').reduce((a, b) => a + (parseFloat(b.valor)||0), 0);
-    const totalPagar = finance.filter(f => f.tipo === 'pagar' && f.status !== 'pago').reduce((a, b) => a + (parseFloat(b.valor)||0), 0);
+    // Identificação de permissão para exclusão (Imagem 4: somente o perfil proprietário ou admin do sistema enxerga a exclusão)
+    const currentUser = (window.authModule && window.authModule.getCurrentUser ? window.authModule.getCurrentUser() : null) || {};
+    const userRole = String(currentUser.role || currentUser.tipo || currentUser.perfil || '').toLowerCase();
+    const canDeleteFinance = (userRole === 'proprietario' || userRole === 'admin' || userRole === 'gerente');
+
+    // Totais globais
+    const totalReceber = allFinance.filter(f => f.tipo === 'receber' && f.status !== 'pago').reduce((a, b) => a + (parseFloat(b.valor)||0), 0);
+    const totalPagar = allFinance.filter(f => f.tipo === 'pagar' && f.status !== 'pago').reduce((a, b) => a + (parseFloat(b.valor)||0), 0);
     const saldo = totalReceber - totalPagar;
+
+    // Aplicação dos filtros do topo (Imagem 4: período de busca X e Y, combo a receber / a pagar / todos)
+    let filteredFinance = allFinance;
+    if (this.filters.tipo && this.filters.tipo !== 'todos') {
+      filteredFinance = filteredFinance.filter(f => f.tipo === this.filters.tipo);
+    }
+    if (this.filters.startDate) {
+      filteredFinance = filteredFinance.filter(f => {
+        const d = (f.data_vencimento || f.data_pagamento || '').slice(0, 10);
+        return d >= this.filters.startDate;
+      });
+    }
+    if (this.filters.endDate) {
+      filteredFinance = filteredFinance.filter(f => {
+        const d = (f.data_vencimento || f.data_pagamento || '').slice(0, 10);
+        return d <= this.filters.endDate;
+      });
+    }
 
     container.innerHTML = `
       <div class="space-y-6">
@@ -27,16 +57,45 @@ window.financeModule = {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-right">
             <span class="text-xs text-slate-500 font-semibold uppercase block text-left">Total a Receber</span>
-            <h3 class="text-2xl font-black text-emerald-600 mt-1 text-right">R$ ${totalReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+            <h3 class="text-2xl font-black text-emerald-600 mt-1 text-right font-mono">R$ ${totalReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-right">
             <span class="text-xs text-slate-500 font-semibold uppercase block text-left">Total a Pagar</span>
-            <h3 class="text-2xl font-black text-rose-600 mt-1 text-right">R$ ${totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+            <h3 class="text-2xl font-black text-rose-600 mt-1 text-right font-mono">R$ ${totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm text-right">
             <span class="text-xs text-slate-500 font-semibold uppercase block text-left">Saldo Previsto</span>
-            <h3 class="text-2xl font-black ${saldo >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-1 text-right">R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+            <h3 class="text-2xl font-black ${saldo >= 0 ? 'text-blue-600' : 'text-amber-600'} mt-1 text-right font-mono">R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
+        </div>
+
+        <!-- BARRA DE FILTROS DE BUSCA: PERÍODO ENTRE X E Y, COMBO (A RECEBER, A PAGAR, TODOS) - IMAGEM 4 -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2 font-bold text-slate-700 uppercase">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+            <span>Filtro de Contas:</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1 max-w-2xl">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-0.5">Data Início (X)</label>
+              <input type="date" id="fin-filter-start" value="${this.filters.startDate || ''}" onchange="financeModule.setFilter('startDate', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-0.5">Data Fim (Y)</label>
+              <input type="date" id="fin-filter-end" value="${this.filters.endDate || ''}" onchange="financeModule.setFilter('endDate', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-0.5">Tipo de Conta</label>
+              <select id="fin-filter-tipo" onchange="financeModule.setFilter('tipo', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="todos" ${this.filters.tipo === 'todos' ? 'selected' : ''}>Todos os Lançamentos</option>
+                <option value="receber" ${this.filters.tipo === 'receber' ? 'selected' : ''}>A Receber</option>
+                <option value="pagar" ${this.filters.tipo === 'pagar' ? 'selected' : ''}>A Pagar</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" onclick="financeModule.clearFilters()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition cursor-pointer self-end md:self-auto">
+            Limpar Filtros
+          </button>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -47,14 +106,14 @@ window.financeModule = {
                   <th class="p-3">Tipo</th>
                   <th class="p-3">Descrição / Origem</th>
                   <th class="p-3">Vencimento</th>
-                  <th class="p-3">Valor</th>
+                  <th class="p-3 text-right">Valor</th>
                   <th class="p-3">Status</th>
                   <th class="p-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                ${finance.length === 0 ? `<tr><td colspan="6" class="p-8 text-center text-slate-400">Nenhum lançamento financeiro registrado</td></tr>` : ''}
-                ${finance.map(f => `
+                ${filteredFinance.length === 0 ? `<tr><td colspan="6" class="p-8 text-center text-slate-400">Nenhum lançamento financeiro localizado para os filtros informados.</td></tr>` : ''}
+                ${filteredFinance.map(f => `
                   <tr class="hover:bg-slate-50 transition">
                     <td class="p-3">
                       <span class="px-2 py-0.5 rounded text-xs font-bold ${f.tipo === 'receber' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
@@ -63,7 +122,8 @@ window.financeModule = {
                     </td>
                     <td class="p-3 font-semibold text-slate-800">${f.descricao}</td>
                     <td class="p-3 font-mono text-xs">${f.data_vencimento ? f.data_vencimento.split('-').reverse().join('/') : '-'}</td>
-                    <td class="p-3 font-bold font-mono ${f.tipo === 'receber' ? 'text-emerald-700' : 'text-rose-700'}">
+                    <!-- IMAGEM 4: Alinhamento do valor na linha verde à direita sempre (text-right) -->
+                    <td class="p-3 text-right font-bold font-mono ${f.tipo === 'receber' ? 'text-emerald-700' : 'text-rose-700'}">
                       R$ ${Number(f.valor||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td class="p-3">
@@ -72,15 +132,18 @@ window.financeModule = {
                       </span>
                     </td>
                     <td class="p-3 text-right">
-                      <div class="inline-flex gap-2">
+                      <div class="inline-flex gap-2 items-center">
                         ${f.status !== 'pago' ? `
-                          <button onclick="financeModule.markPaid('${f.id}')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded font-semibold border border-emerald-200">
+                          <button onclick="financeModule.markPaid('${f.id}')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded font-semibold border border-emerald-200 cursor-pointer">
                             Dar Baixa
                           </button>
                         ` : ''}
-                        <button onclick="financeModule.delete('${f.id}')" class="text-red-500 hover:text-red-700 p-1">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <!-- IMAGEM 4: Exclusão visível somente para o perfil proprietario e admin do sistema -->
+                        ${canDeleteFinance ? `
+                          <button onclick="financeModule.delete('${f.id}')" class="text-red-500 hover:text-red-700 p-1 cursor-pointer" title="Remover lançamento financeiro">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          </button>
+                        ` : ''}
                       </div>
                     </td>
                   </tr>
@@ -91,6 +154,16 @@ window.financeModule = {
         </div>
       </div>
     `;
+  },
+
+  setFilter(key, value) {
+    this.filters[key] = value;
+    this.render();
+  },
+
+  clearFilters() {
+    this.filters = { startDate: '', endDate: '', tipo: 'todos' };
+    this.render();
   },
 
   createExpenseForSupplier(suppId) {

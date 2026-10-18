@@ -21,7 +21,7 @@ window.salesModule = {
         <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <div class="relative flex items-center">
             <span class="absolute left-3 text-blue-500 font-mono font-black text-sm">#</span>
-            <input type="text" id="quick-order-search-id" placeholder="Buscar ID (ex: 260001)..." 
+            <input type="text" id="quick-order-search-id" placeholder="Busca por ID" 
               class="pl-7 pr-3 py-2 border-2 border-blue-300 dark:border-blue-700 rounded-xl text-sm font-mono font-bold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm w-44 sm:w-56"
               onkeydown="if(event.key==='Enter'){ salesModule.searchAndOpenOrderById(this.value); }">
           </div>
@@ -460,7 +460,14 @@ window.salesModule = {
   },
 
   updateDateFromDays() {
-    const days = parseInt(document.getElementById('dias-entrega')?.value) || 0;
+    let days = parseInt(document.getElementById('dias-entrega')?.value);
+    if (isNaN(days) || days < 0) days = 0;
+    if (days > 90) {
+      alert('Atenção: O prazo de entrega não pode ser superior a 90 dias.');
+      days = 90;
+      const daysInput = document.getElementById('dias-entrega');
+      if (daysInput) daysInput.value = 90;
+    }
     const date = new Date();
     date.setDate(date.getDate() + days);
     const dataInput = document.getElementById('previsao_entrega');
@@ -474,9 +481,17 @@ window.salesModule = {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffTime = targetDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) diffDays = 0;
+    if (diffDays > 90) {
+      alert('Atenção: A previsão de entrega não pode ultrapassar 90 dias.');
+      diffDays = 90;
+      const dMax = new Date(today);
+      dMax.setDate(dMax.getDate() + 90);
+      dataInput.value = dMax.toISOString().split('T')[0];
+    }
     const daysInput = document.getElementById('dias-entrega');
-    if (daysInput) daysInput.value = Math.max(0, diffDays);
+    if (daysInput) daysInput.value = diffDays;
   },
 
   updateValidadeDateFromDays() {
@@ -859,17 +874,20 @@ window.salesModule = {
     }
 
     // 7. Botão Emitir O.S. (Laranja)
-    // Liberada somente após aprovação e restrita a Venda, Patrocínio ou Permuta
+    // REGRA IMAGEM 2: Só habilita depois que a operação/pedido estiver REGISTRADA (isRegistered).
+    // Fora isso, a O.S. sempre estará enable = false (disabled = true).
     if (btnEmitirOS) {
       const isLiberadaOS = (op === 'venda' || op === 'patrocinio' || op === 'permuta');
-      if (isLiberadaOS) {
+      if (isRegistered && isLiberadaOS) {
         btnEmitirOS.disabled = false;
         btnEmitirOS.className = "w-full h-12 text-sm font-bold text-orange-950 bg-orange-200 hover:bg-orange-300 rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer";
         btnEmitirOS.title = "Emitir Ordem de Serviço Técnica em A4 Paisagem (chão de fábrica sem valores financeiros)";
       } else {
         btnEmitirOS.disabled = true;
         btnEmitirOS.className = "w-full h-12 text-sm font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl transition shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-60";
-        btnEmitirOS.title = "Emissão de O.S. liberada exclusivamente para Venda, Patrocínio ou Permuta (Orçamento e Pré-Venda não emitem O.S.)";
+        btnEmitirOS.title = !isRegistered 
+          ? "Emissão de O.S. desabilitada: É necessário antes Registrar a Operação no sistema."
+          : "Emissão de O.S. liberada exclusivamente para Venda, Patrocínio ou Permuta (Orçamento e Pré-Venda não emitem O.S.)";
       }
     }
 
@@ -1559,7 +1577,7 @@ window.salesModule = {
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Prazo de Entrega (Dias)</label>
-                    <input type="number" id="dias-entrega" min="0" oninput="salesModule.updateDateFromDays()" placeholder="Ex: 5" value="${order && order.dias_entrega ? order.dias_entrega : ''}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold">
+                    <input type="number" id="dias-entrega" min="0" max="90" oninput="salesModule.updateDateFromDays()" placeholder="Padrão: 1" value="${order && (order.dias_entrega != null) ? order.dias_entrega : '1'}" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-bold text-center">
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Previsão de Entrega</label>
@@ -1641,42 +1659,42 @@ window.salesModule = {
 
                 <div class="space-y-3 bg-blue-50/30 p-4 rounded-xl border border-blue-100" id="secao-fechamento-financeiro">
                   <h3 class="text-sm font-bold text-slate-800 uppercase border-b pb-2">Fechamento Financeiro</h3>
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-slate-600">Subtotal:</span>
-                    <span class="text-sm font-mono font-bold text-slate-800" id="order-subtotal">R$ 0,00</span>
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="font-semibold text-slate-600">Subtotal:</span>
+                    <span class="font-mono font-bold text-slate-800 text-right" id="order-subtotal">R$ 0,00</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-slate-600">Desconto (%):</span>
-                    <input type="number" step="0.01" id="order-discount-perc" value="0" oninput="salesModule.recalcTotals('perc')" class="w-20 p-1.5 border rounded-lg text-center font-mono text-sm bg-white text-purple-700 font-bold">
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="font-semibold text-slate-600">Desconto (%):</span>
+                    <input type="number" step="0.01" id="order-discount-perc" value="0" oninput="salesModule.recalcTotals('perc')" class="w-24 p-1.5 border rounded-lg text-right font-mono text-sm bg-white text-purple-700 font-bold">
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-slate-600">Desconto (R$):</span>
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="font-semibold text-slate-600">Desconto (R$):</span>
                     <input type="text" id="order-discount" value="${Number(order ? (order.desconto || 0) : 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" placeholder="0,00" oninput="salesModule.recalcTotals('val')" onblur="salesModule.formatCurrencyInput(this, 'val')" class="w-28 p-1.5 border rounded-lg text-right font-mono text-sm bg-white font-bold text-slate-800 focus:ring-2 focus:ring-blue-400">
                   </div>
                   <div class="flex justify-between items-center pt-2 border-t border-blue-200">
                     <span class="text-base font-black text-blue-900">Total Final:</span>
-                    <span class="text-xl font-black text-blue-700 font-mono" id="order-total-final">R$ 0,00</span>
+                    <span class="text-xl font-black text-blue-700 font-mono text-right" id="order-total-final">R$ 0,00</span>
                   </div>
                   
-                  <!-- ENTRADA DIRETA NO FORMULÁRIO (Imagem 3: Padrão ###.###,00 Sempre com 2 Casas Decimais) -->
+                  <!-- ENTRADA DIRETA NO FORMULÁRIO (Imagem 3: Padrão ###.###,00 Sempre com 2 Casas Decimais e Alinhamento à Direita) -->
                   <div class="bg-white p-3 rounded-xl border border-blue-200 space-y-2 mt-2">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center text-sm">
                       <div>
                         <span class="text-xs font-black text-emerald-800 uppercase block">Valor de Entrada (R$):</span>
                         <span class="text-[10px] text-slate-400">Sinal pago no ato</span>
                       </div>
                       <input type="text" id="order-valor-entrada" value="${Number(order ? (order.valor_entrada || order.valor_recebido || 0) : 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" placeholder="0,00" oninput="salesModule.recalcTotals('entrada')" onblur="salesModule.formatCurrencyInput(this, 'entrada')" class="w-28 p-1.5 border-2 border-emerald-400 rounded-lg text-right font-mono text-sm bg-emerald-50 text-emerald-800 font-black focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-slate-100">
+                    <div class="flex justify-between items-center pt-1 border-t border-slate-100 text-sm">
                       <span class="text-xs font-bold text-slate-600 uppercase">Saldo a Pagar (Falta):</span>
-                      <span class="text-base font-black text-rose-600 font-mono" id="order-saldo-restante">R$ 0,00</span>
+                      <span class="text-base font-black text-rose-600 font-mono text-right" id="order-saldo-restante">R$ 0,00</span>
                     </div>
                   </div>
 
                   <div class="mt-2 pt-2 border-t border-blue-100">
                     <div class="text-center mt-1 bg-green-50 p-2 rounded border border-green-100 hidden" id="finance-summary">
                       <span class="text-xs font-bold text-slate-600">Total Recebido:</span>
-                      <span class="text-sm font-black text-green-700" id="finance-received-text">R$ 0,00 (0%)</span>
+                      <span class="text-sm font-black text-green-700 font-mono" id="finance-received-text">R$ 0,00 (0%)</span>
                       <input type="hidden" id="order-valor-recebido" value="${order ? (order.valor_recebido || order.valor_entrada || 0) : 0}">
                       <input type="hidden" id="order-metodo-pagto" name="forma_pagamento" value="${order ? (order.forma_pagamento || '') : ''}">
                       <input type="hidden" id="order-obs-pagto" name="obs_pagto" value="${order ? (order.obs_pagto || '') : ''}">
@@ -1688,8 +1706,8 @@ window.salesModule = {
               <!-- BARRA DE BOTÕES & CONTROLE OPERACIONAL (Grid de 6 Botões Padronizados) -->
               <input type="hidden" name="status_fase" value="${order ? (order.status_fase || 'orcamento') : 'orcamento'}">
               <div class="pt-6 mt-4 border-t bg-slate-50 p-4 rounded-xl border border-slate-200" id="secao-botoes-acoes">
-                <!-- Seletor de Tipo de Aprovação Oficial (Antes do Registro) -->
-                <div class="mb-4 p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5" id="bloco-tipo-aprovacao-regra">
+                <!-- Seletor de Tipo de Aprovação Oficial (Antes do Registro) - 3 Opções Explícitas -->
+                <div class="mb-4 p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-2.5" id="bloco-tipo-aprovacao-regra">
                   <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full ${isRegistered ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}"></span>
                     <div>
@@ -1697,14 +1715,18 @@ window.salesModule = {
                       <span class="text-xs font-bold text-slate-800">Tipo de Aprovação para Registro Oficial:</span>
                     </div>
                   </div>
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-3 flex-wrap">
                     <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 hover:text-blue-600">
-                      <input type="radio" name="tipo_aprovacao_origem" id="aprov-radio-cliente" value="cliente" onchange="salesModule.handleApprovalOriginChange('cliente')" class="text-blue-600 focus:ring-blue-500" ${(!order || order.tipo_aprovacao_origem !== 'vendedor') ? 'checked' : ''} ${isRegistered ? 'disabled' : ''}>
-                      <span>Aprovação pelo Cliente</span>
+                      <input type="radio" name="tipo_aprovacao_origem" id="aprov-radio-loja" value="cliente_loja" onchange="salesModule.handleApprovalOriginChange('cliente_loja')" class="text-blue-600 focus:ring-blue-500" ${(!order || !order.tipo_aprovacao_origem || order.tipo_aprovacao_origem === 'cliente_loja' || order.tipo_aprovacao_origem === 'cliente') ? 'checked' : ''} ${isRegistered ? 'disabled' : ''}>
+                      <span>Liberação pelo cliente na loja</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 hover:text-blue-600">
+                      <input type="radio" name="tipo_aprovacao_origem" id="aprov-radio-online" value="cliente_online" onchange="salesModule.handleApprovalOriginChange('cliente_online')" class="text-blue-600 focus:ring-blue-500" ${(order && order.tipo_aprovacao_origem === 'cliente_online') ? 'checked' : ''} ${isRegistered ? 'disabled' : ''}>
+                      <span>Liberação pelo cliente online</span>
                     </label>
                     <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 hover:text-blue-600">
                       <input type="radio" name="tipo_aprovacao_origem" id="aprov-radio-vendedor" value="vendedor" onchange="salesModule.handleApprovalOriginChange('vendedor')" class="text-blue-600 focus:ring-blue-500" ${(order && order.tipo_aprovacao_origem === 'vendedor') ? 'checked' : ''} ${isRegistered ? 'disabled' : ''}>
-                      <span>Aprovação pelo Vendedor</span>
+                      <span>Liberação pelo vendedor</span>
                     </label>
                   </div>
                 </div>
@@ -1789,7 +1811,8 @@ window.salesModule = {
                   </div>
 
                   <!-- PADRÃO OFICIAL: ÁREA DO LINK DE APROVAÇÃO DO CLIENTE (MARCAÇÃO VERMELHA IMAGEM 5) -->
-                  <div id="secao-link-aprovacao-padrao" class="${isRegistered ? '' : 'hidden'} col-span-1 sm:col-span-3 mt-3 pt-3 border-t border-slate-200">
+                  <!-- REGRA IMAGEM 2: O link de aprovação pelo cliente SÓ APARECE se a opção 'Liberação pelo cliente online' for a escolhida -->
+                  <div id="secao-link-aprovacao-padrao" class="${(order && order.tipo_aprovacao_origem === 'cliente_online') ? '' : 'hidden'} col-span-1 sm:col-span-3 mt-3 pt-3 border-t border-slate-200">
                     <div class="p-3 bg-emerald-50/90 dark:bg-emerald-950/40 border-2 border-emerald-400 dark:border-emerald-600 rounded-xl shadow-xs transition-all">
                       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-emerald-200 dark:border-emerald-800">
                         <div class="flex items-center gap-2">
@@ -2459,156 +2482,204 @@ window.salesModule = {
 
     this.installmentsState = {};
 
+    // Recupera lista de recibos já confirmados para este pedido
+    const currentOrderId = this.currentEditingOrderId;
+    const allOrders = (window.store && window.store.getOrders()) || [];
+    const targetOrder = (currentOrderId && allOrders.find(o => String(o.id) === String(currentOrderId) || String(o.numero) === String(currentOrderId))) ||
+                        (orderIdStr && allOrders.find(o => String(o.numero) === String(orderIdStr)));
+    const recibosList = (targetOrder && targetOrder.recibos) ? targetOrder.recibos : (this.activeOrderRecibos || []);
+    this.activeOrderRecibos = recibosList;
+
     const modalHtml = `
       <div id="finance-modal" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
-          <h3 class="font-black text-xl text-yellow-600 dark:text-yellow-400 mb-3 border-b border-slate-200 dark:border-slate-800 pb-2 text-center uppercase tracking-wide">Recebimento Financeiro</h3>
-          
-          <div class="space-y-2 mb-3 text-xs sm:text-sm text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-            <div class="flex justify-between"><strong>ID do Pedido:</strong> <span class="font-mono bg-white dark:bg-slate-900 px-2 rounded border border-slate-300 dark:border-slate-700 shadow-sm">${orderIdStr}</span></div>
-            <div class="flex justify-between"><strong>Cliente:</strong> <span class="font-bold text-blue-800 dark:text-blue-300">${clientName}</span></div>
-            <div class="flex justify-between"><strong>Data:</strong> <span>${dateStr}</span></div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+            <h3 class="font-black text-xl text-yellow-600 dark:text-yellow-400 uppercase tracking-wide flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+              Recebimento Financeiro & Caixa
+            </h3>
+            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-yellow-100 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-300 rounded-lg">Pedido #${orderIdStr}</span>
           </div>
           
-          <div class="space-y-3">
-            <div class="flex justify-between items-center font-black text-base sm:text-lg text-slate-800 dark:text-white bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-200 dark:border-blue-800">
-              <span>Valor do Pedido:</span> <span>R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Meio de Pagto</label>
-                <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none'; salesModule.updateModalRestante();">
-                  <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
-                  <option value="Cartão de crédito / A vista" ${metodoAtual === 'Cartão de crédito / A vista' ? 'selected' : ''}>Cartão de crédito / A vista</option>
-                  <option value="Cartão de crédito / Parcelado" ${metodoAtual === 'Cartão de crédito / Parcelado' ? 'selected' : ''}>Cartão de crédito / Parcelado</option>
-                  <option value="Débito" ${metodoAtual === 'Débito' ? 'selected' : ''}>Débito</option>
-                  <option value="Pix" ${metodoAtual === 'Pix' ? 'selected' : ''}>Pix</option>
-                  <option value="Permuta" ${metodoAtual === 'Permuta' ? 'selected' : ''}>Permuta</option>
-                </select>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- COLUNA ESQUERDA: FORMULÁRIO DE RECEBIMENTO E PARCELAMENTO (lg:col-span-6) -->
+            <div class="lg:col-span-6 space-y-3">
+              <div class="space-y-1.5 text-xs text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div class="flex justify-between"><strong>ID do Pedido:</strong> <span class="font-mono bg-white dark:bg-slate-900 px-2 rounded border border-slate-300 dark:border-slate-700 shadow-sm">#${orderIdStr}</span></div>
+                <div class="flex justify-between"><strong>Cliente:</strong> <span class="font-bold text-blue-800 dark:text-blue-300">${clientName}</span></div>
+                <div class="flex justify-between"><strong>Data:</strong> <span>${dateStr}</span></div>
               </div>
-              <div>
-                <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Valor Recebido R$</label>
-                <input type="text" id="fm-recebido" class="w-full p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-center bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
-                <p id="fm-recebido-aviso" class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 hidden text-center">⚠️ O valor recebido não pode ultrapassar o total do pedido.</p>
+              
+              <div class="flex justify-between items-center font-black text-base text-slate-800 dark:text-white bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-200 dark:border-blue-800">
+                <span>Valor do Pedido:</span> <span class="font-mono">R$ ${finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
-            </div>
-
-            <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Limite de 60 Dias / 3x Parcelas -->
-            <div id="fm-parcelas-div" class="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700" style="display: ${metodoAtual.includes('Parcelado') ? 'block' : 'none'};">
-              <!-- Linha Verde Bandeira, Amarelo e Verde Limão -->
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                <!-- Verde Bandeira: Quantidade de Parcelas da Gráfica (Máximo 2x ou 3x) -->
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[11px] font-black mb-1 text-emerald-700 dark:text-emerald-400 uppercase tracking-tight flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-                    Parcelas (Máx ${maxGraficaParcelas}x)
-                  </label>
-                  <select id="fm-parcelas" class="w-full p-2 border-2 border-emerald-600 rounded-lg text-xs bg-white dark:bg-slate-800 font-black text-emerald-800 dark:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" onchange="salesModule.recalcInstallmentsGrid()">
-                    ${parcelasOptions}
+                  <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Meio de Pagto</label>
+                  <select id="fm-metodo" class="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none'; salesModule.updateModalRestante();">
+                    <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
+                    <option value="Cartão de crédito / A vista" ${metodoAtual === 'Cartão de crédito / A vista' ? 'selected' : ''}>Cartão de crédito / A vista</option>
+                    <option value="Cartão de crédito / Parcelado" ${metodoAtual === 'Cartão de crédito / Parcelado' ? 'selected' : ''}>Cartão de crédito / Parcelado</option>
+                    <option value="Débito" ${metodoAtual === 'Débito' ? 'selected' : ''}>Débito</option>
+                    <option value="Pix" ${metodoAtual === 'Pix' ? 'selected' : ''}>Pix</option>
+                    <option value="Permuta" ${metodoAtual === 'Permuta' ? 'selected' : ''}>Permuta</option>
                   </select>
                 </div>
-
-                <!-- Amarelo: Taxa de Juros Mensal ('0,0%' a 9,9% - padrão '0,0%') -->
                 <div>
-                  <label class="block text-[11px] font-black mb-1 text-amber-700 dark:text-amber-400 uppercase tracking-tight flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
-                    Juros (% a.m.)
-                  </label>
-                  <div class="relative">
-                    <input type="number" id="fm-juros" step="0.1" min="0.0" max="9.9" value="0.0" class="w-full p-2 pr-6 border-2 border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 dark:text-white rounded-lg font-black text-xs text-center focus:outline-none focus:ring-2 focus:ring-yellow-400" oninput="salesModule.recalcInstallmentsGrid()">
-                    <span class="absolute right-2 top-2 text-xs font-bold text-slate-500 pointer-events-none">%</span>
+                  <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Valor Recebido R$</label>
+                  <input type="text" id="fm-recebido" class="w-full p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-right bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
+                  <p id="fm-recebido-aviso" class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 hidden text-right">⚠️ Não pode ultrapassar o total do pedido.</p>
+                </div>
+              </div>
+
+              <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Limite de 60 Dias / 3x Parcelas -->
+              <div id="fm-parcelas-div" class="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700" style="display: ${metodoAtual.includes('Parcelado') ? 'block' : 'none'};">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div>
+                    <label class="block text-[11px] font-black mb-1 text-emerald-700 dark:text-emerald-400 uppercase tracking-tight flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
+                      Parcelas (Máx ${maxGraficaParcelas}x)
+                    </label>
+                    <select id="fm-parcelas" class="w-full p-2 border-2 border-emerald-600 rounded-lg text-xs bg-white dark:bg-slate-800 font-black text-emerald-800 dark:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" onchange="salesModule.recalcInstallmentsGrid()">
+                      ${parcelasOptions}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-black mb-1 text-amber-700 dark:text-amber-400 uppercase tracking-tight flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
+                      Juros (% a.m.)
+                    </label>
+                    <div class="relative">
+                      <input type="number" id="fm-juros" step="0.1" min="0.0" max="9.9" value="0.0" class="w-full p-2 pr-6 border-2 border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 dark:text-white rounded-lg font-black text-xs text-center focus:outline-none focus:ring-2 focus:ring-yellow-400" oninput="salesModule.recalcInstallmentsGrid()">
+                      <span class="absolute right-2 top-2 text-xs font-bold text-slate-500 pointer-events-none">%</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-black mb-1 text-lime-700 dark:text-lime-400 uppercase tracking-tight flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-lime-500 inline-block"></span>
+                      1ª Parcela (Até 60d)
+                    </label>
+                    <input type="date" id="fm-data-primeira-parcela" min="${minDataPrimeiraParcela}" max="${maxDataPrimeiraParcela}" value="${defaultDataPrimeiraParcela}" class="w-full p-1.5 border-2 border-lime-500 bg-lime-50/50 dark:bg-lime-950/20 dark:text-white rounded-lg font-bold text-xs focus:outline-none focus:ring-2 focus:ring-lime-400" onchange="salesModule.handleDataPrimeiraParcela(this)">
                   </div>
                 </div>
 
-                <!-- Verde Limão: Data da Primeira Parcela (Máximo 60 dias para iniciar) -->
-                <div>
-                  <label class="block text-[11px] font-black mb-1 text-lime-700 dark:text-lime-400 uppercase tracking-tight flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-lime-500 inline-block"></span>
-                    1ª Parcela (Até 60d)
-                  </label>
-                  <input type="date" id="fm-data-primeira-parcela" min="${minDataPrimeiraParcela}" max="${maxDataPrimeiraParcela}" value="${defaultDataPrimeiraParcela}" class="w-full p-1.5 border-2 border-lime-500 bg-lime-50/50 dark:bg-lime-950/20 dark:text-white rounded-lg font-bold text-xs focus:outline-none focus:ring-2 focus:ring-lime-400" onchange="salesModule.handleDataPrimeiraParcela(this)">
+                <div id="fm-carencia-info" class="p-2 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 flex justify-between items-center">
+                  <span id="fm-carencia-dias-label">Carência: 30 dias até o 1º pagamento</span>
+                  <span id="fm-carencia-juros-label" class="font-mono font-bold">Juros diários calculados</span>
+                </div>
+
+                <!-- A Grid das Parcelas -->
+                <div class="border-2 border-blue-600 rounded-xl overflow-hidden shadow-xs bg-white dark:bg-slate-800">
+                  <div class="bg-blue-600 text-white px-3 py-1.5 text-xs font-black uppercase tracking-wider flex justify-between items-center">
+                    <span>Demonstrativo das Parcelas</span>
+                    <span id="fm-grid-resumo" class="font-mono text-[11px] font-bold"></span>
+                  </div>
+                  <div class="max-h-40 overflow-y-auto">
+                    <table class="w-full text-xs text-left">
+                      <thead class="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-bold border-b border-blue-200 dark:border-blue-800 sticky top-0">
+                        <tr>
+                          <th class="px-2 py-1.5 text-center w-12">Parc.</th>
+                          <th class="px-2 py-1.5 text-left w-24">Vencimento</th>
+                          <th class="px-2 py-1.5 text-right w-24">Valor</th>
+                          <th class="px-2 py-1.5 text-center min-w-[90px]">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody id="fm-parcelas-tbody" class="divide-y divide-slate-100 dark:divide-slate-700">
+                        <!-- Gerado dinamicamente -->
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              <!-- Indicador de Carência e Juros por Dia -->
-              <div id="fm-carencia-info" class="p-2 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 flex justify-between items-center">
-                <span id="fm-carencia-dias-label">Carência: 30 dias até o 1º pagamento</span>
-                <span id="fm-carencia-juros-label" class="font-mono font-bold">Juros diários calculados</span>
+              <div>
+                <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Observação do Pagamento</label>
+                <input type="text" id="fm-obs" class="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" placeholder="Detalhes do pagamento..." value="${obsAtual}">
+              </div>
+              
+              <div class="flex justify-between items-center font-bold text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl border border-red-200 dark:border-red-800">
+                <span>Valor a Receber (Restante):</span>
+                <span id="fm-restante" class="font-mono font-black text-right">R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
 
-              <!-- Azul Royal: A Grid das Parcelas -->
-              <div class="border-2 border-blue-600 rounded-xl overflow-hidden shadow-xs bg-white dark:bg-slate-800">
-                <div class="bg-blue-600 text-white px-3 py-1.5 text-xs font-black uppercase tracking-wider flex justify-between items-center">
-                  <span>Demonstrativo das Parcelas</span>
-                  <span id="fm-grid-resumo" class="font-mono text-[11px] font-bold"></span>
+              <!-- Botões Rápidos Mercado Pago -->
+              <div id="fm-mp-actions-div" class="p-2.5 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40 rounded-xl border border-sky-200 dark:border-sky-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-black text-sky-800 dark:text-sky-300 flex items-center gap-1.5 uppercase">
+                    <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                    Cobrança Online Mercado Pago
+                  </span>
+                  <span class="text-[10px] text-slate-500 font-bold">Taxa Zero no Grafsis</span>
                 </div>
-                <div class="max-h-48 overflow-y-auto">
-                  <table class="w-full text-xs text-left">
-                    <thead class="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 font-bold border-b border-blue-200 dark:border-blue-800 sticky top-0">
-                      <tr>
-                        <th class="px-2 py-1.5 text-center w-14">Parcela</th>
-                        <th class="px-2 py-1.5 text-left w-28">Data Vencimento</th>
-                        <th class="px-2 py-1.5 text-left w-28">Valor Parcela</th>
-                        <th class="px-2 py-1.5 text-center min-w-[110px]">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody id="fm-parcelas-tbody" class="divide-y divide-slate-100 dark:divide-slate-700">
-                      <!-- Gerado dinamicamente -->
-                    </tbody>
-                  </table>
+
+                <div id="fm-btn-mp-pix-container" style="display: ${metodoAtual === 'Pix' ? 'block' : 'none'};">
+                  <button type="button" id="fm-btn-mp-pix" onclick="salesModule.handleMercadoPagoPix('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2 px-3 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    <span>GERAR QR CODE PIX MERCADO PAGO</span>
+                  </button>
+                </div>
+
+                <div id="fm-btn-mp-card-container" style="display: ${metodoAtual.includes('Cartão') ? 'block' : 'none'};">
+                  <button type="button" id="fm-btn-mp-card" onclick="salesModule.handleMercadoPagoCard('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <span>GERAR LINK DE CARTÃO (ATÉ 12X MERCADO PAGO)</span>
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <div>
-              <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Observação</label>
-              <input type="text" id="fm-obs" class="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" placeholder="Detalhes do pagamento..." value="${obsAtual}">
-            </div>
-            
-            <div class="flex justify-between items-center font-bold text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl border border-red-200 dark:border-red-800">
-              <span>Valor a Receber (Restante):</span>
-              <span id="fm-restante" class="font-mono font-black">R$ ${restante.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
-
-            <!-- Botões Rápidos de Cobrança Online Mercado Pago -->
-            <div id="fm-mp-actions-div" class="p-3 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40 rounded-xl border border-sky-200 dark:border-sky-800 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] font-black text-sky-800 dark:text-sky-300 flex items-center gap-1.5 uppercase">
-                  <span class="w-2 h-2 rounded-full bg-sky-500"></span>
-                  Cobrança Online Mercado Pago
-                </span>
-                <span class="text-[10px] text-slate-500 font-bold">Taxa Zero no Grafsis</span>
-              </div>
-
-              <!-- Botão Dinâmico de Pix (Exibido quando Pix estiver selecionado) -->
-              <div id="fm-btn-mp-pix-container" style="display: ${metodoAtual === 'Pix' ? 'block' : 'none'};">
-                <button type="button" id="fm-btn-mp-pix" onclick="salesModule.handleMercadoPagoPix('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                  <span>GERAR QR CODE PIX MERCADO PAGO</span>
-                </button>
-              </div>
-
-              <!-- Botão Dinâmico de Cartão (Exibido quando Cartão estiver selecionado) -->
-              <div id="fm-btn-mp-card-container" style="display: ${metodoAtual.includes('Cartão') ? 'block' : 'none'};">
-                <button type="button" id="fm-btn-mp-card" onclick="salesModule.handleMercadoPagoCard('${orderIdStr}', '${escapeHtml(clientName)}', ${finalTotal})" class="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                  <span>GERAR LINK DE CARTÃO (ATÉ 12X MERCADO PAGO)</span>
+              <!-- Botão Confirmar Recebimento (Manual) -->
+              <div class="pt-2">
+                <button type="button" id="fm-btn-confirm" onclick="salesModule.confirmFinance()" class="w-full py-3 text-sm bg-emerald-600 text-white font-black rounded-xl shadow-md hover:bg-emerald-700 uppercase transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                  <span>CONFIRMAR RECEBIMENTO</span>
                 </button>
               </div>
             </div>
-          </div>
-          
-          <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
-            <button type="button" id="fm-btn-confirm" onclick="salesModule.confirmFinance()" class="w-full py-3 text-sm bg-emerald-600 text-white font-black rounded-xl shadow-md hover:bg-emerald-700 uppercase transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
-              <span>CONFIRMAR RECEBIMENTO</span>
-            </button>
-            <div class="grid grid-cols-2 gap-2 mt-1">
-              <button type="button" id="fm-btn-receipt" onclick="salesModule.printReceipt()" class="py-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                Gerar Recibo
-              </button>
-              <button type="button" onclick="document.getElementById('finance-modal')?.remove()" class="py-2 text-xs sm:text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer">Voltar</button>
+
+            <!-- COLUNA DIREITA: GRID DE RECIBOS CONFIRMADOS DO PEDIDO (lg:col-span-6) -->
+            <!-- REGRA IMAGEM 1: Confirma o valor e só depois de confirmar este recibo vai para um grid com ID Venda, ID Recibo, Data, Tipo Pagto, Valor e ao lado na linha o botão Emitir Recibo -->
+            <div class="lg:col-span-6 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-5">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-xs font-black uppercase text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Histórico de Recibos Confirmados
+                  </h4>
+                  <span id="fm-recibos-count" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${recibosList.length} recibo(s)</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-2">
+                  Após confirmar o recebimento manual, a baixa é efetuada e o recibo é registrado na linha abaixo com ação de emissão direta.
+                </p>
+
+                <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-xs bg-white dark:bg-slate-800">
+                  <div class="max-h-[360px] overflow-y-auto">
+                    <table class="w-full text-xs text-left">
+                      <thead class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-slate-700 sticky top-0">
+                        <tr>
+                          <th class="p-2 text-center">ID Venda</th>
+                          <th class="p-2 text-center">ID Recibo</th>
+                          <th class="p-2 text-left">Data</th>
+                          <th class="p-2 text-left">Pagamento</th>
+                          <th class="p-2 text-right">Valor</th>
+                          <th class="p-2 text-center">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody id="fm-recibos-grid-tbody" class="divide-y divide-slate-100 dark:divide-slate-700">
+                        ${this.renderRecibosGridHtml(recibosList, orderIdStr)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button type="button" onclick="document.getElementById('finance-modal')?.remove()" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer">
+                  Fechar Caixa
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2915,26 +2986,68 @@ window.salesModule = {
     this.recalcInstallmentsGrid();
   },
 
-  confirmFinance() {
+  renderRecibosGridHtml(recibosList, orderIdStr) {
+    if (!recibosList || recibosList.length === 0) {
+      return `
+        <tr>
+          <td colspan="6" class="p-6 text-center text-slate-400 italic">
+            Nenhum recibo emitido ainda para este pedido. Digite o valor recebido e clique em "Confirmar Recebimento" para registrar.
+          </td>
+        </tr>
+      `;
+    }
+    return recibosList.map((rec, index) => {
+      const vRec = Number(rec.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const dataFormatada = rec.data_hora || new Date(rec.data || Date.now()).toLocaleDateString('pt-BR');
+      return `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+          <td class="p-2 text-center font-mono font-bold text-blue-600 dark:text-cyan-400">#${rec.pedido_id || orderIdStr}</td>
+          <td class="p-2 text-center font-mono font-black text-amber-700 dark:text-amber-400">#${rec.id}</td>
+          <td class="p-2 text-left text-slate-700 dark:text-slate-300 whitespace-nowrap">${dataFormatada}</td>
+          <td class="p-2 text-left font-semibold text-slate-800 dark:text-slate-200">${rec.metodo || 'Dinheiro'}</td>
+          <td class="p-2 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 whitespace-nowrap">R$ ${vRec}</td>
+          <td class="p-2 text-center">
+            <button type="button" onclick="salesModule.printReceipt('${rec.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-[10px] shadow-xs transition flex items-center justify-center gap-1 mx-auto cursor-pointer" title="Emitir via impressa deste recibo">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              <span>Emitir Recibo</span>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  async confirmFinance() {
     const rawRec = document.getElementById('fm-recebido')?.value || '0';
     const recebido = parseFloat(String(rawRec).replace(/\./g, '').replace(',', '.')) || 0;
+    if (recebido <= 0) {
+      alert('Informe um valor recebido maior que zero para confirmar.');
+      return;
+    }
+
     const subtotal = this.activeItems.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
     const discount = parseFloat(document.getElementById('order-discount')?.value) || 0;
     const finalTotal = Math.max(0, subtotal - discount);
 
     const metodo = document.getElementById('fm-metodo')?.value || 'Dinheiro / Cash';
     const obs = document.getElementById('fm-obs')?.value || '';
+    const orderIdStr = document.getElementById('current-display-id')?.value || document.getElementById('display-order-id-label')?.innerText?.replace('#', '') || 'NOVO';
     
     let parcelas = '1';
     const fmParcelas = document.getElementById('fm-parcelas');
     if (fmParcelas) parcelas = String(fmParcelas.value || '1');
     
+    // Atualiza acumulado de valor de entrada/recebido no formulário do pedido
+    const rawPrevio = document.getElementById('order-valor-entrada')?.value || document.getElementById('order-valor-recebido')?.value || '0';
+    const entradaPrevia = parseFloat(String(rawPrevio).replace(/\./g, '').replace(',', '.')) || 0;
+    const novoTotalRecebido = Math.min(finalTotal, entradaPrevia + recebido);
+
     const inputRec = document.getElementById('order-valor-recebido');
-    if (inputRec) inputRec.value = recebido;
+    if (inputRec) inputRec.value = novoTotalRecebido;
 
     const inputEntrada = document.getElementById('order-valor-entrada');
     if (inputEntrada) {
-      inputEntrada.value = recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      inputEntrada.value = novoTotalRecebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
     
     let inputMetodo = document.getElementById('order-metodo-pagto');
@@ -2957,9 +3070,77 @@ window.salesModule = {
       this.lastConfirmedInstallments = JSON.parse(JSON.stringify(this.currentGeneratedInstallments));
     }
 
+    // REGRA IMAGEM 1: Criação do registro de recibo específico no grid do pedido
+    const now = new Date();
+    const dataHoraStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const novoReciboId = (orderIdStr !== 'NOVO' ? orderIdStr : 'REC') + 'R' + String((this.activeOrderRecibos?.length || 0) + 1).padStart(2, '0');
+    
+    const novoRecibo = {
+      id: novoReciboId,
+      pedido_id: orderIdStr,
+      data: now.toISOString(),
+      data_hora: dataHoraStr,
+      metodo: metodo,
+      valor: recebido,
+      obs: obs,
+      usuario: window.app?.currentUser?.nome || 'Operador'
+    };
+
+    if (!this.activeOrderRecibos) this.activeOrderRecibos = [];
+    this.activeOrderRecibos.unshift(novoRecibo);
+
+    // Se a ordem já existir no store, persiste de imediato o recibo nela
+    const currentOrderId = this.currentEditingOrderId;
+    const allOrders = (window.store && window.store.getOrders()) || [];
+    const targetOrder = (currentOrderId && allOrders.find(o => String(o.id) === String(currentOrderId) || String(o.numero) === String(currentOrderId))) ||
+                        (orderIdStr && allOrders.find(o => String(o.numero) === String(orderIdStr)));
+    
+    if (targetOrder) {
+      targetOrder.recibos = this.activeOrderRecibos;
+      targetOrder.valor_entrada = novoTotalRecebido;
+      targetOrder.valor_recebido = novoTotalRecebido;
+      const novoRestante = Math.max(0, finalTotal - novoTotalRecebido);
+      targetOrder.status_pagamento = (novoRestante <= 0.01 && finalTotal > 0) ? 'pago' : 'parcial';
+      await window.store.saveOrder(targetOrder);
+
+      // Baixa financeira automática no fluxo de Contas / Caixa
+      await window.store.saveFinanceEntry({
+        tipo: 'recebimento',
+        descricao: `Recibo #${novoReciboId} - Pedido #${orderIdStr} (${metodo})`,
+        valor: recebido,
+        data_pagamento: new Date().toISOString().slice(0, 10),
+        data_vencimento: new Date().toISOString().slice(0, 10),
+        status: 'pago',
+        forma_pagamento: metodo,
+        pedido_id: targetOrder.id,
+        cliente_id: targetOrder.cliente_id
+      });
+    }
+
+    // Atualiza a tabela de recibos dinamicamente na tela do modal
+    const tbodyRecibos = document.getElementById('fm-recibos-grid-tbody');
+    if (tbodyRecibos) {
+      tbodyRecibos.innerHTML = this.renderRecibosGridHtml(this.activeOrderRecibos, orderIdStr);
+    }
+    const countBadge = document.getElementById('fm-recibos-count');
+    if (countBadge) {
+      countBadge.innerText = `${this.activeOrderRecibos.length} recibo(s)`;
+    }
+
+    // Recalcula totais na tela de fundo e libera os campos
     this.recalcTotals('entrada');
-    if (this.updateFinanceSummary) this.updateFinanceSummary(recebido, finalTotal);
-    document.getElementById('finance-modal')?.remove();
+    if (this.updateFinanceSummary) this.updateFinanceSummary(novoTotalRecebido, finalTotal);
+
+    // Limpa o input de recebimento para novos lançamentos e recalcula restante
+    const recInput = document.getElementById('fm-recebido');
+    if (recInput) {
+      recInput.value = '0,00';
+    }
+    this.updateModalRestante();
+
+    if (window.grafsisAlert) {
+      window.grafsisAlert(`✅ Recebimento de R$ ${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} confirmado com sucesso!\n\nRecibo #${novoReciboId} registrado no grid. Clique em "Emitir Recibo" ao lado para imprimir a qualquer momento.`, 'GRAFSIS');
+    }
   },
   updateFinanceSummary(recebido, total) {
     const summaryEl = document.getElementById('finance-summary');
@@ -3085,7 +3266,7 @@ window.salesModule = {
     `;
     this.openPrintDocument(pdfHtml);
   },
-  async printReceipt() {
+  async printReceipt(targetReciboId = null) {
     const orderIdStr = document.getElementById('current-display-id')?.value;
     const orders = window.store?.getOrders ? window.store.getOrders() : [];
     const savedOrder = (this.currentEditingOrderId && orders.find(o => o.id === this.currentEditingOrderId)) || (orderIdStr && orders.find(o => String(o.numero) === String(orderIdStr)));
@@ -3107,6 +3288,13 @@ window.salesModule = {
       }
       await window.grafsisAlert(`Operação negada: O Pedido #${orderIdStr || ''} ainda não foi registrado no sistema. É necessário salvar e registrar antes de emitir recibos.`, 'GRAFSIS');
       return;
+    }
+
+    // Busca recibo específico se informado
+    let specificRecibo = null;
+    if (targetReciboId) {
+      const orderRecibos = (savedOrder.recibos || []).concat(this.activeOrderRecibos || []);
+      specificRecibo = orderRecibos.find(r => String(r.id) === String(targetReciboId));
     }
 
     const tenant = (window.store && window.store.getActiveTenant ? window.store.getActiveTenant() : null) || {};
@@ -3132,13 +3320,13 @@ window.salesModule = {
     const total = parseFloat(savedOrder.valor_final || savedOrder.valor_total || 0);
     const subtotal = parseFloat(savedOrder.valor_total || total);
     const discount = parseFloat(savedOrder.desconto || 0);
-    const recebido = parseFloat(document.getElementById('fm-recebido')?.value || savedOrder.valor_entrada || savedOrder.valor_recebido || 0);
-    const restante = Math.max(0, total - recebido);
-    const method = document.getElementById('fm-metodo')?.value || savedOrder.forma_pagamento || 'Dinheiro / Cash';
-    const obs = document.getElementById('fm-obs')?.value || savedOrder.obs_pagto || '';
-    const dateStr = new Date(savedOrder.created_at || Date.now()).toLocaleString('pt-BR');
+    const recebido = specificRecibo ? parseFloat(specificRecibo.valor) : parseFloat(document.getElementById('fm-recebido')?.value || savedOrder.valor_entrada || savedOrder.valor_recebido || 0);
+    const restante = Math.max(0, total - (savedOrder.valor_entrada || savedOrder.valor_recebido || recebido));
+    const method = specificRecibo ? specificRecibo.metodo : (document.getElementById('fm-metodo')?.value || savedOrder.forma_pagamento || 'Dinheiro / Cash');
+    const obs = specificRecibo ? (specificRecibo.obs || '') : (document.getElementById('fm-obs')?.value || savedOrder.obs_pagto || '');
+    const dateStr = specificRecibo ? (specificRecibo.data_hora || new Date(specificRecibo.data).toLocaleString('pt-BR')) : new Date(savedOrder.created_at || Date.now()).toLocaleString('pt-BR');
     const valExtenso = this.numeroPorExtenso(recebido);
-    const codValidacao = btoa((savedOrder.numero || orderIdStr) + '-' + Date.now()).substring(0, 12).toUpperCase();
+    const codValidacao = btoa((savedOrder.numero || orderIdStr) + '-' + (specificRecibo?.id || '') + '-' + Date.now()).substring(0, 12).toUpperCase();
 
     let tipoPagtoTexto = 'pagamento parcial / sinal';
     if (restante <= 0.01 && total > 0) {
@@ -5539,7 +5727,12 @@ window.salesModule = {
     if (!order) return;
     const box = document.getElementById('secao-link-aprovacao-padrao');
     if (!box) return;
-    box.classList.remove('hidden');
+    const currentRadioVal = document.querySelector('input[name="tipo_aprovacao_origem"]:checked')?.value || order.tipo_aprovacao_origem;
+    if (currentRadioVal === 'cliente_online') {
+      box.classList.remove('hidden');
+    } else {
+      box.classList.add('hidden');
+    }
     const orderId = order.id || order.numero;
     const link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${orderId}`;
     const input = document.getElementById('padrao-approval-link-input');
@@ -7075,18 +7268,21 @@ window.salesModule = {
     const secaoLink = document.getElementById('secao-link-aprovacao-padrao');
     const btnGerarLink = document.getElementById('btn-gerar-link');
 
-    if (type === 'cliente') {
+    // Regra Imagem 2: o link de aprovação pelo cliente SÓ APARECE se a opção 'Liberação pelo cliente online' for a escolhida
+    if (type === 'cliente_online') {
       if (secaoLink) secaoLink.classList.remove('hidden');
       if (btnGerarLink) {
         btnGerarLink.classList.add('animate-pulse');
         setTimeout(() => btnGerarLink.classList.remove('animate-pulse'), 1500);
       }
     } else {
-      // Vendedor: avisa que carimbará o vendedor atual com data e hora ao registrar
-      const nowStr = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      const currentUserName = window.app?.currentUser?.nome || 'Vendedor Autenticado';
-      if (window.grafsisAlert) {
-        window.grafsisAlert(`Aprovação pelo Vendedor selecionada!\n\nAo registrar a operação, serão carimbados automaticamente:\n• Vendedor: ${currentUserName}\n• Data e Hora: ${nowStr}\n\nO registro oficial prosseguirá com liberação direta da produção.`, 'GRAFSIS');
+      if (secaoLink) secaoLink.classList.add('hidden');
+      if (type === 'vendedor') {
+        const nowStr = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const currentUserName = window.app?.currentUser?.nome || 'Vendedor Autenticado';
+        if (window.grafsisAlert) {
+          window.grafsisAlert(`Liberação pelo Vendedor selecionada!\n\nAo registrar a operação, serão carimbados automaticamente:\n• Vendedor: ${currentUserName}\n• Data e Hora: ${nowStr}\n\nO registro oficial prosseguirá com liberação direta da produção.`, 'GRAFSIS');
+        }
       }
     }
   },

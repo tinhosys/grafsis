@@ -308,7 +308,7 @@ window.productionModule = {
               </div>
               <input 
                 type="text" 
-                placeholder="Buscar por O.S., Cliente ou Material..." 
+                placeholder="Busca por ID" 
                 value="${this.searchTerm}" 
                 oninput="productionModule.setSearchTerm(this.value)" 
                 class="w-full h-10 pl-14 pr-4 bg-slate-50 dark:bg-slate-800/80 border-2 border-blue-200 dark:border-blue-900/60 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
