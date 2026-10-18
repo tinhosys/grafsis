@@ -4,11 +4,21 @@
    Painel do Proprietário sem Redundâncias, Perfil do Usuário e Login por CPF.
    ============================================================================== */
 
-window.grafsisConfirm = function({ title = 'GRAFSIS', message = '', confirmText = 'OK', cancelText = 'Cancelar' } = {}) {
+function formatGrafsisDialogTitle(rawTitle) {
+  const base = (rawTitle || 'GrafSiS').trim();
+  const clean = base.replace(/^GrafSiS\s*[-–—:]*\s*/i, '').replace(/^GRAFSIS\s*[-–—:]*\s*/i, '').trim();
+  if (!clean || clean.toUpperCase() === 'GRAFSIS') {
+    return 'GrafSiS';
+  }
+  return `GrafSiS - ${clean}`;
+}
+
+window.grafsisConfirm = function({ title = 'GrafSiS', message = '', confirmText = 'OK', cancelText = 'Cancelar' } = {}) {
   return new Promise((resolve) => {
     const modalId = 'grafsis-custom-confirm-modal';
     document.getElementById(modalId)?.remove();
 
+    const formattedTitle = formatGrafsisDialogTitle(title);
     const formattedMsg = String(message)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -21,7 +31,7 @@ window.grafsisConfirm = function({ title = 'GRAFSIS', message = '', confirmText 
           <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
             <div class="flex items-center gap-2.5">
               <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${title}</h3>
+              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${formattedTitle}</h3>
             </div>
             <button type="button" id="${modalId}-close" class="text-slate-400 hover:text-white text-xl font-black leading-none cursor-pointer">&times;</button>
           </div>
@@ -53,11 +63,12 @@ window.grafsisConfirm = function({ title = 'GRAFSIS', message = '', confirmText 
   });
 };
 
-window.grafsisAlert = function(message = '', title = 'GRAFSIS') {
+window.grafsisAlert = function(message = '', title = 'GrafSiS') {
   return new Promise((resolve) => {
     const modalId = 'grafsis-custom-alert-modal';
     document.getElementById(modalId)?.remove();
 
+    const formattedTitle = formatGrafsisDialogTitle(title);
     const formattedMsg = String(message)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -70,7 +81,7 @@ window.grafsisAlert = function(message = '', title = 'GRAFSIS') {
           <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
             <div class="flex items-center gap-2.5">
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${title}</h3>
+              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${formattedTitle}</h3>
             </div>
             <button type="button" id="${modalId}-close" class="text-slate-400 hover:text-white text-xl font-black leading-none cursor-pointer">&times;</button>
           </div>
@@ -98,13 +109,115 @@ window.grafsisAlert = function(message = '', title = 'GRAFSIS') {
   });
 };
 
+window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue = '', isPhone = false } = {}) {
+  return new Promise((resolve) => {
+    const modalId = 'grafsis-custom-prompt-modal';
+    document.getElementById(modalId)?.remove();
+
+    const formattedTitle = formatGrafsisDialogTitle(title);
+    const formattedMsg = String(message)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+
+    const modalHtml = `
+      <div id="${modalId}" class="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn select-none">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+              <h3 class="text-sm font-black tracking-wider text-white font-mono uppercase">${formattedTitle}</h3>
+            </div>
+            <button type="button" id="${modalId}-close" class="text-slate-400 hover:text-white text-xl font-black leading-none cursor-pointer">&times;</button>
+          </div>
+          <div class="p-6 text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium space-y-4">
+            <div>${formattedMsg}</div>
+            <div>
+              <input type="text" id="${modalId}-input" value="${defaultValue || ''}" placeholder="${isPhone ? '(00) 0 0000-0000' : ''}" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-400/30">
+            </div>
+          </div>
+          <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+            <button type="button" id="${modalId}-cancel" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer">
+              Cancelar
+            </button>
+            <button type="button" id="${modalId}-ok" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const inputEl = document.getElementById(`${modalId}-input`);
+
+    // Máscara de telefone sob demanda se for telefone
+    if (isPhone && inputEl) {
+      inputEl.addEventListener('input', function() {
+        let v = this.value.replace(/\D/g, '');
+        if (v.length > 11) v = v.substring(0, 11);
+        if (v.length > 6) {
+          if (v.length === 11) {
+            v = v.replace(/^(\d{2})(\d{1})(\d{4})(\d{4})$/, '($1) $2 $3-$4');
+          } else {
+            v = v.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+          }
+        } else if (v.length > 2) {
+          v = v.replace(/^(\d{2})(\d+)/, '($1) $2');
+        } else if (v.length > 0) {
+          v = v.replace(/^(\d*)/, '($1');
+        }
+        this.value = v;
+      });
+    }
+
+    if (inputEl) {
+      setTimeout(() => {
+        inputEl.focus();
+        inputEl.select();
+      }, 50);
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finish(inputEl.value);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          finish(null);
+        }
+      });
+    }
+
+    const finish = (result) => {
+      document.getElementById(modalId)?.remove();
+      resolve(result);
+    };
+
+    document.getElementById(`${modalId}-ok`)?.addEventListener('click', () => finish(inputEl ? inputEl.value : null));
+    document.getElementById(`${modalId}-cancel`)?.addEventListener('click', () => finish(null));
+    document.getElementById(`${modalId}-close`)?.addEventListener('click', () => finish(null));
+  });
+};
+
 // Interceptação global de diálogos nativos para o padrão visual oficial GrafSiS (elimina "tinhosys.github.io diz")
 window.alert = function(message) {
-  return window.grafsisAlert(message, 'GRAFSIS');
+  return window.grafsisAlert(message, 'GrafSiS');
+};
+
+window.prompt = function(message, defaultValue = '') {
+  const isPhone = /telefone|whatsapp|ddd|celular/i.test(String(message));
+  return window.grafsisPrompt({
+    title: isPhone ? 'GrafSiS - Novo Telefone' : 'GrafSiS',
+    message,
+    defaultValue,
+    isPhone
+  });
 };
 
 window.showGrafsisAlert = window.grafsisAlert;
 window.showGrafsisConfirm = window.grafsisConfirm;
+window.showGrafsisPrompt = window.grafsisPrompt;
 
 window.app = {
   currentTab: 'production',
@@ -344,6 +457,28 @@ window.app = {
     // Atualiza permissões e dados do Monitor de Notícias On-Line (News Ticker)
     if (window.newsTickerModule && typeof window.newsTickerModule.updateManageAccess === 'function') {
       window.newsTickerModule.updateManageAccess();
+    }
+
+    // Sincroniza versão atual nos botões e rodapés do sistema
+    this.updateVersionDisplay();
+  },
+
+  updateVersionDisplay() {
+    const version = window.GRAFSIS_CONFIG?.VERSION || '4.9.9.4';
+    const footerBtn = document.getElementById('footer-version-btn');
+    if (footerBtn) {
+      footerBtn.textContent = `Versão ${version} (Ver Notas)`;
+    }
+    const headerBtn = document.querySelector('button[onclick*="openVersionModal"]');
+    if (headerBtn) {
+      const textSpan = headerBtn.querySelector('span') || headerBtn;
+      if (headerBtn.innerHTML.includes('Notas de Versão')) {
+        headerBtn.innerHTML = headerBtn.innerHTML.replace(/Notas de Versão\s*\([^)]*\)/, `Notas de Versão (v${version})`);
+      }
+    }
+    const modalBadge = document.querySelector('#version-modal .bg-blue-600.text-white');
+    if (modalBadge) {
+      modalBadge.textContent = `v${version}`;
     }
   },
 

@@ -270,7 +270,7 @@
             </button>
             <button onclick="app.openVersionModal(); app.toggleUserMenu();" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              Notas de Versão (v4.9.8)
+              Notas de Versão (v4.9.9.4)
             </button>
             <div class="border-t border-slate-100 my-1"></div>
             <button onclick="authModule.logout()" class="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -393,7 +393,7 @@
             <span>Supabase Cloud Sync</span>
             <span>&bull;</span>
             <button onclick="app.openVersionModal()" class="text-blue-600 hover:underline font-semibold" id="footer-version-btn">
-              Versão 4.9.8.7 (Ver Notas)
+              Versão 4.9.9.4 (Ver Notas)
             </button>
           </div>
         </footer>
@@ -866,7 +866,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.8.8</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.9.4</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -874,7 +874,20 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.8.8 (Atual)</h4>
+            <h4 class="font-bold text-slate-800">Versão 4.9.9.4 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Padrão GrafSiS de Diálogos, Máscara Canônica, Telefones Standby & Versão Ativa</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Diálogos Padronizados GrafSiS:</strong> Modais corporativos customizados (<code>window.grafsisAlert</code>, <code>window.grafsisConfirm</code>, <code>window.grafsisPrompt</code>) eliminando o diálogo padrão do navegador com cabeçalhos uniformizados no formato <code>GrafSiS - [Ação]</code>.</li>
+            <li><strong>Máscara Canônica de Telefone:</strong> Inputbox de inserção de novo telefone com máscara dinâmica <code>(00) 0 0000-0000</code>.</li>
+            <li><strong>Telefones Standby Visíveis com Destaque:</strong> Exibição contínua dos telefones em standby (até 3) destacando o número ativo e em uso em negrito e com badge exclusivo.</li>
+            <li><strong>Botão Novo Telefone Unificado:</strong> Correção visual eliminando caractere redundante e padronizando para <code>Novo Telefone</code> / <code>💾 Gravar</code>.</li>
+            <li><strong>Controle Contínuo de Versão:</strong> Incremento obrigatório para v4.9.9.4 integrado em todos os pontos do sistema.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.8.8</h4>
             <span class="text-xs text-blue-600 font-bold">Cobrança Mercado Pago (Pix QR Code, Cartão até 12x, Gestor & Webhooks)</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
@@ -1092,18 +1105,18 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.9.0) -->
-  <script src="js/config.js?v=4.9.9.0"></script>
-  <script src="js/auth.js?v=4.9.9.0"></script>
-  <script src="js/store.js?v=4.9.9.0"></script>
-  <script src="js/clients.js?v=4.9.9.0"></script>
-  <script src="js/suppliers.js?v=4.9.9.0"></script>
-  <script src="js/products.js?v=4.9.9.0"></script>
-  <script src="js/sales.js?v=4.9.9.0"></script>
-  <script src="js/production.js?v=4.9.9.0"></script>
-  <script src="js/finance.js?v=4.9.9.0"></script>
-  <script src="js/mercadopago.js?v=4.9.9.0"></script>
-  <script src="js/newsticker.js?v=4.9.9.0"></script>
-  <script src="js/app.js?v=4.9.9.0"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.9.4) -->
+  <script src="js/config.js?v=4.9.9.4"></script>
+  <script src="js/auth.js?v=4.9.9.4"></script>
+  <script src="js/store.js?v=4.9.9.4"></script>
+  <script src="js/clients.js?v=4.9.9.4"></script>
+  <script src="js/suppliers.js?v=4.9.9.4"></script>
+  <script src="js/products.js?v=4.9.9.4"></script>
+  <script src="js/sales.js?v=4.9.9.4"></script>
+  <script src="js/production.js?v=4.9.9.4"></script>
+  <script src="js/finance.js?v=4.9.9.4"></script>
+  <script src="js/mercadopago.js?v=4.9.9.4"></script>
+  <script src="js/newsticker.js?v=4.9.9.4"></script>
+  <script src="js/app.js?v=4.9.9.4"></script>
 </body>
 </html>
