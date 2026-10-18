@@ -378,6 +378,7 @@ window.salesModule = {
       }
     }
     this.updateFormState();
+    this.updateClientPhoneAndInfo(client);
   },
 
   getPhaseLabel(op) {
@@ -570,7 +571,7 @@ window.salesModule = {
     // 2. Se NÃO houver cliente selecionado, desabilita todos os inputs e botões (exceto o próprio select de cliente e campo de WhatsApp)
     if (!hasClient) {
       if (opSelect) opSelect.disabled = true;
-      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]):not(#order-client-whatsapp-input):not(#padrao-approval-link-input), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"]):not([onclick*="saveClientAdditionalPhone"]):not([onclick*="swapClientPhone"])');
+      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]):not(#order-client-whatsapp-input):not(#padrao-approval-link-input), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"]):not([onclick*="saveClientAdditionalPhone"]):not([onclick*="swapClientPhone"]):not([onclick*="editCurrentClient"]):not(#btn-save-phone-action)');
       allFormElements.forEach(el => {
         el.disabled = true;
       });
@@ -1871,18 +1872,33 @@ window.salesModule = {
                       </div>
                     <!-- CAMPO DO WHATSAPP DO CLIENTE LOGO ACIMA DO LINK COM TELEFONES STANDBY (IMAGEM 1) -->
                     <div class="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-700 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-2">
-                      <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
-                        <label class="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide shrink-0">
-                          WhatsApp do Cliente:
-                        </label>
-                        <input type="text" id="order-client-whatsapp-input" value="${order ? (order.telefone_autorizacao || (foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : '') || order.cliente_telefone || '') : ((foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : ''))}" placeholder="(00) 0 0000-0000" oninput="salesModule.formatPhoneMask(this)" class="w-full sm:w-52 px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-400">
-                        <button type="button" onclick="salesModule.saveClientAdditionalPhone('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs" title="Salva novo telefone no cadastro e grava no histórico do cliente">
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                          + Novo Telefone
-                        </button>
+                      <div class="flex-1 flex flex-col gap-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <label class="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide shrink-0">
+                            WhatsApp do Cliente:
+                          </label>
+                          <input type="text" id="order-client-whatsapp-input" value="${order ? (order.telefone_autorizacao || (foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : '') || order.cliente_telefone || '') : ((foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : ''))}" placeholder="(00) 0 0000-0000" oninput="salesModule.formatPhoneMask(this)" class="w-full sm:w-52 px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-400">
+                          
+                          <!-- BOTÃO EDITAR CONTATO (MARCAÇÃO ROSA) -->
+                          <button type="button" id="btn-edit-client-contact" onclick="salesModule.editCurrentClient('${order ? order.cliente_id : initialClientId}')" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shrink-0 shadow-xs" title="Editar cadastro completo do cliente">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Editar Contato
+                          </button>
+
+                          <!-- BOTÃO INTELIGENTE: NOVO / GRAVAR (MARCAÇÃO ROSA) -->
+                          <button type="button" id="btn-save-phone-action" onclick="salesModule.handlePhoneActionButton('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs" title="Salvar telefone no cadastro do cliente">
+                            <svg id="icon-phone-action" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <span id="label-phone-action">+ Novo Telefone</span>
+                          </button>
+                        </div>
+
+                        <!-- LINHA DE IDENTIFICAÇÃO DO CONTATO + INFORMAÇÕES (MÁXIMO 50 CARACTERES - MARCAÇÃO VERDE LIMÃO) -->
+                        <div id="order-client-whatsapp-info" class="text-[11px] font-semibold text-lime-700 dark:text-lime-300 truncate max-w-sm sm:max-w-lg mt-0.5" title="${this.getClientInfoDisplay(foundClient || initialClientId, 200)}">
+                          ${this.getClientInfoDisplay(foundClient || initialClientId, 50)}
+                        </div>
                       </div>
 
-                      <!-- Quadro Laranja ao Lado: 3 Linhas Standby de Telefones Alternativos -->
+                      <!-- Quadro Laranja ao Lado: 3 Linhas Standby de Telefones Alternativos (Marcação Laranja) -->
                       <div class="shrink-0 w-full md:w-64 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-2 shadow-2xs">
                         <div class="flex items-center justify-between mb-1 border-b border-amber-200/80 pb-0.5">
                           <span class="text-[10px] font-black uppercase text-amber-900 dark:text-amber-300 flex items-center gap-1">
@@ -5829,12 +5845,52 @@ window.salesModule = {
     }
   },
 
-  copyStandardApprovalLink() {
+  async copyStandardApprovalLink() {
     const input = document.getElementById('padrao-approval-link-input');
     const link = input ? input.value : '';
     if (!link) {
-      alert('Link de aprovação indisponível no momento.');
+      if (window.grafsisAlert) {
+        window.grafsisAlert('⚠️ Link de aprovação indisponível no momento. Certifique-se de que o pedido possui uma identificação gerada.', 'GRAFSIS');
+      } else {
+        alert('Link de aprovação indisponível no momento.');
+      }
       return;
+    }
+
+    // Validação de segurança: o cliente ou o pedido deve possuir telefone de autorização cadastrado
+    const phoneInput = document.getElementById('order-client-whatsapp-input');
+    const phoneVal = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
+    const selectClient = document.querySelector('select[name="cliente_id"]');
+    const clientId = selectClient ? selectClient.value : '';
+    const client = clientId ? window.store?.getClients()?.find(c => String(c.id) === String(clientId)) : null;
+
+    let hasRegisteredPhone = false;
+    if (phoneVal && phoneVal.length >= 10) {
+      hasRegisteredPhone = true;
+    } else if (client) {
+      const mainClean = (client.telefone_whatsapp || client.telefone || '').replace(/\D/g, '');
+      const hasStandby = Array.isArray(client.telefones_adicionais) && client.telefones_adicionais.some(t => {
+        const num = typeof t === 'object' ? (t.telefone || '') : String(t);
+        return num.replace(/\D/g, '').length >= 10;
+      });
+      if (mainClean.length >= 10 || hasStandby) {
+        hasRegisteredPhone = true;
+      }
+    }
+
+    if (!hasRegisteredPhone) {
+      const confirmCopy = await window.grafsisConfirm({
+        title: 'GRAFSIS - Aviso de Segurança',
+        message: 'Atenção: Nenhum número de telefone/WhatsApp válido foi cadastrado para este cliente.\n\nO cliente precisará ter um número autorizado para validar o aceite digital.\n\nDeseja copiar o link mesmo assim?',
+        confirmText: 'Copiar Mesmo Assim',
+        cancelText: 'Cadastrar Telefone'
+      });
+      if (!confirmCopy) {
+        if (phoneInput) {
+          phoneInput.focus();
+        }
+        return;
+      }
     }
 
     const setButtonFeedback = () => {
@@ -5860,35 +5916,33 @@ window.salesModule = {
       }
     }
 
+    let copied = false;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(link).then(() => {
-        setButtonFeedback();
-        if (window.grafsisAlert) {
-          window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEnvie este link para o cliente no WhatsApp para que ele possa conferir arte, medidas e validar a aprovação.', 'GRAFSIS');
-        } else {
-          alert(`Link de aprovação copiado com sucesso!\n\n${link}`);
-        }
-      }).catch(() => {
-        try {
-          document.execCommand('copy');
-          setButtonFeedback();
-          if (window.grafsisAlert) {
-            window.grafsisAlert('Link de aprovação copiado com sucesso!', 'GRAFSIS');
-          }
-        } catch (e) {
-          prompt('Copie o link abaixo para enviar ao cliente:', link);
-        }
-      });
-    } else {
       try {
-        document.execCommand('copy');
-        setButtonFeedback();
-        if (window.grafsisAlert) {
-          window.grafsisAlert('Link de aprovação copiado com sucesso!', 'GRAFSIS');
-        }
-      } catch (e) {
-        prompt('Copie o link abaixo para enviar ao cliente:', link);
+        await navigator.clipboard.writeText(link);
+        copied = true;
+      } catch (err) {
+        copied = false;
       }
+    }
+
+    if (!copied) {
+      try {
+        copied = document.execCommand('copy');
+      } catch (err) {
+        copied = false;
+      }
+    }
+
+    if (copied) {
+      setButtonFeedback();
+      if (window.grafsisAlert) {
+        window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEnvie este link para o WhatsApp do cliente para conferência de arte, medidas e liberação digital.', 'GRAFSIS');
+      } else {
+        alert(`Link de aprovação copiado com sucesso!\n\n${link}`);
+      }
+    } else {
+      prompt('Selecione e copie o link de aprovação abaixo:', link);
     }
   },
 
@@ -7542,15 +7596,158 @@ window.salesModule = {
       v = v.replace(/^(\d*)/, '($1');
     }
     input.value = v;
+
+    // Regra Marcação Rosa: Ao editar o número no input, alterna o botão dinâmico para 'Gravar'
+    const btnAction = document.getElementById('btn-save-phone-action');
+    const labelAction = document.getElementById('label-phone-action');
+    const iconAction = document.getElementById('icon-phone-action');
+    if (btnAction && labelAction) {
+      labelAction.textContent = '💾 Gravar';
+      btnAction.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+      btnAction.classList.add('bg-blue-600', 'hover:bg-blue-700');
+      if (iconAction) {
+        iconAction.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>';
+      }
+      btnAction.title = 'Gravar número atualizado no cadastro do cliente';
+    }
   },
 
-  async saveClientAdditionalPhone(clientId, orderId) {
+  // Retorna texto de identificação do cliente limitado ao número especificado de caracteres (Marcação Verde Limão)
+  getClientInfoDisplay(clientOrId, maxChars = 50) {
+    let client = null;
+    if (clientOrId && typeof clientOrId === 'object') {
+      client = clientOrId;
+    } else if (clientOrId) {
+      client = window.store?.getClients()?.find(c => String(c.id) === String(clientOrId));
+    }
+    if (!client) {
+      const selectClient = document.querySelector('select[name="cliente_id"]');
+      if (selectClient && selectClient.value) {
+        client = window.store?.getClients()?.find(c => String(c.id) === String(selectClient.value));
+      }
+    }
+    if (!client || !client.nome) {
+      return 'Nenhum cliente selecionado';
+    }
+
+    const nome = client.nome.trim();
+    const infoExtra = client.apelido || client.nome_fantasia || client.cpf_cnpj || client.cidade || '';
+    let fullText = infoExtra ? `${nome} (${infoExtra})` : nome;
+    fullText = fullText.trim();
+
+    if (maxChars && fullText.length > maxChars) {
+      return fullText.slice(0, maxChars);
+    }
+    return fullText;
+  },
+
+  // Atualiza campo de WhatsApp, lista de standby e identificador verde limão ao selecionar cliente
+  updateClientPhoneAndInfo(client) {
+    if (!client) {
+      const infoEl = document.getElementById('order-client-whatsapp-info');
+      if (infoEl) {
+        infoEl.textContent = 'Nenhum cliente selecionado';
+        infoEl.title = 'Nenhum cliente selecionado';
+      }
+      return;
+    }
+
+    const input = document.getElementById('order-client-whatsapp-input');
+    if (input && (!input.value || input.value.trim() === '')) {
+      const phone = client.telefone_whatsapp || client.telefone || '';
+      input.value = phone;
+      this.formatPhoneMask(input);
+      // Restaura o botão para + Novo Telefone
+      const btnAction = document.getElementById('btn-save-phone-action');
+      const labelAction = document.getElementById('label-phone-action');
+      const iconAction = document.getElementById('icon-phone-action');
+      if (btnAction && labelAction) {
+        labelAction.textContent = '+ Novo Telefone';
+        btnAction.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        btnAction.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+        if (iconAction) {
+          iconAction.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>';
+        }
+      }
+    }
+
+    // Atualiza a linha de identificação verde limão (máx 50 caracteres)
+    const infoEl = document.getElementById('order-client-whatsapp-info');
+    if (infoEl) {
+      infoEl.textContent = this.getClientInfoDisplay(client, 50);
+      infoEl.title = this.getClientInfoDisplay(client, 200);
+    }
+
+    // Atualiza telefones standby
+    const standbyContainer = document.getElementById('standby-phones-list');
+    if (standbyContainer) {
+      standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+  },
+
+  // Abre edição do cadastro completo do cliente (Marcação Rosa)
+  editCurrentClient(clientId) {
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
+    if (!client) {
+      const selectClient = document.querySelector('select[name="cliente_id"]');
+      if (selectClient && selectClient.value) {
+        client = window.store?.getClients()?.find(c => String(c.id) === String(selectClient.value));
+      }
+    }
+
+    if (!client) {
+      if (window.grafsisAlert) {
+        window.grafsisAlert('Selecione primeiro um cliente para editar o cadastro.', 'GRAFSIS');
+      } else {
+        alert('Selecione primeiro um cliente para editar o cadastro.');
+      }
+      return;
+    }
+
+    if (window.clientsModule && typeof window.clientsModule.openModal === 'function') {
+      window.clientsModule.openModal(client);
+    } else if (window.clientsModule && typeof window.clientsModule.editModal === 'function') {
+      window.clientsModule.editModal(client.id);
+    } else {
+      alert(`Abra a aba Clientes para editar os dados de ${client.nome}.`);
+    }
+  },
+
+  // Botão Inteligente unificado: se estiver em modo Gravar salva o input; se em modo + Novo solicita novo número
+  async handlePhoneActionButton(clientId, orderId) {
+    const labelAction = document.getElementById('label-phone-action');
+    const isGravarMode = labelAction && labelAction.textContent.includes('Gravar');
+    const input = document.getElementById('order-client-whatsapp-input');
+    const rawVal = input ? input.value.trim() : '';
+    const digits = rawVal.replace(/\D/g, '');
+
+    if (isGravarMode && digits.length >= 10) {
+      // Salva o telefone atual do input no cadastro do cliente
+      await this.saveClientAdditionalPhone(clientId, orderId, false);
+      // Restaura visual do botão para + Novo Telefone
+      const btnAction = document.getElementById('btn-save-phone-action');
+      const iconAction = document.getElementById('icon-phone-action');
+      if (btnAction && labelAction) {
+        labelAction.textContent = '+ Novo Telefone';
+        btnAction.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        btnAction.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+        if (iconAction) {
+          iconAction.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>';
+        }
+      }
+    } else {
+      // Modo + Novo Telefone: pede novo número para adicionar em standby ou gravar
+      await this.saveClientAdditionalPhone(clientId, orderId, true);
+    }
+  },
+
+  async saveClientAdditionalPhone(clientId, orderId, forcePrompt = false) {
     const input = document.getElementById('order-client-whatsapp-input');
     let rawVal = input ? input.value.trim() : '';
     let digits = rawVal.replace(/\D/g, '');
 
-    // Se o campo estiver vazio ou o usuário quiser digitar um novo telefone para empilhar:
-    if (!digits || digits.length < 10) {
+    // Se solicitado ou campo insuficiente, solicita novo número
+    if (forcePrompt || !digits || digits.length < 10) {
       const promptPhone = prompt('Digite o novo número de telefone com DDD (Ex: 11987654321):', '');
       if (!promptPhone) return;
       rawVal = promptPhone.trim();
@@ -7570,12 +7767,17 @@ window.salesModule = {
       rawVal = digits.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
     }
 
+    // Atualiza o input imediatamente se o operador salvou a edição
+    if (input) {
+      input.value = rawVal;
+    }
+
     // Busca cliente pelo clientId ou selecionado na tela
-    let client = window.store.getClients().find(c => String(c.id) === String(clientId));
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
     if (!client) {
       const selectClient = document.querySelector('select[name="cliente_id"]');
       if (selectClient && selectClient.value) {
-        client = window.store.getClients().find(c => String(c.id) === String(selectClient.value));
+        client = window.store?.getClients()?.find(c => String(c.id) === String(selectClient.value));
       }
     }
 
@@ -7596,10 +7798,18 @@ window.salesModule = {
       pedido_id: orderDisplay,
       registrado_por: window.app?.currentUser?.nome || 'Operador'
     };
-    client.telefones_adicionais.push(novoRegistro);
 
-    // Se o cliente não tinha WhatsApp principal ou deseja atualizar, preserva o principal
-    if (!client.telefone_whatsapp) {
+    // Evita duplicatas idênticas no array de adicionais
+    const alreadyExists = client.telefones_adicionais.some(t => {
+      const existing = typeof t === 'object' ? (t.telefone || '') : String(t);
+      return existing.replace(/\D/g, '') === digits;
+    });
+    if (!alreadyExists) {
+      client.telefones_adicionais.push(novoRegistro);
+    }
+
+    // Se o cliente não tinha WhatsApp principal ou salvou alteração direta, atualiza o principal
+    if (!client.telefone_whatsapp || !forcePrompt) {
       client.telefone_whatsapp = rawVal;
     }
 
@@ -7613,8 +7823,38 @@ window.salesModule = {
       if (order) {
         order.telefone_autorizacao = digits;
         order.telefones_adicionais = order.telefones_adicionais || [];
-        order.telefones_adicionais.push(novoRegistro);
+        if (!alreadyExists) {
+          order.telefones_adicionais.push(novoRegistro);
+        }
         await window.store.saveOrder(order);
+      }
+    }
+
+    // Efeito visual no input (Marcação Azul)
+    if (input) {
+      input.classList.add('ring-4', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60', 'transition-all', 'duration-300');
+      setTimeout(() => {
+        input.classList.remove('ring-4', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60');
+      }, 2000);
+    }
+
+    // Atualiza a linha de identificação do cliente verde limão
+    const infoEl = document.getElementById('order-client-whatsapp-info');
+    if (infoEl) {
+      infoEl.textContent = this.getClientInfoDisplay(client, 50);
+      infoEl.title = this.getClientInfoDisplay(client, 200);
+    }
+
+    // Restaura botão para + Novo Telefone
+    const btnAction = document.getElementById('btn-save-phone-action');
+    const labelAction = document.getElementById('label-phone-action');
+    const iconAction = document.getElementById('icon-phone-action');
+    if (btnAction && labelAction) {
+      labelAction.textContent = '+ Novo Telefone';
+      btnAction.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+      btnAction.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+      if (iconAction) {
+        iconAction.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>';
       }
     }
 
@@ -7657,6 +7897,7 @@ window.salesModule = {
     });
 
     const lines = [];
+    // Regra: Máximo de 3 telefones no Card Telefones Standby
     for (let i = 0; i < 3; i++) {
       const phone = uniqueStandbys[i];
       if (phone) {
@@ -7710,7 +7951,16 @@ window.salesModule = {
     if (!target) return;
 
     const novoPrincipal = target.phone;
-    if (input) input.value = novoPrincipal;
+    if (input) {
+      input.value = novoPrincipal;
+      // Destaque visual pulsante na Marcação Azul (input do telefone principal)
+      input.classList.remove('ring-4', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60');
+      void input.offsetWidth; // Força reflow para reiniciar animação
+      input.classList.add('ring-4', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60', 'transition-all', 'duration-300');
+      setTimeout(() => {
+        input.classList.remove('ring-4', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60');
+      }, 2000);
+    }
 
     // Atualiza cadastro do cliente: novo principal e coloca o antigo no array
     client.telefone_whatsapp = novoPrincipal;
@@ -7735,6 +7985,19 @@ window.salesModule = {
     const standbyContainer = document.getElementById('standby-phones-list');
     if (standbyContainer) {
       standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+
+    // Restaura visual do botão para + Novo Telefone
+    const btnAction = document.getElementById('btn-save-phone-action');
+    const labelAction = document.getElementById('label-phone-action');
+    const iconAction = document.getElementById('icon-phone-action');
+    if (btnAction && labelAction) {
+      labelAction.textContent = '+ Novo Telefone';
+      btnAction.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+      btnAction.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+      if (iconAction) {
+        iconAction.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>';
+      }
     }
 
     if (window.grafsisAlert) {
