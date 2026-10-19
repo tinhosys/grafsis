@@ -109,7 +109,7 @@ window.grafsisAlert = function(message = '', title = 'GrafSiS') {
   });
 };
 
-window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue = '', isPhone = false } = {}) {
+window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue = '', defaultContact = '', isPhone = false, withContact = false } = {}) {
   return new Promise((resolve) => {
     const modalId = 'grafsis-custom-prompt-modal';
     document.getElementById(modalId)?.remove();
@@ -136,6 +136,15 @@ window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue 
             <div>
               <input type="text" id="${modalId}-input" value="${defaultValue || ''}" placeholder="${isPhone ? '(00) 0 0000-0000' : ''}" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-400/30">
             </div>
+            ${(withContact || isPhone) ? `
+              <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label for="${modalId}-contact" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase mb-1 flex items-center gap-1">
+                  <span>👤 Nome do Contato:</span>
+                  <span class="text-[9px] text-slate-400 font-normal lowercase">(opcional)</span>
+                </label>
+                <input type="text" id="${modalId}-contact" value="${defaultContact || ''}" maxlength="50" placeholder="Ex: Financeiro, Maria, Depto de Compras..." class="w-full px-3 py-2 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-400/30">
+              </div>
+            ` : ''}
           </div>
           <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
             <button type="button" id="${modalId}-cancel" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer">
@@ -152,6 +161,7 @@ window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     const inputEl = document.getElementById(`${modalId}-input`);
+    const contactEl = document.getElementById(`${modalId}-contact`);
 
     // Máscara de telefone sob demanda se for telefone
     if (isPhone && inputEl) {
@@ -173,6 +183,27 @@ window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue 
       });
     }
 
+    const finish = (accepted) => {
+      if (!accepted) {
+        document.getElementById(modalId)?.remove();
+        resolve(null);
+        return;
+      }
+      const phoneVal = inputEl ? inputEl.value : '';
+      const contactVal = contactEl ? contactEl.value.trim() : '';
+      document.getElementById(modalId)?.remove();
+      if (withContact) {
+        resolve({ phone: phoneVal, contact: contactVal });
+      } else {
+        // Preserva retrocompatibilidade retornando a string do telefone,
+        // mas anexando propriedades para leitura flexível
+        const resStr = new String(phoneVal);
+        resStr.phone = phoneVal;
+        resStr.contact = contactVal;
+        resolve(resStr.toString());
+      }
+    };
+
     if (inputEl) {
       setTimeout(() => {
         inputEl.focus();
@@ -181,22 +212,34 @@ window.grafsisPrompt = function({ title = 'GrafSiS', message = '', defaultValue 
       inputEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          finish(inputEl.value);
+          if (contactEl) {
+            contactEl.focus();
+            contactEl.select();
+          } else {
+            finish(true);
+          }
         } else if (e.key === 'Escape') {
           e.preventDefault();
-          finish(null);
+          finish(false);
         }
       });
     }
 
-    const finish = (result) => {
-      document.getElementById(modalId)?.remove();
-      resolve(result);
-    };
+    if (contactEl) {
+      contactEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finish(true);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          finish(false);
+        }
+      });
+    }
 
-    document.getElementById(`${modalId}-ok`)?.addEventListener('click', () => finish(inputEl ? inputEl.value : null));
-    document.getElementById(`${modalId}-cancel`)?.addEventListener('click', () => finish(null));
-    document.getElementById(`${modalId}-close`)?.addEventListener('click', () => finish(null));
+    document.getElementById(`${modalId}-ok`)?.addEventListener('click', () => finish(true));
+    document.getElementById(`${modalId}-cancel`)?.addEventListener('click', () => finish(false));
+    document.getElementById(`${modalId}-close`)?.addEventListener('click', () => finish(false));
   });
 };
 
