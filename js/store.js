@@ -1769,6 +1769,21 @@ class GrafsisStore {
           });
         }
 
+        // Se for tabela de clientes, desempacota telefones_adicionais caso salvos em fallback JSON em observacoes
+        if (tableName === 'clientes') {
+          data.forEach(item => {
+            if (item.observacoes && typeof item.observacoes === 'string' && item.observacoes.trim().startsWith('{')) {
+              try {
+                const parsed = JSON.parse(item.observacoes);
+                if (parsed.telefones_adicionais && Array.isArray(parsed.telefones_adicionais)) {
+                  item.telefones_adicionais = parsed.telefones_adicionais;
+                }
+                if (parsed.obs !== undefined) item.observacoes = parsed.obs;
+              } catch (e) {}
+            }
+          });
+        }
+
         const local = this.getLocal(storageKey);
         const map = new Map();
         const nameMap = new Map();
@@ -1944,7 +1959,14 @@ class GrafsisStore {
         }
         // Fallback 4: CLIENTES
         else if (tableName === 'clientes' && (error.message.includes('column') || error.message.includes('schema cache'))) {
-          console.warn('[Supabase Fallback] Tentando sincronizar cliente com colunas fundamentais...');
+          console.warn('[Supabase Fallback] Tentando sincronizar cliente com colunas fundamentais e telefones adicionais em JSON...');
+          let obsPayload = clean.observacoes || null;
+          if (Array.isArray(clean.telefones_adicionais) && clean.telefones_adicionais.length > 0) {
+            obsPayload = JSON.stringify({
+              telefones_adicionais: clean.telefones_adicionais,
+              obs: clean.observacoes || ''
+            });
+          }
           const baseClient = {
             id: clean.id,
             nome: clean.nome,
@@ -1959,7 +1981,7 @@ class GrafsisStore {
             referencia: clean.referencia || null,
             plus_code: clean.plus_code || null,
             foto_url: clean.foto_url || null,
-            observacoes: clean.observacoes || null,
+            observacoes: obsPayload,
             updated_at: clean.updated_at || new Date().toISOString()
           };
           const fallbackPromise = this.supabaseClient.from('clientes').upsert(baseClient);

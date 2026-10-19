@@ -866,7 +866,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.9.5</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.9.6</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -874,15 +874,24 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.9.5 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Telefones Standby Contínuos, Proteção do Principal, Mostre/Esconde & Nome do Contato</span>
+            <h4 class="font-bold text-slate-800">Versão 4.9.9.6 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Otimização do Contato, Alinhamento à Esquerda & Standby com Telefones Reais</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
-            <li><strong>Regra de Ouro do Telefone Principal:</strong> O telefone WhatsApp principal cadastrado não pode ser editado pelo canal de vendas nem pelo formulário do cliente sem aviso explícito em tela; o campo permanece protegido em modo somente leitura com aviso informativo.</li>
-            <li><strong>Limite Canônico de Telefones:</strong> Limitação rigorosa de 3 números no total por cliente (1 Principal + 2 Extras em Standby) com validação impeditiva ao atingir a cota.</li>
+            <li><strong>Alinhamento do Contato à Esquerda:</strong> Remoção da identificação duplicada do cliente e reposicionamento do campo <code>Contato:</code> alinhado perfeitamente à esquerda logo abaixo do WhatsApp do cliente.</li>
+            <li><strong>Standby Limpo com Telefones Reais:</strong> No card de Telefones Standby (em Vendas e no Cadastro de Clientes), são renderizadas exclusivamente linhas com telefones cadastrados, eliminando placeholders vazios artificiais.</li>
+            <li><strong>Persistência e Sincronização em Nuvem:</strong> Garantida a integridade da persistência local e remota no Supabase dos telefones adicionais, nomes de contato e observações.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.9.5</h4>
+            <span class="text-xs text-slate-400 font-bold">Telefones Standby Contínuos, Proteção do Principal, Mostre/Esconde & Nome do Contato</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Regra de Ouro do Telefone Principal:</strong> O telefone WhatsApp principal cadastrado não pode ser editado pelo canal de vendas nem pelo formulário do cliente sem aviso explícito em tela.</li>
+            <li><strong>Limite Canônico de Telefones:</strong> Limitação rigorosa de 3 números no total por cliente (1 Principal + 2 Extras em Standby).</li>
             <li><strong>Mostre e Esconde no Card Standby:</strong> Botão toggle no card de telefones adicionais do cadastro de clientes permitindo recolher e expandir a exibição.</li>
-            <li><strong>Telefones Standby Contínuos com Badge 'Em Uso':</strong> No quadro de aprovação de vendas, todas as 3 linhas permanecem visíveis; ao clicar para destacar um número, ele é promovido ao WhatsApp ativo mantendo-se presente na lista com a badge <em>EM USO</em>.</li>
-            <li><strong>Identificação e Nome do Contato:</strong> Campo de nome do contato integrado ao diálogo GrafSiS de novo telefone; quando o telefone ativo for o principal, exibe automaticamente <em>CONTATO PREFERENCIAL</em>.</li>
           </ul>
         </div>
         <div class="border-t border-slate-100 pt-3">
@@ -1117,18 +1126,18 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.9.5) -->
-  <script src="js/config.js?v=4.9.9.5"></script>
-  <script src="js/auth.js?v=4.9.9.5"></script>
-  <script src="js/store.js?v=4.9.9.5"></script>
-  <script src="js/clients.js?v=4.9.9.5"></script>
-  <script src="js/suppliers.js?v=4.9.9.5"></script>
-  <script src="js/products.js?v=4.9.9.5"></script>
-  <script src="js/sales.js?v=4.9.9.5"></script>
-  <script src="js/production.js?v=4.9.9.5"></script>
-  <script src="js/finance.js?v=4.9.9.5"></script>
-  <script src="js/mercadopago.js?v=4.9.9.5"></script>
-  <script src="js/newsticker.js?v=4.9.9.5"></script>
-  <script src="js/app.js?v=4.9.9.5"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.9.6) -->
+  <script src="js/config.js?v=4.9.9.6"></script>
+  <script src="js/auth.js?v=4.9.9.6"></script>
+  <script src="js/store.js?v=4.9.9.6"></script>
+  <script src="js/clients.js?v=4.9.9.6"></script>
+  <script src="js/suppliers.js?v=4.9.9.6"></script>
+  <script src="js/products.js?v=4.9.9.6"></script>
+  <script src="js/sales.js?v=4.9.9.6"></script>
+  <script src="js/production.js?v=4.9.9.6"></script>
+  <script src="js/finance.js?v=4.9.9.6"></script>
+  <script src="js/mercadopago.js?v=4.9.9.6"></script>
+  <script src="js/newsticker.js?v=4.9.9.6"></script>
+  <script src="js/app.js?v=4.9.9.6"></script>
 </body>
 </html>

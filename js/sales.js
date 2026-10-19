@@ -1892,15 +1892,10 @@ window.salesModule = {
                           </button>
                         </div>
 
-                        <!-- LINHA DE IDENTIFICAÇÃO DO CONTATO + NOME DE QUEM É O CONTATO (MARCAÇÃO VERDE LIMÃO E AZUL) -->
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
-                          <div id="order-client-whatsapp-info" class="text-[11px] font-semibold text-lime-700 dark:text-lime-300 truncate max-w-sm sm:max-w-md" title="${this.getClientInfoDisplay(foundClient || initialClientId, 200)}">
-                            ${this.getClientInfoDisplay(foundClient || initialClientId, 50)}
-                          </div>
-                          <div class="flex items-center gap-1 shrink-0">
-                            <span class="text-[10px] text-slate-400 font-bold uppercase">Contato:</span>
-                            <input type="text" id="order-client-contact-name-input" maxlength="50" value="${order ? (order.contato_nome || '') : ''}" placeholder="Nome do contato (opcional)" class="px-2 py-0.5 border border-slate-300 dark:border-slate-600 rounded text-[11px] text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 focus:ring-1 focus:ring-emerald-400 w-44" title="Nome de quem é o contato / pessoa responsável (não obrigatório, máx 50 caracteres)">
-                          </div>
+                        <!-- LINHA DE IDENTIFICAÇÃO DO CONTATO ALINHADA À ESQUERDA (MARCAÇÃO VERDE) -->
+                        <div class="flex items-center gap-1.5 mt-1">
+                          <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider shrink-0">Contato:</span>
+                          <input type="text" id="order-client-contact-name-input" maxlength="50" value="${order ? (order.contato_nome || '') : ''}" placeholder="Nome do contato (opcional)" class="px-2.5 py-1 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 focus:ring-1 focus:ring-emerald-400 w-64" title="Nome de quem é o contato / pessoa responsável (não obrigatório, máx 50 caracteres)">
                         </div>
                       </div>
 
@@ -8012,11 +8007,14 @@ window.salesModule = {
     const cleanCurrent = currentVal.replace(/\D/g, '');
 
     const lines = [];
-    // Regra IMAGEM 2: Card Standby exibe as 3 linhas (1 Principal + 2 Extras)
-    // O telefone em destaque vai para o topo/destaque mas CONTINUA na lista de standby com status 'EM USO'
-    for (let i = 0; i < 3; i++) {
-      const entry = allPhones[i];
-      if (entry && entry.telefone) {
+    if (allPhones.length === 0) {
+      lines.push(`
+        <div class="px-2 py-1.5 bg-white/40 dark:bg-slate-900/40 border border-dashed border-amber-200/60 dark:border-amber-800/60 rounded text-[10px] text-amber-700/60 dark:text-amber-400/60 italic text-center">
+          Nenhum telefone cadastrado
+        </div>
+      `);
+    } else {
+      allPhones.forEach((entry, i) => {
         const isCurrentActive = entry.telefone.replace(/\D/g, '') === cleanCurrent;
         const contactLabel = entry.contato ? `<span class="text-[9px] font-sans font-semibold text-slate-500 truncate max-w-[90px]">(${entry.contato})</span>` : '';
         if (isCurrentActive) {
@@ -8034,14 +8032,7 @@ window.salesModule = {
             </div>
           `);
         }
-      } else {
-        lines.push(`
-          <div class="px-2 py-1 bg-white/40 dark:bg-slate-900/40 border border-dashed border-amber-200/60 dark:border-amber-800/60 rounded text-[10px] text-amber-700/60 dark:text-amber-400/60 italic flex items-center justify-between">
-            <span>Linha ${i + 1}: (vazio)</span>
-            <span class="text-[8px] font-normal uppercase">Livre</span>
-          </div>
-        `);
-      }
+      });
     }
     return lines.join('');
   },

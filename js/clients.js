@@ -1134,10 +1134,14 @@ window.clientsModule = {
     });
 
     const lines = [];
-    // Regra: Máximo de 2 extras em standby (1 principal + 2 extras = 3 no total)
-    for (let i = 0; i < 2; i++) {
-      const entry = uniqueStandbys[i];
-      if (entry && entry.telefone) {
+    if (uniqueStandbys.length === 0) {
+      lines.push(`
+        <div class="px-2 py-1.5 bg-white/40 border border-dashed border-amber-200/60 rounded text-[10px] text-amber-700/60 italic text-center">
+          Nenhum telefone adicional em standby
+        </div>
+      `);
+    } else {
+      uniqueStandbys.forEach((entry, i) => {
         const contactTag = entry.contato ? `<span class="text-[9px] font-sans font-semibold text-slate-500 truncate max-w-[120px]">(${entry.contato})</span>` : '';
         lines.push(`
           <div onclick="clientsModule.swapClientPhone(${i}, '${client ? client.id : ''}')" class="flex items-center justify-between px-2 py-1 bg-white hover:bg-amber-100 border border-amber-200 rounded text-[11px] font-mono font-bold text-slate-800 cursor-pointer transition group" title="Clique para alternar e colocar este telefone no destaque">
@@ -1145,14 +1149,7 @@ window.clientsModule = {
             <span class="text-[9px] font-sans text-amber-600 font-extrabold uppercase ml-1 shrink-0">Usar ⇄</span>
           </div>
         `);
-      } else {
-        lines.push(`
-          <div class="px-2 py-1 bg-white/40 border border-dashed border-amber-200/60 rounded text-[10px] text-amber-700/60 italic flex items-center justify-between">
-            <span>Standby Extra ${i + 1}: (vazio)</span>
-            <span class="text-[8px] font-normal uppercase">Livre</span>
-          </div>
-        `);
-      }
+      });
     }
     return lines.join('');
   },
