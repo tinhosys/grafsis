@@ -2529,12 +2529,12 @@ window.salesModule = {
     const metodoAtual = document.getElementById('order-metodo-pagto')?.value || 'Dinheiro / Cash';
     let parcelasAtual = parseInt(document.getElementById('order-parcelas')?.value || '1') || 1;
     // Regra da Gráfica para Parcelamento Próprio:
-    // Máximo de 3x para compras maiores que R$ 500,00, e até 2x para compras até R$ 500,00
-    const maxGraficaParcelas = finalTotal > 500.00 ? 3 : 2;
+    // Máximo estrito de 2x parcelas
+    const maxGraficaParcelas = 2;
     if (parcelasAtual > maxGraficaParcelas) parcelasAtual = maxGraficaParcelas;
     const obsAtual = document.getElementById('order-obs-pagto')?.value || '';
     
-    // Gera opções conforme o limite da gráfica (1x a 3x se > 500, ou 1x a 2x se <= 500)
+    // Gera opções conforme o limite da gráfica (estritamente 1x ou 2x)
     const allowedParcelas = [];
     for (let p = 1; p <= maxGraficaParcelas; p++) allowedParcelas.push(p);
     const parcelasOptions = allowedParcelas.map(p => `<option value="${p}" ${parcelasAtual === p ? 'selected' : ''}>${p}x parcela${p > 1 ? 's' : ''}</option>`).join('');
@@ -2586,7 +2586,7 @@ window.salesModule = {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <div>
                   <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Meio de Pagto</label>
-                  <select id="fm-metodo" class="w-full h-12 p-2.5 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400" onchange="const val = this.value; const isParc = val.includes('Parcelado'); document.getElementById('fm-parcelas-div').style.display = isParc ? 'block' : 'none'; if(isParc) salesModule.recalcInstallmentsGrid(); const pixBtn = document.getElementById('fm-btn-mp-pix-container'); if(pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none'; const cardBtn = document.getElementById('fm-btn-mp-card-container'); if(cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none'; salesModule.updateModalRestante();">
+                  <select id="fm-metodo" class="w-full h-12 px-3 border-2 border-slate-300 dark:border-slate-700 rounded-xl font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 box-border leading-normal" onchange="salesModule.handleMetodoChange(this)">
                     <option value="Dinheiro / Cash" ${metodoAtual === 'Dinheiro / Cash' ? 'selected' : ''}>Dinheiro / Cash</option>
                     <option value="Cartão de crédito / A vista" ${metodoAtual === 'Cartão de crédito / A vista' ? 'selected' : ''}>Cartão de crédito / A vista</option>
                     <option value="Cartão de crédito / Parcelado" ${metodoAtual === 'Cartão de crédito / Parcelado' ? 'selected' : ''}>Cartão de crédito / Parcelado</option>
@@ -2597,12 +2597,21 @@ window.salesModule = {
                 </div>
                 <div>
                   <label class="block text-xs font-bold mb-1 text-slate-600 dark:text-slate-300">Valor Recebido R$</label>
-                  <input type="text" id="fm-recebido" class="w-full h-12 p-2.5 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-right bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
+                  <input type="text" id="fm-recebido" class="w-full h-12 px-3 border-2 border-yellow-400 rounded-xl font-black text-emerald-700 dark:text-emerald-400 text-base sm:text-lg text-right bg-yellow-50/70 dark:bg-yellow-950/20 focus:outline-none focus:ring-4 focus:ring-yellow-200 box-border leading-normal" value="${recebido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" oninput="salesModule.handleRecebidoInput(this)">
                   <p id="fm-recebido-aviso" class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 hidden text-right">⚠️ Não pode ultrapassar o total do pedido.</p>
                 </div>
               </div>
 
-              <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Limite de 60 Dias / 3x Parcelas -->
+              <!-- Alerta de Parcela Mínima R$ 50,00 Crítica Inicial -->
+              <div id="fm-parcela-minima-alerta" class="hidden p-2.5 bg-red-100 dark:bg-red-950/50 border-2 border-red-500 rounded-xl text-red-800 dark:text-red-200 text-xs font-bold flex items-start gap-2 shadow-xs">
+                <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <div class="flex-1">
+                  <span class="block font-black uppercase text-[11px] text-red-700 dark:text-red-300">Regra de Parcela Mínima (R$ 50,00)</span>
+                  <span id="fm-parcela-minima-alerta-msg">O valor de cada parcela não pode ser menor que R$ 50,00.</span>
+                </div>
+              </div>
+
+              <!-- Bloco de Parcelamento com as 4 Cores Solicitadas e Limite de 60 Dias / Máximo 2x Parcelas -->
               <div id="fm-parcelas-div" class="space-y-3 pt-1 border-t border-slate-200 dark:border-slate-700" style="display: ${metodoAtual.includes('Parcelado') ? 'block' : 'none'};">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div>
@@ -2759,6 +2768,42 @@ window.salesModule = {
     this.updateModalRestante();
   },
 
+  handleMetodoChange(select) {
+    const val = select ? select.value : '';
+    const isParc = val.includes('Parcelado');
+    const parcelasDiv = document.getElementById('fm-parcelas-div');
+    if (parcelasDiv) parcelasDiv.style.display = isParc ? 'block' : 'none';
+
+    const pixBtn = document.getElementById('fm-btn-mp-pix-container');
+    if (pixBtn) pixBtn.style.display = (val === 'Pix') ? 'block' : 'none';
+
+    const cardBtn = document.getElementById('fm-btn-mp-card-container');
+    if (cardBtn) cardBtn.style.display = val.includes('Cartão') ? 'block' : 'none';
+
+    if (isParc) {
+      const finalTotal = this.currentFinanceFinalTotal != null ? this.currentFinanceFinalTotal : (this.recalcTotals().finalTotal || 0);
+      const recInput = document.getElementById('fm-recebido');
+      const recebido = recInput ? (parseFloat(String(recInput.value).replace(/\./g, '').replace(',', '.')) || 0) : 0;
+      const saldo = Math.max(0, finalTotal - recebido);
+
+      if (saldo > 0 && saldo < 50.00) {
+        const alertaEl = document.getElementById('fm-parcela-minima-alerta');
+        const alertaMsg = document.getElementById('fm-parcela-minima-alerta-msg');
+        if (alertaEl && alertaMsg) {
+          alertaMsg.innerText = `O saldo a parcelar (R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) é inferior ao valor mínimo de R$ 50,00 por parcela. Não é permitido parcelar.`;
+          alertaEl.classList.remove('hidden');
+        }
+        alert(`Atenção: O saldo a parcelar (R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) é menor que R$ 50,00. Cada parcela não pode ser menor que R$ 50,00.`);
+      }
+      this.recalcInstallmentsGrid();
+    } else {
+      const alertaEl = document.getElementById('fm-parcela-minima-alerta');
+      if (alertaEl) alertaEl.classList.add('hidden');
+    }
+
+    this.updateModalRestante();
+  },
+
   handleRecebidoInput(input) {
     const finalTotal = this.currentFinanceFinalTotal != null ? this.currentFinanceFinalTotal : (this.recalcTotals().finalTotal || 0);
     let clean = (input.value || '').replace(/\D/g, '');
@@ -2792,6 +2837,9 @@ window.salesModule = {
       const dMax60 = new Date(hoje);
       dMax60.setDate(dMax60.getDate() + 60);
       input.value = dMax60.toISOString().split('T')[0];
+    } else if (diffDias < 0) {
+      alert('Atenção: A data da primeira parcela não pode ser retroativa. Ajustando para hoje.');
+      input.value = hoje.toISOString().split('T')[0];
     }
     this.recalcInstallmentsGrid();
   },
@@ -2990,6 +3038,29 @@ window.salesModule = {
       }
     }
 
+    const metodoInput = document.getElementById('fm-metodo');
+    const isParcelado = metodoInput ? metodoInput.value.includes('Parcelado') : false;
+    const alertaMinimaEl = document.getElementById('fm-parcela-minima-alerta');
+    const alertaMinimaMsg = document.getElementById('fm-parcela-minima-alerta-msg');
+
+    // REGRA DE OURO: O valor de cada parcela NÃO pode ser menor que R$ 50,00.
+    // Crítica imediata: se a parcela for menor que R$ 50,00, emite alerta e não passa.
+    const parcelaAbaixoDoMinimo = isParcelado && saldoDivida > 0 && valorParcela < 50.00;
+
+    if (parcelaAbaixoDoMinimo) {
+      if (alertaMinimaEl && alertaMinimaMsg) {
+        alertaMinimaMsg.innerHTML = `O valor da parcela calculado é de <strong>R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>, que é inferior ao mínimo obrigatório de <strong>R$ 50,00</strong>. Diminua o número de parcelas ou aumente o valor recebido/entrada.`;
+        alertaMinimaEl.classList.remove('hidden');
+      }
+      if (btnConfirm) btnConfirm.disabled = true;
+    } else {
+      if (alertaMinimaEl && !isParcelado) {
+        alertaMinimaEl.classList.add('hidden');
+      } else if (alertaMinimaEl && !parcelaAbaixoDoMinimo) {
+        alertaMinimaEl.classList.add('hidden');
+      }
+    }
+
     const tbody = document.getElementById('fm-parcelas-tbody');
     const resumoEl = document.getElementById('fm-grid-resumo');
     if (!tbody) return;
@@ -3001,9 +3072,13 @@ window.salesModule = {
     const totalFinanciado = valorParcela * qtde;
 
     if (resumoEl) {
-      resumoEl.innerText = jurosMensal > 0 
-        ? `${qtde}x de R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (Total: R$ ${totalFinanciado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})`
-        : `${qtde}x de R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (parcelaAbaixoDoMinimo) {
+        resumoEl.innerHTML = `<span class="text-rose-300 font-bold">❌ Mínimo R$ 50,00 não atingido (${qtde}x de R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})</span>`;
+      } else {
+        resumoEl.innerText = jurosMensal > 0 
+          ? `${qtde}x de R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (Total: R$ ${totalFinanciado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})`
+          : `${qtde}x de R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      }
     }
 
     // As parcelas serão a cada 30 dias em sequência a partir da data da 1ª parcela
@@ -3029,7 +3104,10 @@ window.salesModule = {
       tr.innerHTML = `
         <td class="px-2 py-2 text-center font-bold text-slate-700 dark:text-slate-300 w-14">${k}ª</td>
         <td class="px-2 py-2 text-left font-mono font-bold text-slate-800 dark:text-slate-200 w-28">${vencStr}</td>
-        <td class="px-2 py-2 text-left font-mono font-black text-slate-900 dark:text-white w-28">R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        <td class="px-2 py-2 text-left font-mono font-black ${valorParcela < 50.00 && isParcelado ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'} w-28">
+          R$ ${valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+          ${valorParcela < 50.00 && isParcelado ? '<span class="text-[9px] block text-rose-500 font-bold">&lt; R$ 50 mín</span>' : ''}
+        </td>
         <td class="px-2 py-2 text-center min-w-[110px]">
           <button type="button" onclick="salesModule.toggleInstallmentStatus(${k})" class="cursor-pointer px-3 py-1 rounded-full text-[10px] font-black border transition inline-flex items-center justify-center gap-1 min-w-[85px] ${
             isPago 
@@ -3106,6 +3184,19 @@ window.salesModule = {
     const fmParcelas = document.getElementById('fm-parcelas');
     if (fmParcelas) parcelas = String(fmParcelas.value || '1');
     
+    // REGRA DE CRÍTICA: Se for parcelado, cada parcela NÃO PODE ser menor que R$ 50,00
+    if (metodo.includes('Parcelado')) {
+      const saldoRestante = Math.max(0, finalTotal - recebido);
+      if (saldoRestante > 0) {
+        const numParc = parseInt(parcelas) || 1;
+        const valorAproxParcela = saldoRestante / numParc;
+        if (valorAproxParcela < 50.00) {
+          alert(`Operação Bloqueada: O valor da parcela (R$ ${valorAproxParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) é inferior ao mínimo permitido de R$ 50,00 por parcela. Ajuste o número de parcelas ou aumente o valor de entrada.`);
+          return;
+        }
+      }
+    }
+
     // Atualiza acumulado de valor de entrada/recebido no formulário do pedido
     const rawPrevio = document.getElementById('order-valor-entrada')?.value || document.getElementById('order-valor-recebido')?.value || '0';
     const entradaPrevia = parseFloat(String(rawPrevio).replace(/\./g, '').replace(',', '.')) || 0;
