@@ -866,7 +866,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.9.7</span>
+          <span class="text-xs font-black px-2.5 py-1 bg-blue-600 text-white rounded-lg">v4.9.9.8</span>
           <h3 class="text-base font-bold text-slate-800">Controle de Versão do GRAFSIS</h3>
         </div>
         <button onclick="app.closeVersionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
@@ -874,8 +874,20 @@
       <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm text-slate-600">
         <div>
           <div class="flex items-center justify-between mb-1">
-            <h4 class="font-bold text-slate-800">Versão 4.9.9.7 (Atual)</h4>
-            <span class="text-xs text-blue-600 font-bold">Correção & Ativação dos Botões Copiar Link e Enviar WhatsApp</span>
+            <h4 class="font-bold text-slate-800">Versão 4.9.9.8 (Atual)</h4>
+            <span class="text-xs text-blue-600 font-bold">Edição Direta na Tela, Botão Salvar & WhatsApp Imediato</span>
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+            <li><strong>Edição Direta na Tela (Sem Navegar para Clientes):</strong> Modificação ágil de números e contatos diretamente nos campos da tela de Vendas com botão explícito <em>Salvar</em>.</li>
+            <li><strong>Regra de Ouro Rigorosamente Protegida:</strong> O número principal cadastrado do cliente continua blindado contra alterações indevidas por este canal, restaurando o original e instruindo o operador.</li>
+            <li><strong>Disparo Direto para o WhatsApp:</strong> O clique no botão do WhatsApp abre imediatamente a conversa no número que estiver em destaque (seja o principal ou qualquer outro selecionado no card Standby).</li>
+            <li><strong>Copiar Link Dinâmico:</strong> Cópia instantânea e protegida contra edições manuais com feedback visual em tempo real.</li>
+          </ul>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="font-bold text-slate-800">Versão 4.9.9.7</h4>
+            <span class="text-xs text-slate-400 font-bold">Correção & Ativação dos Botões Copiar Link e Enviar WhatsApp</span>
           </div>
           <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
             <li><strong>Botão Copiar Link Otimizado:</strong> Obtenção dinâmica do link de aprovação online caso o input ainda não estivesse populado, com feedback visual instantâneo (<em>✓ Link Copiado!</em>) e suporte a clipboard com fallback.</li>
@@ -1136,18 +1148,18 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação (Cache-busting v4.9.9.7) -->
-  <script src="js/config.js?v=4.9.9.7"></script>
-  <script src="js/auth.js?v=4.9.9.7"></script>
-  <script src="js/store.js?v=4.9.9.7"></script>
-  <script src="js/clients.js?v=4.9.9.7"></script>
-  <script src="js/suppliers.js?v=4.9.9.7"></script>
-  <script src="js/products.js?v=4.9.9.7"></script>
-  <script src="js/sales.js?v=4.9.9.7"></script>
-  <script src="js/production.js?v=4.9.9.7"></script>
-  <script src="js/finance.js?v=4.9.9.7"></script>
-  <script src="js/mercadopago.js?v=4.9.9.7"></script>
-  <script src="js/newsticker.js?v=4.9.9.7"></script>
-  <script src="js/app.js?v=4.9.9.7"></script>
+  <!-- Scripts da Aplicação (Cache-busting v4.9.9.8) -->
+  <script src="js/config.js?v=4.9.9.8"></script>
+  <script src="js/auth.js?v=4.9.9.8"></script>
+  <script src="js/store.js?v=4.9.9.8"></script>
+  <script src="js/clients.js?v=4.9.9.8"></script>
+  <script src="js/suppliers.js?v=4.9.9.8"></script>
+  <script src="js/products.js?v=4.9.9.8"></script>
+  <script src="js/sales.js?v=4.9.9.8"></script>
+  <script src="js/production.js?v=4.9.9.8"></script>
+  <script src="js/finance.js?v=4.9.9.8"></script>
+  <script src="js/mercadopago.js?v=4.9.9.8"></script>
+  <script src="js/newsticker.js?v=4.9.9.8"></script>
+  <script src="js/app.js?v=4.9.9.8"></script>
 </body>
 </html>

@@ -571,7 +571,7 @@ window.salesModule = {
     // 2. Se NÃO houver cliente selecionado, desabilita todos os inputs e botões (exceto o próprio select de cliente e campo de WhatsApp)
     if (!hasClient) {
       if (opSelect) opSelect.disabled = true;
-      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]):not(#order-client-whatsapp-input):not(#padrao-approval-link-input), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"]):not([onclick*="saveClientAdditionalPhone"]):not([onclick*="swapClientPhone"]):not([onclick*="editCurrentClient"]):not(#btn-save-phone-action)');
+      const allFormElements = document.querySelectorAll('#order-form input:not([name="cliente_id"]):not(#order-client-whatsapp-input):not(#order-client-contact-name-input):not(#padrao-approval-link-input), #order-form select:not([name="cliente_id"]), #order-form textarea, #order-form button:not([onclick*="render"]):not([onclick*="saveClientAdditionalPhone"]):not([onclick*="saveClientPhoneDirectly"]):not([onclick*="swapClientPhone"]):not([onclick*="editCurrentClient"]):not(#btn-save-phone-action):not(#btn-save-phone-direct)');
       allFormElements.forEach(el => {
         el.disabled = true;
       });
@@ -1879,16 +1879,16 @@ window.salesModule = {
                           </label>
                           <input type="text" id="order-client-whatsapp-input" data-original-principal="${foundClient && foundClient.telefone_whatsapp ? foundClient.telefone_whatsapp.replace(/\D/g, '') : ''}" value="${order ? (order.telefone_autorizacao || (foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : '') || order.cliente_telefone || '') : ((foundClient ? (foundClient.telefone_whatsapp || foundClient.telefone) : ''))}" placeholder="(00) 0 0000-0000" oninput="salesModule.formatPhoneMask(this)" class="w-full sm:w-52 px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-400">
                           
-                          <!-- BOTÃO EDITAR CONTATO (MARCAÇÃO ROSA) -->
-                          <button type="button" id="btn-edit-client-contact" onclick="salesModule.editCurrentClient('${order ? order.cliente_id : initialClientId}')" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shrink-0 shadow-xs" title="Editar cadastro completo do cliente">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            Editar Contato
+                          <!-- BOTÃO SALVAR DIRETO NA TELA (MARCAÇÃO VERDE) -->
+                          <button type="button" id="btn-save-phone-direct" onclick="salesModule.saveClientPhoneDirectly('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs" title="Salvar telefone e contato diretamente no cadastro do cliente">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            <span>Salvar</span>
                           </button>
 
-                          <!-- BOTÃO INTELIGENTE: NOVO / GRAVAR (MARCAÇÃO ROSA) -->
-                          <button type="button" id="btn-save-phone-action" onclick="salesModule.handlePhoneActionButton('${order ? order.cliente_id : initialClientId}', '${displayId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs" title="Salvar telefone no cadastro do cliente">
+                          <!-- BOTÃO NOVO TELEFONE ADICIONAL -->
+                          <button type="button" id="btn-save-phone-action" onclick="salesModule.saveClientAdditionalPhone('${order ? order.cliente_id : initialClientId}', '${displayId}', true)" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs" title="Adicionar um novo telefone adicional em standby">
                             <svg id="icon-phone-action" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                            <span id="label-phone-action">Novo Telefone</span>
+                            <span id="label-phone-action">+ Novo Telefone</span>
                           </button>
                         </div>
 
@@ -5936,7 +5936,7 @@ window.salesModule = {
     }
   },
 
-  sendStandardApprovalWhatsApp() {
+  async sendStandardApprovalWhatsApp() {
     let orderId = document.getElementById('current-display-id')?.value?.replace('#', '') || 
                   document.getElementById('display-order-id-label')?.innerText?.replace('#', '')?.trim();
 
@@ -5960,15 +5960,73 @@ window.salesModule = {
       if (matchingOrder) orderId = matchingOrder.id || matchingOrder.numero;
     }
 
-    if (orderId && orderId !== 'NOVO' && !orderId.includes('NOVO')) {
-      this.openApprovalShareModal(orderId);
-    } else {
+    // Obtém o número em destaque diretamente do input
+    const phoneInput = document.getElementById('order-client-whatsapp-input');
+    const contactInput = document.getElementById('order-client-contact-name-input');
+    const rawPhone = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
+
+    if (!rawPhone || rawPhone.length < 10) {
       if (window.grafsisAlert) {
-        window.grafsisAlert('Grave ou salve a operação primeiro para poder encaminhar o link de aprovação ao cliente via WhatsApp.', 'GRAFSIS');
+        await window.grafsisAlert('⚠️ Informe um número de telefone com DDD válido no campo WhatsApp do Cliente para abrir o envio.', 'GrafSiS - WhatsApp');
       } else {
-        alert('Grave ou salve a operação primeiro para poder encaminhar o link de aprovação ao cliente via WhatsApp.');
+        alert('Informe um número de telefone com DDD válido no campo WhatsApp do Cliente.');
+      }
+      if (phoneInput) phoneInput.focus();
+      return;
+    }
+
+    // Link de aprovação
+    let linkInput = document.getElementById('padrao-approval-link-input');
+    let link = linkInput ? linkInput.value : '';
+    if (!link && orderId && orderId !== 'NOVO' && !orderId.includes('NOVO')) {
+      link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${orderId}`;
+      if (linkInput) linkInput.value = link;
+    }
+
+    const fullPhone = rawPhone.length === 10 || rawPhone.length === 11 ? '55' + rawPhone : rawPhone;
+    const tenant = window.store?.getActiveTenant ? window.store.getActiveTenant() : {};
+    const empresaNome = tenant.nome_fantasia || tenant.razao_social || 'GRAFSIS Comunicação Visual';
+    const formClientId = document.querySelector('select[name="cliente_id"]')?.value;
+    const client = window.store?.getClients()?.find(c => String(c.id) === String(formClientId)) || {};
+    const clientName = client.nome || 'Cliente';
+    const contactName = contactInput?.value?.trim() || '';
+
+    // Busca pedido existente ou dados em tela
+    const orders = window.store?.getOrders() || [];
+    let order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+    const randomPin = order?.codigo_autorizacao || String(Math.floor(1000 + Math.random() * 9000));
+    const displayNum = order?.numero || orderId || 'NOVO';
+
+    let saudacao = contactName && contactName !== 'CONTATO PREFERENCIAL'
+      ? `Olá, *${contactName}* (*${clientName}*)! Tudo bem?`
+      : `Olá, *${clientName}*! Tudo bem?`;
+
+    let msg = `${saudacao}\n\n` +
+      `Seu pedido *#${displayNum}* na *${empresaNome}* está pronto para conferência e aprovação online!\n\n` +
+      `👉 *Clique no link para conferir layout, medidas e aprovar com segurança:*\n` +
+      `${link || (window.location.origin + window.location.pathname + '#aprovacao?id=' + displayNum)}\n\n` +
+      `🔐 *Sua Senha de Autorização:* *${randomPin}* (exclusiva para este seu WhatsApp)\n\n` +
+      `Agradecemos a preferência! Caso tenha alguma dúvida ou ajuste na arte, estamos à disposição.`;
+
+    // Atualiza autorização e histórico no pedido se existir
+    if (order) {
+      order.telefone_autorizacao = rawPhone;
+      order.codigo_autorizacao = randomPin;
+      if (contactName) order.contato_nome = contactName;
+      order.historico = order.historico || [];
+      order.historico.push({
+        fase: order.status_fase || 'aprovacao',
+        data: new Date().toISOString(),
+        usuario: `WhatsApp enviado diretamente para ${rawPhone} (${contactName || 'contato'})`
+      });
+      if (typeof window.store.saveOrder === 'function') {
+        window.store.saveOrder(order).catch(() => {});
       }
     }
+
+    // Abre diretamente o WhatsApp
+    const waUrl = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
   },
 
   updateStandardApprovalBox(order) {
@@ -7709,6 +7767,169 @@ window.salesModule = {
     const standbyContainer = document.getElementById('standby-phones-list');
     if (standbyContainer) {
       standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+  },
+
+  // Salva diretamente o telefone e contato editados na tela (Marcação Verde & Azul)
+  async saveClientPhoneDirectly(clientId, orderId) {
+    const input = document.getElementById('order-client-whatsapp-input');
+    const contactInput = document.getElementById('order-client-contact-name-input');
+    let rawVal = input ? input.value.trim() : '';
+    let digits = rawVal.replace(/\D/g, '');
+    let contactName = contactInput ? contactInput.value.trim() : '';
+
+    // Busca cliente
+    let client = window.store?.getClients()?.find(c => String(c.id) === String(clientId));
+    if (!client) {
+      const selectClient = document.querySelector('select[name="cliente_id"]');
+      if (selectClient && selectClient.value) {
+        client = window.store?.getClients()?.find(c => String(c.id) === String(selectClient.value));
+      }
+    }
+
+    if (!client) {
+      if (window.grafsisAlert) {
+        await window.grafsisAlert('Selecione primeiro um cliente para salvar o telefone e contato.', 'GrafSiS - Validação');
+      } else {
+        alert('Selecione primeiro um cliente para salvar o telefone e contato.');
+      }
+      return;
+    }
+
+    if (!digits || digits.length < 10) {
+      if (window.grafsisAlert) {
+        await window.grafsisAlert('Informe um número de telefone com DDD válido no padrão (00) 0 0000-0000.', 'GrafSiS - Validação');
+      } else {
+        alert('Informe um número de telefone com DDD válido no padrão (00) 0 0000-0000.');
+      }
+      if (input) input.focus();
+      return;
+    }
+
+    // REGRA DE OURO: O TELEFONE PRINCIPAL QUE ESTÁ NO CADASTRO NÃO PODE SER EDITADO POR ESSE CANAL
+    const principalDigits = (client.telefone_whatsapp || client.telefone || '').replace(/\D/g, '');
+    const originalInputPrincipal = input.dataset.originalPrincipal || '';
+
+    // Se o usuário estiver tentando alterar o número que era o principal do cadastro
+    if (principalDigits && digits !== principalDigits && (originalInputPrincipal === principalDigits || !originalInputPrincipal)) {
+      // Verifica se o campo antes da edição correspondia ao principal
+      const estavaComPrincipal = originalInputPrincipal === principalDigits;
+      if (estavaComPrincipal) {
+        if (window.grafsisAlert) {
+          await window.grafsisAlert(
+            '🔒 REGRA DE OURO:\n\n' +
+            'O telefone principal que está no cadastro NÃO pode ser editado por esse canal!\n\n' +
+            'O número original foi restaurado. Para adicionar um novo número, utilize o botão "+ Novo Telefone".',
+            'GrafSiS - Telefone Principal Protegido'
+          );
+        } else {
+          alert('🔒 REGRA DE OURO: O telefone principal que está no cadastro NÃO pode ser editado por esse canal!');
+        }
+        input.value = client.telefone_whatsapp || client.telefone;
+        this.formatPhoneMask(input);
+        if (contactInput) contactInput.value = 'CONTATO PREFERENCIAL';
+        return;
+      }
+    }
+
+    // Formata o número canonicamente
+    let formattedPhone = digits;
+    if (digits.length === 11) {
+      formattedPhone = digits.replace(/^(\d{2})(\d{1})(\d{4})(\d{4})$/, '($1) $2 $3-$4');
+    } else {
+      formattedPhone = digits.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+    }
+    input.value = formattedPhone;
+
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const orderDisplay = orderId ? '#' + String(orderId).replace(/^#+/, '') : 'Operação';
+
+    // Se for o telefone principal sendo mantido, apenas atualiza contato preferencial se informado
+    if (digits === principalDigits) {
+      if (!contactName || contactName.trim() === '') {
+        contactName = 'CONTATO PREFERENCIAL';
+        if (contactInput) contactInput.value = contactName;
+      }
+    } else {
+      // É um telefone alternativo/adicional: grava ou atualiza na lista de adicionais do cliente
+      client.telefones_adicionais = client.telefones_adicionais || [];
+      const existingIdx = client.telefones_adicionais.findIndex(t => {
+        const num = typeof t === 'object' ? (t.telefone || '') : String(t);
+        return num.replace(/\D/g, '') === digits;
+      });
+
+      if (existingIdx >= 0) {
+        // Atualiza contato existente
+        if (typeof client.telefones_adicionais[existingIdx] === 'object') {
+          client.telefones_adicionais[existingIdx].nome_contato = contactName;
+          client.telefones_adicionais[existingIdx].data_hora = formattedDate;
+        } else {
+          client.telefones_adicionais[existingIdx] = {
+            telefone: formattedPhone,
+            nome_contato: contactName,
+            data_hora: formattedDate,
+            pedido_id: orderDisplay,
+            registrado_por: window.app?.currentUser?.nome || 'Operador'
+          };
+        }
+      } else {
+        // Verifica limite de 3 telefones no total (1 principal + 2 extras)
+        const extrasCount = client.telefones_adicionais.length;
+        if (extrasCount >= 2) {
+          const msgLimite = '⚠️ Limite de telefones atingido!\n\nEste cliente já possui 3 números no total (1 Principal + 2 Extras em Standby).\nO número em destaque será usado para esta operação, mas não foi possível adicionar um quarto número.';
+          if (window.grafsisAlert) await window.grafsisAlert(msgLimite, 'GrafSiS - Limite de Telefones');
+          else alert(msgLimite);
+        } else {
+          client.telefones_adicionais.push({
+            telefone: formattedPhone,
+            nome_contato: contactName,
+            data_hora: formattedDate,
+            pedido_id: orderDisplay,
+            registrado_por: window.app?.currentUser?.nome || 'Operador'
+          });
+        }
+      }
+
+      await window.store.saveClient(client);
+    }
+
+    // Atualiza a ordem correspondente em memória / banco
+    if (orderId && orderId !== 'NOVO' && !orderId.includes('NOVO')) {
+      const orders = window.store.getOrders();
+      const order = orders.find(o => String(o.id) === String(orderId) || String(o.numero) === String(orderId));
+      if (order) {
+        order.telefone_autorizacao = digits;
+        if (contactName) order.contato_nome = contactName;
+        await window.store.saveOrder(order);
+      }
+    }
+
+    // Feedback visual pulsante de sucesso
+    input.classList.remove('ring-4', 'ring-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/60');
+    void input.offsetWidth;
+    input.classList.add('ring-4', 'ring-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/60', 'transition-all', 'duration-300');
+    setTimeout(() => {
+      input.classList.remove('ring-4', 'ring-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/60');
+    }, 2000);
+
+    // Atualiza container standby na tela
+    const standbyContainer = document.getElementById('standby-phones-list');
+    if (standbyContainer) {
+      standbyContainer.innerHTML = this.renderStandbyPhonesHtml(client.id);
+    }
+
+    if (window.grafsisAlert) {
+      window.grafsisAlert(
+        `✅ Dados salvos com sucesso!\n\n` +
+        `Telefone: ${formattedPhone}\n` +
+        `Contato: ${contactName || 'Contato Preferencial'}\n` +
+        `Cliente: ${client.nome || 'Cliente'}\n\n` +
+        `O telefone está pronto e em destaque para envio direto via WhatsApp.`,
+        'GrafSiS - Salvo com Sucesso'
+      );
+    } else {
+      alert(`Dados salvos com sucesso para ${client.nome}!`);
     }
   },
 
