@@ -5848,55 +5848,35 @@ window.salesModule = {
   },
 
   async copyStandardApprovalLink() {
-    const input = document.getElementById('padrao-approval-link-input');
-    const link = input ? input.value : '';
+    let input = document.getElementById('padrao-approval-link-input');
+    let link = input ? input.value : '';
+
+    // Se o input estiver vazio ou o link não estiver preenchido, calcula dinamicamente
+    if (!link) {
+      const activeDisplayId = document.getElementById('current-display-id')?.value?.replace('#', '') ||
+                              document.getElementById('display-order-id-label')?.innerText?.replace('#', '')?.trim();
+      const finalId = (activeDisplayId && activeDisplayId !== 'NOVO' && !activeDisplayId.includes('NOVO'))
+        ? activeDisplayId
+        : (this.currentEditingOrderId || this.currentAssignedOrderId?.replace('#', '') || '');
+
+      if (finalId && finalId !== 'NOVO') {
+        link = `${window.location.origin}${window.location.pathname}#aprovacao?id=${finalId}`;
+        if (input) input.value = link;
+      }
+    }
+
     if (!link) {
       if (window.grafsisAlert) {
-        window.grafsisAlert('⚠️ Link de aprovação indisponível no momento. Certifique-se de que o pedido possui uma identificação gerada.', 'GRAFSIS');
+        await window.grafsisAlert('⚠️ Link de aprovação indisponível no momento. Certifique-se de que o pedido possui uma identificação gerada ou foi gravado.', 'GRAFSIS');
       } else {
-        alert('Link de aprovação indisponível no momento.');
+        alert('⚠️ Link de aprovação indisponível no momento.');
       }
       return;
     }
 
-    // Validação de segurança: o cliente ou o pedido deve possuir telefone de autorização cadastrado
-    const phoneInput = document.getElementById('order-client-whatsapp-input');
-    const phoneVal = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
-    const selectClient = document.querySelector('select[name="cliente_id"]');
-    const clientId = selectClient ? selectClient.value : '';
-    const client = clientId ? window.store?.getClients()?.find(c => String(c.id) === String(clientId)) : null;
-
-    let hasRegisteredPhone = false;
-    if (phoneVal && phoneVal.length >= 10) {
-      hasRegisteredPhone = true;
-    } else if (client) {
-      const mainClean = (client.telefone_whatsapp || client.telefone || '').replace(/\D/g, '');
-      const hasStandby = Array.isArray(client.telefones_adicionais) && client.telefones_adicionais.some(t => {
-        const num = typeof t === 'object' ? (t.telefone || '') : String(t);
-        return num.replace(/\D/g, '').length >= 10;
-      });
-      if (mainClean.length >= 10 || hasStandby) {
-        hasRegisteredPhone = true;
-      }
-    }
-
-    if (!hasRegisteredPhone) {
-      const confirmCopy = await window.grafsisConfirm({
-        title: 'GRAFSIS - Aviso de Segurança',
-        message: 'Atenção: Nenhum número de telefone/WhatsApp válido foi cadastrado para este cliente.\n\nO cliente precisará ter um número autorizado para validar o aceite digital.\n\nDeseja copiar o link mesmo assim?',
-        confirmText: 'Copiar Mesmo Assim',
-        cancelText: 'Cadastrar Telefone'
-      });
-      if (!confirmCopy) {
-        if (phoneInput) {
-          phoneInput.focus();
-        }
-        return;
-      }
-    }
-
+    // Feedback visual imediato no botão de cópia
     const setButtonFeedback = () => {
-      const btn = document.querySelector('#secao-link-aprovacao-padrao button[onclick*="copyStandardApprovalLink"]');
+      const btn = document.querySelector('button[onclick*="copyStandardApprovalLink"]');
       if (btn) {
         const origHtml = btn.innerHTML;
         btn.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> <span class="text-white font-black">✓ Link Copiado!</span>`;
@@ -5939,7 +5919,7 @@ window.salesModule = {
     if (copied) {
       setButtonFeedback();
       if (window.grafsisAlert) {
-        window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEste link permite conferência de arte, medidas e aceite digital exclusivamente para os telefones cadastrados do cliente.', 'GrafSiS - Link Copiado');
+        window.grafsisAlert('Link de aprovação copiado com sucesso!\n\nEste link permite conferência de arte, medidas e aceite digital exclusivamente para os contatos cadastrados do cliente.', 'GrafSiS - Link Copiado');
       } else {
         alert(`Link de aprovação copiado com sucesso!\n\n${link}`);
       }
@@ -5957,7 +5937,9 @@ window.salesModule = {
   },
 
   sendStandardApprovalWhatsApp() {
-    let orderId = document.getElementById('current-display-id')?.value?.replace('#', '') || document.getElementById('display-order-id-label')?.innerText?.replace('#', '')?.trim();
+    let orderId = document.getElementById('current-display-id')?.value?.replace('#', '') || 
+                  document.getElementById('display-order-id-label')?.innerText?.replace('#', '')?.trim();
+
     if (!orderId || orderId === 'NOVO' || orderId.includes('NOVO')) {
       const linkInput = document.getElementById('padrao-approval-link-input');
       if (linkInput && linkInput.value) {
@@ -5966,15 +5948,26 @@ window.salesModule = {
       }
     }
     if (!orderId || orderId === 'NOVO' || orderId.includes('NOVO')) {
+      if (this.currentEditingOrderId) orderId = this.currentEditingOrderId;
+      else if (this.currentAssignedOrderId && this.currentAssignedOrderId !== '#NOVO') {
+        orderId = this.currentAssignedOrderId.replace('#', '');
+      }
+    }
+    if (!orderId || orderId === 'NOVO' || orderId.includes('NOVO')) {
       const orders = window.store?.getOrders() || [];
       const clientId = document.querySelector('select[name="cliente_id"]')?.value;
       const matchingOrder = orders.filter(o => o.cliente_id === clientId).sort((a,b) => (b.numero||0) - (a.numero||0))[0];
       if (matchingOrder) orderId = matchingOrder.id || matchingOrder.numero;
     }
+
     if (orderId && orderId !== 'NOVO' && !orderId.includes('NOVO')) {
       this.openApprovalShareModal(orderId);
     } else {
-      alert('Grave ou registre a operação primeiro para poder encaminhar o link de aprovação ao cliente via WhatsApp.');
+      if (window.grafsisAlert) {
+        window.grafsisAlert('Grave ou salve a operação primeiro para poder encaminhar o link de aprovação ao cliente via WhatsApp.', 'GRAFSIS');
+      } else {
+        alert('Grave ou salve a operação primeiro para poder encaminhar o link de aprovação ao cliente via WhatsApp.');
+      }
     }
   },
 
@@ -5997,17 +5990,35 @@ window.salesModule = {
   },
 
   openApprovalShareModal(orderId) {
-    const orders = window.store.getOrders();
-    const order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
+    const orders = window.store.getOrders() || [];
+    let order = orders.find(o => o.id === orderId || String(o.numero) === String(orderId));
+    
+    // Se o pedido ainda não estiver salvo na lista global mas houver formulário ativo com esse ID
+    const formClientId = document.querySelector('select[name="cliente_id"]')?.value;
+    const clients = window.store.getClients() || [];
+    const client = clients.find(c => c.id === (order ? order.cliente_id : formClientId)) || {};
+
     if (!order) {
-      alert('Pedido não encontrado para compartilhamento.');
-      return;
+      // Monta objeto provisório em memória para não bloquear o operador
+      const phoneInput = document.getElementById('order-client-whatsapp-input');
+      const contactInput = document.getElementById('order-client-contact-name-input');
+      order = {
+        id: orderId,
+        numero: orderId,
+        cliente_id: client.id || formClientId,
+        cliente_nome: client.nome || 'Cliente',
+        cliente_telefone: phoneInput?.value || client.telefone_whatsapp || client.telefone || '',
+        telefone_autorizacao: phoneInput?.value || client.telefone_whatsapp || client.telefone || '',
+        contato_nome: contactInput?.value || client.contato_nome || '',
+        itens: this.orderItems || [],
+        valor_final: this.orderTotal || 0,
+        tipo_aprovacao_origem: 'cliente_online'
+      };
     }
 
-    const clients = window.store.getClients();
-    const client = clients.find(c => c.id === order.cliente_id) || {};
     const clientName = client.nome || order.cliente_nome || 'Cliente';
-    const clientPhone = order.telefone_autorizacao || client.telefone_whatsapp || client.telefone || order.cliente_telefone || '';
+    const formPhoneVal = document.getElementById('order-client-whatsapp-input')?.value?.trim();
+    const clientPhone = formPhoneVal || order.telefone_autorizacao || client.telefone_whatsapp || client.telefone || order.cliente_telefone || '';
     const baseLink = `${window.location.origin}${window.location.pathname}#aprovacao?id=${order.id || order.numero}`;
     const linkTecnico = `${baseLink}&modo=tecnico`;
     const linkCompleto = `${baseLink}&modo=completo`;
@@ -6335,7 +6346,6 @@ window.salesModule = {
       `Data/Hora: ${now.toLocaleString('pt-BR')}`,
       'GRAFSIS'
     );
-    this.render();
   },
 
   // =========================================================================
