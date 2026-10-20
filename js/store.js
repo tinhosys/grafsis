@@ -766,6 +766,9 @@ class GrafsisStore {
 
   seedRealisticDataset() {
     try {
+      if (localStorage.getItem('grafsis_db_reset_done') === 'true') {
+        return;
+      }
       // 1. Garantir que as 20 empresas gráficas estejam cadastradas
       let tenants = this.getTenants();
       if (!tenants || tenants.length < 20) {
@@ -2611,6 +2614,108 @@ class GrafsisStore {
     } catch (e) {
       alert('Arquivo de backup inválido: ' + e.message);
       return false;
+    }
+  }
+
+  // Limpeza Integral do Banco de Dados (Mantendo apenas o Admin do Sistema e as Categorias)
+  async resetDatabase(options = {}) {
+    try {
+      console.log('[GRAFSIS Store] Iniciando limpeza controlada do banco de dados...');
+
+      // 1. Limpeza local de pedidos, itens, financeiro, clientes, produtos e fornecedores
+      this.saveLocal(STORAGE_KEYS.ORDERS, []);
+      this.saveLocal(STORAGE_KEYS.FINANCE, []);
+      this.saveLocal(STORAGE_KEYS.CLIENTS, []);
+      this.saveLocal(STORAGE_KEYS.PRODUCTS, []);
+      this.saveLocal(STORAGE_KEYS.SUPPLIERS, []);
+      this.saveLocal(STORAGE_KEYS.AUDIT, []);
+
+      // 2. Limpeza local de usuários preservando estritamente o Administrador Oficial
+      const adminUser = {
+        id: 'a0000000-0000-4000-8000-000000000001',
+        operador: 'Admin',
+        nome: 'Administrador do Sistema',
+        cpf: '59156813287',
+        login: 'admin',
+        senha: 'admin',
+        pin: 'admin',
+        role: 'ADMIN',
+        ativo: true,
+        foto_url: 'https://ui-avatars.com/api/?name=Admin+Sistema&background=dc2626&color=fff&size=128&rounded=true&bold=true',
+        telefone: '(11) 99999-0000',
+        email: 'admin@grafsis.com',
+        tentativas_senha_padrao: 999,
+        empresa_id: '001',
+        data_cadastro: '2026-01-01T00:00:00Z',
+        data_ultimo_acesso: new Date().toISOString()
+      };
+
+      const rawUsers = localStorage.getItem('grafsis_users');
+      let currentAdmin = null;
+      if (rawUsers) {
+        try {
+          const list = JSON.parse(rawUsers);
+          currentAdmin = list.find(u => u.role === 'ADMIN' || u.id === adminUser.id || u.login === 'admin');
+        } catch (e) {}
+      }
+
+      const finalAdmin = currentAdmin ? { ...adminUser, ...currentAdmin, role: 'ADMIN', ativo: true } : adminUser;
+      localStorage.setItem('grafsis_users', JSON.stringify([finalAdmin]));
+
+      // 3. Marca flag permanente de reset para não repovoar dados fictícios
+      localStorage.setItem('grafsis_db_reset_done', 'true');
+
+      // 4. Se houver conexão com o Supabase Cloud, executa deleção em cascata remota
+      if (this.supabaseClient) {
+        try {
+          await this.supabaseClient.from('pedido_itens').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao limpar pedido_itens:', err.message || err);
+        }
+
+        try {
+          await this.supabaseClient.from('financeiro_lancamentos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao limpar financeiro_lancamentos:', err.message || err);
+        }
+
+        try {
+          await this.supabaseClient.from('pedidos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao limpar pedidos:', err.message || err);
+        }
+
+        try {
+          await this.supabaseClient.from('clientes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao limpar clientes:', err.message || err);
+        }
+
+        try {
+          await this.supabaseClient.from('produtos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao limpar produtos:', err.message || err);
+        }
+
+        try {
+          await this.supabaseClient.from('fornecedores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao limpar fornecedores:', err.message || err);
+        }
+
+        try {
+          await this.supabaseClient.from('usuarios').delete().neq('id', finalAdmin.id).neq('role', 'ADMIN');
+          await this.supabaseClient.from('usuarios').upsert(finalAdmin);
+        } catch (err) {
+          console.warn('[Reset Cloud] Aviso ao sincronizar admin em usuarios:', err.message || err);
+        }
+      }
+
+      console.log('[GRAFSIS Store] Limpeza do banco de dados concluída com sucesso!');
+      return { success: true };
+    } catch (criticalErr) {
+      console.error('[GRAFSIS Store] Erro crítico ao zerar banco de dados:', criticalErr);
+      return { success: false, error: criticalErr.message || criticalErr };
     }
   }
 }

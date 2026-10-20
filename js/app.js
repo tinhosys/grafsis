@@ -2755,6 +2755,28 @@ window.app = {
             </button>
           </div>
         </div>
+
+        <!-- SEÇÃO: ZERAR BANCO DE DADOS (EXCLUSIVO ADMIN DO SISTEMA) -->
+        ${(window.authModule && window.authModule.isAdmin()) ? `
+        <div class="bg-rose-50/60 p-6 rounded-2xl shadow-sm border border-rose-200 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
+            <h2 class="text-base font-bold text-rose-800 flex items-center gap-2">
+              <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              Zerar Banco de Dados (Ambiente Limpo)
+            </h2>
+          </div>
+          <p class="text-xs text-rose-700 leading-relaxed">
+            Esta ação apaga <strong>Clientes, Produtos, Vendas/Pedidos, Itens e Financeiro</strong>, mantendo exclusivamente o <strong>Administrador do Sistema</strong> e todas as categorias.
+          </p>
+          <div class="pt-2">
+            <button onclick="app.handleResetDatabase()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-rose-600/30 transition cursor-pointer flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              Zerar Banco de Dados Agora
+            </button>
+          </div>
+        </div>
+        ` : ''}
       </div>
     `;
   },
@@ -2882,6 +2904,31 @@ window.app = {
         }
       };
       reader.readAsText(file);
+    }
+  },
+
+  async handleResetDatabase() {
+    if (!window.authModule || !window.authModule.isAdmin()) {
+      alert('Acesso negado: apenas o Administrador do Sistema pode executar esta operação.');
+      return;
+    }
+
+    const confirm1 = confirm('⚠️ ATENÇÃO: ZERAR BANCO DE DADOS?\n\nEsta operação apagará todos os Clientes, Produtos, Vendas/Pedidos, Itens e Lançamentos Financeiros.\n\nApenas o Administrador do Sistema e as Categorias serão preservados.\n\nDeseja continuar?');
+    if (!confirm1) return;
+
+    const confirm2 = prompt('Para confirmar a limpeza definitiva, digite "ZERAR":');
+    if (confirm2 !== 'ZERAR') {
+      alert('Operação cancelada. A confirmação não coincidiu.');
+      return;
+    }
+
+    const res = await window.store.resetDatabase();
+    if (res && res.success) {
+      alert('✅ BANCO DE DADOS ZERADO COM SUCESSO!\n\nClientes, Produtos, Vendas e Financeiro foram excluídos.\nO Administrador do Sistema e as Categorias de produtos foram preservados com sucesso.');
+      this.updateUserHeader();
+      this.navigate('dashboard');
+    } else {
+      alert('Ocorreu um erro durante a limpeza: ' + (res?.error || 'Erro desconhecido'));
     }
   },
 
