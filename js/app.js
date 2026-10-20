@@ -2317,6 +2317,8 @@ window.app = {
     // Lista de Usuários e Presença
     const allUsers = window.authModule.getUsers ? window.authModule.getUsers() : [];
     const tenants = window.store.getTenants ? window.store.getTenants() : [window.store.getActiveTenant ? window.store.getActiveTenant() : { razao_social: 'Gráfica Principal' }];
+    const activeTenant = window.store.getActiveTenant ? window.store.getActiveTenant() : (tenants[0] || {});
+    const isSystemAdmin = (currentUser && currentUser.role === 'ADMIN');
     const allOrders = window.store.getOrders ? window.store.getOrders() : [];
     const allClients = window.store.getClients ? window.store.getClients() : [];
     
@@ -2500,6 +2502,93 @@ window.app = {
               Protocolo: <strong>REST & Realtime WebSockets</strong> | Latência estimada: <strong>~38ms</strong>
             </div>
           </div>
+        </div>
+
+        <!-- SEÇÃO: DADOS CADASTRAIS DA EMPRESA (SUA GRÁFICA) -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                🏢 Configurações da Empresa (Sua Gráfica)
+              </h2>
+              <p class="text-xs text-slate-500">Dados oficiais que constam em cabeçalhos, rodapés de orçamentos, pedidos e recibos</p>
+            </div>
+            <div>
+              ${isSystemAdmin 
+                ? '<span class="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">Modo Edição Completa (ADM)</span>' 
+                : '<span class="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">Proprietário: Edição de Logo e Rodapé</span>'}
+            </div>
+          </div>
+
+          <form id="company-config-form" onsubmit="app.saveCompanyConfig(event, '${activeTenant.id || '001'}')" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Razão Social / Nome Fantasia *</label>
+                <input type="text" id="comp-nome" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.razao_social || ''}" ${isSystemAdmin ? 'required' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">CNPJ</label>
+                <input type="text" id="comp-cnpj" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.cnpj || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Telefone Fixo</label>
+                <input type="text" id="comp-tel" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.telefone_fixo || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Celular / WhatsApp *</label>
+                <input type="text" id="comp-cel" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.celular_whatsapp || ''}" ${isSystemAdmin ? 'required' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
+                <input type="email" id="comp-email" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.email || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Localização</label>
+                <input type="text" id="comp-end" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.endereco || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Site / Portfólio</label>
+                <input type="url" id="comp-site" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.site || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Instagram (@)</label>
+                <input type="text" id="comp-insta" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.instagram || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Pacote Contratado & Expiração</label>
+                <input type="text" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-600 cursor-not-allowed font-medium" value="${activeTenant.pacote_mensal || 'Profissional'} (Expira: ${activeTenant.data_expiracao || 'Sem data'})" disabled>
+              </div>
+            </div>
+
+            <!-- Upload de Logomarca e Mensagem de Rodapé -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5 mt-4">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-slate-700">Upload da Logomarca (Imagem)</label>
+                  <span class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Exibida nos impressos</span>
+                </div>
+                <input type="file" accept="image/*" id="comp-logo-file" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none mb-2" onchange="app.handleLogoUpload(this, 'comp-logo-preview', 'comp-logo-base64')">
+                <input type="hidden" id="comp-logo-base64" value="${activeTenant.logo_url || ''}">
+                <div class="h-20 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden p-2">
+                  <img id="comp-logo-preview" src="${activeTenant.logo_url || ''}" class="max-h-full max-w-full object-contain" onerror="this.src=''; this.alt='Sem Logo'">
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-slate-700">Mensagem de Rodapé (Orçamentos)</label>
+                  <span class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Exibida no rodapé</span>
+                </div>
+                <textarea id="comp-msg" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none h-20" placeholder="Digite uma mensagem personalizada para orçamentos e pedidos...">${activeTenant.rodape_msg || ''}</textarea>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-slate-100">
+              <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/25 transition cursor-pointer flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Salvar Dados da Empresa</span>
+              </button>
+            </div>
+          </form>
         </div>
 
         <!-- SEÇÃO: STATUS DE FUNCIONAMENTO DOS SUBSISTEMAS (HEALTH CHECK) -->

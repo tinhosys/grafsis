@@ -2583,23 +2583,37 @@ class GrafsisStore {
     }
   }
 
-  // Backup JSON
   exportData() {
-    const all = {
-      clients: this.getClients(),
-      suppliers: this.getSuppliers(),
-      products: this.getProducts(),
-      orders: this.getOrders(),
-      finance: this.getFinance(),
-      exportDate: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_grafsis_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const all = {
+        clients: this.getClients(),
+        suppliers: this.getSuppliers(),
+        products: this.getProducts(),
+        orders: this.getOrders(),
+        finance: this.getFinance(),
+        users: (window.authModule && typeof window.authModule.getUsers === 'function') ? window.authModule.getUsers() : [],
+        tenants: this.getTenants(),
+        exportDate: new Date().toISOString()
+      };
+      const jsonString = JSON.stringify(all, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `backup_grafsis_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 300);
+      return true;
+    } catch (e) {
+      console.error('[Export] Falha ao exportar backup:', e);
+      alert('Erro ao gerar arquivo de backup: ' + (e.message || e));
+      return false;
+    }
   }
 
   importData(jsonData) {
