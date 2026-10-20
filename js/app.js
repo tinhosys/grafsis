@@ -2308,566 +2308,591 @@ window.app = {
      BANCO DE DADOS (NUVEM) E CONFIGURAÇÕES
      ============================================================================== */
   renderSettings() {
-    const isMasterAdmin = window.authModule.can('canManageSettings');
-    const settings = window.store.getSettings();
-    const config = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : settings;
-    const container = document.getElementById('view-container');
-    const currentUser = window.authModule.getCurrentUser ? window.authModule.getCurrentUser() : { nome: 'Admin', role: 'ADMIN' };
-    
-    // Lista de Usuários e Presença
-    const allUsers = window.authModule.getUsers ? window.authModule.getUsers() : [];
-    const tenants = window.store.getTenants ? window.store.getTenants() : [window.store.getActiveTenant ? window.store.getActiveTenant() : { razao_social: 'Gráfica Principal' }];
-    const activeTenant = window.store.getActiveTenant ? window.store.getActiveTenant() : (tenants[0] || {});
-    const isSystemAdmin = (currentUser && currentUser.role === 'ADMIN');
-    const allOrders = window.store.getOrders ? window.store.getOrders() : [];
-    const allClients = window.store.getClients ? window.store.getClients() : [];
-    
-    // Simulação de presença em tempo real: o usuário logado está online agora, outros com atividade recente
-    const onlineUsers = allUsers.map((u, idx) => {
-      const isCurrent = currentUser && (u.id === currentUser.id || u.login === currentUser.login);
-      const isOnline = isCurrent || (idx % 2 === 0);
-      return {
-        ...u,
-        isOnline,
-        ultimoAcesso: isCurrent ? 'Agora mesmo (Ativo)' : (isOnline ? 'há 4 minutos' : 'há 2 horas'),
-        dispositivo: idx % 2 === 0 ? '💻 Desktop (Windows 11)' : '📱 Celular (Android)'
-      };
-    });
-    const totalOnlineCount = onlineUsers.filter(u => u.isOnline).length;
+    try {
+      const isMasterAdmin = window.authModule ? (typeof window.authModule.can === 'function' ? window.authModule.can('canManageSettings') : false) : true;
+      const settings = window.store?.getSettings ? window.store.getSettings() : {};
+      const config = window.GRAFSIS_CONFIG ? window.GRAFSIS_CONFIG.getSupabaseConfig() : settings;
+      const container = document.getElementById('view-container');
+      if (!container) return;
+      const currentUser = (window.authModule && typeof window.authModule.getCurrentUser === 'function') 
+        ? window.authModule.getCurrentUser() 
+        : { nome: 'Admin', role: 'ADMIN' };
+      
+      // Lista de Usuários e Presença
+      const allUsers = (window.authModule && typeof window.authModule.getUsers === 'function') ? window.authModule.getUsers() : [];
+      const tenants = (window.store && typeof window.store.getTenants === 'function') 
+        ? window.store.getTenants() 
+        : [(window.store && typeof window.store.getActiveTenant === 'function') ? window.store.getActiveTenant() : { razao_social: 'Gráfica Principal' }];
+      const activeTenant = (window.store && typeof window.store.getActiveTenant === 'function') 
+        ? window.store.getActiveTenant() 
+        : (tenants[0] || {});
+      const isSystemAdmin = (currentUser && currentUser.role === 'ADMIN');
+      const allOrders = (window.store && typeof window.store.getOrders === 'function') ? window.store.getOrders() : [];
+      const allClients = (window.store && typeof window.store.getClients === 'function') ? window.store.getClients() : [];
+      
+      // Simulação de presença em tempo real: o usuário logado está online agora, outros com atividade recente
+      const onlineUsers = allUsers.map((u, idx) => {
+        const isCurrent = currentUser && (u.id === currentUser.id || u.login === currentUser.login);
+        const isOnline = isCurrent || (idx % 2 === 0);
+        return {
+          ...u,
+          isOnline,
+          ultimoAcesso: isCurrent ? 'Agora mesmo (Ativo)' : (isOnline ? 'há 4 minutos' : 'há 2 horas'),
+          dispositivo: idx % 2 === 0 ? '💻 Desktop (Windows 11)' : '📱 Celular (Android)'
+        };
+      });
+      const totalOnlineCount = onlineUsers.filter(u => u.isOnline).length;
 
-    // Métricas por Gráfica
-    const tenantMetrics = tenants.map(t => {
-      const tOrders = allOrders.filter(o => o.tenant_id === t.id || (!o.tenant_id && t.id === 'tenant-forte'));
-      const tFaturamento = tOrders.reduce((acc, o) => acc + (parseFloat(o.valor_final) || 0), 0);
-      return {
-        ...t,
-        totalOrders: tOrders.length,
-        faturamento: tFaturamento
-      };
-    });
-    const maxFaturamento = Math.max(...tenantMetrics.map(tm => tm.faturamento), 100);
+      // Métricas por Gráfica
+      const tenantMetrics = tenants.map(t => {
+        const tOrders = allOrders.filter(o => o.tenant_id === t.id || (!o.tenant_id && t.id === 'tenant-forte'));
+        const tFaturamento = tOrders.reduce((acc, o) => acc + (parseFloat(o.valor_final) || 0), 0);
+        return {
+          ...t,
+          totalOrders: tOrders.length,
+          faturamento: tFaturamento
+        };
+      });
+      const maxFaturamento = Math.max(...tenantMetrics.map(tm => tm.faturamento), 100);
 
-    container.innerHTML = `
-      <div class="max-w-6xl mx-auto space-y-6 pb-12">
-        <!-- CABEÇALHO DO ADMINISTRADOR DO SISTEMA DA GRAFSIS -->
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-900/40">
-          <div>
-            <div class="flex items-center gap-2.5 mb-1">
-              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                Painel do Administrador Geral
-              </span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sistema 100% Operacional
-              </span>
-            </div>
-            <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              Configurações / Painel Master GRAFSIS
-            </h1>
-            <p class="text-slate-300 text-xs mt-1">
-              Monitoramento de infraestrutura, integridade de microsserviços, conexões multi-tenant, usuários online e relatórios globais.
-            </p>
-          </div>
-          <div class="flex items-center gap-2.5 shrink-0">
-            <button onclick="window.store.handleManualSyncClick()" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-blue-600/30 cursor-pointer active:scale-95">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-              Sincronizar Todos os Bancos
-            </button>
-          </div>
-        </div>
-
-        <!-- CARDS DE VISÃO RÁPIDA (USUÁRIOS ONLINE, SISTEMAS E BANCO) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <!-- CARD 1: USUÁRIOS ONLINE -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
+      container.innerHTML = `
+        <div class="max-w-6xl mx-auto space-y-6 pb-12">
+          <!-- CABEÇALHO DO ADMINISTRADOR DO SISTEMA DA GRAFSIS -->
+          <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-900/40">
             <div>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Usuários Conectados</span>
-              <div class="text-2xl font-black text-slate-800 mt-1 flex items-center gap-2">
-                <span class="text-emerald-600 font-mono">${totalOnlineCount}</span>
-                <span class="text-xs font-bold text-slate-400">/ ${allUsers.length} total</span>
-              </div>
-              <span class="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Sessões ativas agora
-              </span>
-            </div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0 border border-emerald-100">
-              👥
-            </div>
-          </div>
-
-          <!-- CARD 2: STATUS DO BANCO DE DADOS -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-            <div>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Banco de Dados Cloud</span>
-              <div class="text-base font-black text-slate-800 mt-1 flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full ${window.store.cloudConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}"></span>
-                <span>${window.store.cloudConnected ? 'Supabase Conectado' : 'Supabase Desconectado'}</span>
-              </div>
-              <span class="text-[10px] text-slate-500 mt-1 block truncate max-w-[150px]" title="${config.url || ''}">
-                ${config.url ? config.url.replace('https://', '') : 'Não configurado'}
-              </span>
-            </div>
-            <div class="w-12 h-12 rounded-xl ${window.store.cloudConnected ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-rose-50 text-rose-600 border border-rose-100'} flex items-center justify-center text-xl shrink-0">
-              🗄️
-            </div>
-          </div>
-
-          <!-- CARD 3: TOTAL DE GRÁFICAS ATIVAS -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
-            <div>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Gráficas Cadastradas</span>
-              <div class="text-2xl font-black text-slate-800 mt-1 font-mono">
-                ${tenants.length}
-              </div>
-              <span class="text-[10px] text-blue-600 font-semibold mt-1 block">
-                Multi-Tenant Ativo & Isolado
-              </span>
-            </div>
-            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0 border border-indigo-100">
-              🏢
-            </div>
-          </div>
-
-          <!-- CARD 4: INTEGRIDADE DO SISTEMA / STATUS DE CONEXÃO (IMAGEM 2) -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between relative overflow-hidden">
-            <div>
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Integridade / Conexão</span>
-              <div class="mt-1 flex items-center gap-1.5">
-                <span id="settings-connection-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm ${window.store.cloudConnected ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-rose-600 text-white border border-rose-500'}">
-                  <span class="w-2 h-2 rounded-full bg-white ${window.store.cloudConnected ? 'animate-pulse' : ''}"></span>
-                  <span>${window.store.cloudConnected ? '100% conectado' : 'desconectado'}</span>
+              <div class="flex items-center gap-2.5 mb-1">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                  Painel do Administrador Geral
+                </span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sistema 100% Operacional
                 </span>
               </div>
-              <span class="text-[10px] text-slate-500 mt-1 block">
-                ${window.store.cloudConnected ? 'Base de dados 100% online' : 'Sistema inoperante sem banco'}
-              </span>
-            </div>
-            <div class="w-12 h-12 rounded-xl ${window.store.cloudConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'} flex items-center justify-center text-xl shrink-0">
-              ${window.store.cloudConnected ? '⚡' : '⚠️'}
-            </div>
-          </div>
-        </div>
-
-        <!-- SEÇÃO: CAMINHO DO BANCO DE DADOS & CONEXÃO SUPABASE CLOUD -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
-                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm0 5h16M4 12c0 2 1 3 3 3h10c2 0 3-1 3-3"></path></svg>
-                Caminho do Banco de Dados & Infraestrutura Cloud (Supabase)
-              </h2>
-              <p class="text-xs text-slate-500 mt-0.5">
-                Caminho oficial e credenciais do PostgreSQL Cloud compartilhado entre PCs e Dispositivos Móveis
+              <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                Configurações / Painel Master GRAFSIS
+              </h1>
+              <p class="text-slate-300 text-xs mt-1">
+                Monitoramento de infraestrutura, integridade de microsserviços, conexões multi-tenant, usuários online e relatórios globais.
               </p>
             </div>
-            <div id="settings-status-indicator">
-              ${window.store.supabaseClient ? `
-                <span class="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-300 flex items-center gap-1.5 shadow-sm">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Cloud Sincronizada & Ativa
+            <div class="flex items-center gap-2.5 shrink-0">
+              <button onclick="window.store.handleManualSyncClick()" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-blue-600/30 cursor-pointer active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Sincronizar Todos os Bancos
+              </button>
+            </div>
+          </div>
+
+          <!-- CARDS DE VISÃO RÁPIDA (USUÁRIOS ONLINE, SISTEMAS E BANCO) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- CARD 1: USUÁRIOS ONLINE -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Usuários Conectados</span>
+                <div class="text-2xl font-black text-slate-800 mt-1 flex items-center gap-2">
+                  <span class="text-emerald-600 font-mono">${totalOnlineCount}</span>
+                  <span class="text-xs font-bold text-slate-400">/ ${allUsers.length} total</span>
+                </div>
+                <span class="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Sessões ativas agora
                 </span>
-              ` : `
-                <span class="px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-300 flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Conexão Pendente / Armazenamento Local
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0 border border-emerald-100">
+                👥
+              </div>
+            </div>
+
+            <!-- CARD 2: STATUS DO BANCO DE DADOS -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Banco de Dados Cloud</span>
+                <div class="text-base font-black text-slate-800 mt-1 flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full ${window.store?.cloudConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}"></span>
+                  <span>${window.store?.cloudConnected ? 'Supabase Conectado' : 'Supabase Desconectado'}</span>
+                </div>
+                <span class="text-[10px] text-slate-500 mt-1 block truncate max-w-[150px]" title="${config?.url || ''}">
+                  ${config?.url ? config.url.replace('https://', '') : 'Não configurado'}
                 </span>
-              `}
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Caminho do Banco (Project URL / REST Endpoint)</label>
-              <div class="relative">
-                <input type="text" id="set-url" value="${config.url || ''}" placeholder="https://exemplo.supabase.co" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold text-blue-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500">
               </div>
-              <span class="text-[10px] text-slate-400 mt-1 block">Ex: https://mirhgxsiwjuondnpekru.supabase.co</span>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Anon / Public API Key (Token JWT)</label>
-              <div class="relative">
-                <input type="password" id="set-key" value="${config.key || ''}" placeholder="Chave de API pública anon..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500">
-              </div>
-              <span class="text-[10px] text-slate-400 mt-1 block">Utilizada para comunicação segura via SSL/TLS com o banco</span>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-            <div class="flex gap-2">
-              <button onclick="app.saveSupabaseSettings()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center gap-2 cursor-pointer">
-                <span>Salvar & Reconectar</span>
-              </button>
-              <button onclick="app.testSupabaseConnection()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition flex items-center gap-1.5 cursor-pointer">
-                <span>Testar Conexão</span>
-              </button>
-            </div>
-            <div class="text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-              Protocolo: <strong>REST & Realtime WebSockets</strong> | Latência estimada: <strong>~38ms</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- SEÇÃO: DADOS CADASTRAIS DA EMPRESA (SUA GRÁFICA) -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                🏢 Configurações da Empresa (Sua Gráfica)
-              </h2>
-              <p class="text-xs text-slate-500">Dados oficiais que constam em cabeçalhos, rodapés de orçamentos, pedidos e recibos</p>
-            </div>
-            <div>
-              ${isSystemAdmin 
-                ? '<span class="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">Modo Edição Completa (ADM)</span>' 
-                : '<span class="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">Proprietário: Edição de Logo e Rodapé</span>'}
-            </div>
-          </div>
-
-          <form id="company-config-form" onsubmit="app.saveCompanyConfig(event, '${activeTenant.id || '001'}')" class="space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Razão Social / Nome Fantasia *</label>
-                <input type="text" id="comp-nome" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.razao_social || ''}" ${isSystemAdmin ? 'required' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">CNPJ</label>
-                <input type="text" id="comp-cnpj" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.cnpj || ''}" ${isSystemAdmin ? '' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Telefone Fixo</label>
-                <input type="text" id="comp-tel" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.telefone_fixo || ''}" ${isSystemAdmin ? '' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Celular / WhatsApp *</label>
-                <input type="text" id="comp-cel" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.celular_whatsapp || ''}" ${isSystemAdmin ? 'required' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
-                <input type="email" id="comp-email" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.email || ''}" ${isSystemAdmin ? '' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Localização</label>
-                <input type="text" id="comp-end" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.endereco || ''}" ${isSystemAdmin ? '' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Site / Portfólio</label>
-                <input type="url" id="comp-site" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.site || ''}" ${isSystemAdmin ? '' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Instagram (@)</label>
-                <input type="text" id="comp-insta" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant.instagram || ''}" ${isSystemAdmin ? '' : 'disabled'}>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Pacote Contratado & Expiração</label>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-600 cursor-not-allowed font-medium" value="${activeTenant.pacote_mensal || 'Profissional'} (Expira: ${activeTenant.data_expiracao || 'Sem data'})" disabled>
+              <div class="w-12 h-12 rounded-xl ${window.store?.cloudConnected ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-rose-50 text-rose-600 border border-rose-100'} flex items-center justify-center text-xl shrink-0">
+                🗄️
               </div>
             </div>
 
-            <!-- Upload de Logomarca e Mensagem de Rodapé -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5 mt-4">
+            <!-- CARD 3: TOTAL DE GRÁFICAS ATIVAS -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between">
               <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="block text-xs font-bold text-slate-700">Upload da Logomarca (Imagem)</label>
-                  <span class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Exibida nos impressos</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Gráficas Cadastradas</span>
+                <div class="text-2xl font-black text-slate-800 mt-1 font-mono">
+                  ${tenants.length}
                 </div>
-                <input type="file" accept="image/*" id="comp-logo-file" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none mb-2" onchange="app.handleLogoUpload(this, 'comp-logo-preview', 'comp-logo-base64')">
-                <input type="hidden" id="comp-logo-base64" value="${activeTenant.logo_url || ''}">
-                <div class="h-20 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden p-2">
-                  <img id="comp-logo-preview" src="${activeTenant.logo_url || ''}" class="max-h-full max-w-full object-contain" onerror="this.src=''; this.alt='Sem Logo'">
+                <span class="text-[10px] text-blue-600 font-semibold mt-1 block">
+                  Multi-Tenant Ativo & Isolado
+                </span>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0 border border-indigo-100">
+                🏢
+              </div>
+            </div>
+
+            <!-- CARD 4: INTEGRIDADE DO SISTEMA / STATUS DE CONEXÃO -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-between relative overflow-hidden">
+              <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Integridade / Conexão</span>
+                <div class="mt-1 flex items-center gap-1.5">
+                  <span id="settings-connection-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm ${window.store?.cloudConnected ? 'bg-emerald-500 text-white border border-emerald-400' : 'bg-rose-600 text-white border border-rose-500'}">
+                    <span class="w-2 h-2 rounded-full bg-white ${window.store?.cloudConnected ? 'animate-pulse' : ''}"></span>
+                    <span>${window.store?.cloudConnected ? '100% conectado' : 'desconectado'}</span>
+                  </span>
                 </div>
+                <span class="text-[10px] text-slate-500 mt-1 block">
+                  ${window.store?.cloudConnected ? 'Base de dados 100% online' : 'Sistema inoperante sem banco'}
+                </span>
               </div>
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="block text-xs font-bold text-slate-700">Mensagem de Rodapé (Orçamentos)</label>
-                  <span class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Exibida no rodapé</span>
-                </div>
-                <textarea id="comp-msg" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none h-20" placeholder="Digite uma mensagem personalizada para orçamentos e pedidos...">${activeTenant.rodape_msg || ''}</textarea>
+              <div class="w-12 h-12 rounded-xl ${window.store?.cloudConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'} flex items-center justify-center text-xl shrink-0">
+                ${window.store?.cloudConnected ? '⚡' : '⚠️'}
               </div>
-            </div>
-
-            <div class="flex justify-end pt-3 border-t border-slate-100">
-              <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/25 transition cursor-pointer flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                <span>Salvar Dados da Empresa</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <!-- SEÇÃO: STATUS DE FUNCIONAMENTO DOS SUBSISTEMAS (HEALTH CHECK) -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <h2 class="text-base font-black text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            Status de Funcionamento dos Sistemas (Health Check)
-          </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span class="font-bold text-slate-800 block">Banco de Dados Cloud</span>
-                <span class="text-[11px] text-slate-500">PostgreSQL Supabase</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
-                ● Operacional
-              </span>
-            </div>
-
-            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span class="font-bold text-slate-800 block">Cache Local & Offline</span>
-                <span class="text-[11px] text-slate-500">LocalStorage HTML5 Engine</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
-                ● Saudável
-              </span>
-            </div>
-
-            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span class="font-bold text-slate-800 block">Motor de Cálculo m² e Tintas</span>
-                <span class="text-[11px] text-slate-500">Regra de Ouro e CMYK</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
-                ● Calibrado
-              </span>
-            </div>
-
-            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span class="font-bold text-slate-800 block">Módulo Produção e Kanban</span>
-                <span class="text-[11px] text-slate-500">8 Fases em tempo real</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
-                ● Ativo
-              </span>
-            </div>
-
-            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span class="font-bold text-slate-800 block">Emissão de O.S. e Recibos</span>
-                <span class="text-[11px] text-slate-500">Documentos Térmicos e A4</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
-                ● Pronto
-              </span>
-            </div>
-
-            <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span class="font-bold text-slate-800 block">Gateway WhatsApp e E-mail</span>
-                <span class="text-[11px] text-slate-500">Disparo de Fases e PIX</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
-                ● Conectado
-              </span>
             </div>
           </div>
-        </div>
 
-        <!-- SEÇÃO: USUÁRIOS ONLINE & AUDITORIA DE SESSÕES -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-            <div>
-              <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                Usuários do Sistema e Monitor de Presença
-              </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Quem está online neste momento e seus respectivos níveis de permissão</p>
+          <!-- SEÇÃO: CAMINHO DO BANCO DE DADOS & CONEXÃO SUPABASE CLOUD -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm0 5h16M4 12c0 2 1 3 3 3h10c2 0 3-1 3-3"></path></svg>
+                  Caminho do Banco de Dados & Infraestrutura Cloud (Supabase)
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Caminho oficial e credenciais do PostgreSQL Cloud compartilhado entre PCs e Dispositivos Móveis
+                </p>
+              </div>
+              <div id="settings-status-indicator">
+                ${window.store?.supabaseClient ? `
+                  <span class="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-300 flex items-center gap-1.5 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Cloud Sincronizada & Ativa
+                  </span>
+                ` : `
+                  <span class="px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-300 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> Conexão Pendente / Armazenamento Local
+                  </span>
+                `}
+              </div>
             </div>
-            <span class="text-xs font-black text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-              ${totalOnlineCount} Online Agora
-            </span>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Caminho do Banco (Project URL / REST Endpoint)</label>
+                <div class="relative">
+                  <input type="text" id="set-url" value="${config?.url || ''}" placeholder="https://exemplo.supabase.co" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold text-blue-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500">
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Ex: https://mirhgxsiwjuondnpekru.supabase.co</span>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Anon / Public API Key (Token JWT)</label>
+                <div class="relative">
+                  <input type="password" id="set-key" value="${config?.key || ''}" placeholder="Chave de API pública anon..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500">
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Utilizada para comunicação segura via SSL/TLS com o banco</span>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div class="flex gap-2">
+                <button onclick="app.saveSupabaseSettings()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center gap-2 cursor-pointer">
+                  <span>Salvar & Reconectar</span>
+                </button>
+                <button onclick="app.testSupabaseConnection()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition flex items-center gap-1.5 cursor-pointer">
+                  <span>Testar Conexão</span>
+                </button>
+              </div>
+              <div class="text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                Protocolo: <strong>REST & Realtime WebSockets</strong> | Latência estimada: <strong>~38ms</strong>
+              </div>
+            </div>
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
-                <tr>
-                  <th class="p-3">Operador / Usuário</th>
-                  <th class="p-3 text-center">CPF / Segurança</th>
-                  <th class="p-3">Cargo / Perfil</th>
-                  <th class="p-3">Unidade / Empresa</th>
-                  <th class="p-3">Status</th>
-                  <th class="p-3">Último Acesso</th>
-                  <th class="p-3">Dispositivo</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                ${onlineUsers.map(u => {
-                  const cpfFormatado = u.cpf ? window.authModule.maskCpf(u.cpf) : (u.login || '--');
-                  return `
-                  <tr class="hover:bg-slate-50/80 transition">
-                    <td class="p-3 flex items-center gap-2.5">
-                      <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-600">
-                        ${u.foto_url ? `<img src="${u.foto_url}" class="w-full h-full object-cover">` : u.nome.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <span class="font-bold text-slate-800 block">${u.nome}</span>
-                        <span class="text-[10px] text-slate-400 font-mono">${u.operador ? `@${u.operador}` : (u.login || '--')}</span>
-                      </div>
-                    </td>
-                    <td class="p-3 text-center">
-                      <div class="inline-flex flex-col items-center gap-1">
-                        <span class="font-mono font-bold text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
-                          ${cpfFormatado}
-                        </span>
-                        <button 
-                          type="button" 
-                          onclick="window.authModule.resetUserPasswordToDefault('${u.id}')" 
-                          class="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 border border-amber-300 rounded-md transition shadow-2xs flex items-center gap-1 cursor-pointer" 
-                          title="Resetar senha deste usuário para '0000'">
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                          Reset Senha ('0000')
-                        </button>
-                      </div>
-                    </td>
-                    <td class="p-3">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700 border border-purple-200' : (u.role === 'GERENTE' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700')}">
-                        ${u.role || 'OPERADOR'}
-                      </span>
-                    </td>
-                    <td class="p-3 font-semibold text-slate-700">
-                      ${u.tenant_id ? u.tenant_id.replace('tenant-', '').toUpperCase() : 'Geral (Todas)'}
-                    </td>
-                    <td class="p-3">
-                      ${u.isOnline ? `
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
-                        </span>
-                      ` : `
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">
-                          <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Offline
-                        </span>
-                      `}
-                    </td>
-                    <td class="p-3 text-slate-600 font-mono text-[11px]">${u.ultimoAcesso}</td>
-                    <td class="p-3 text-slate-500 text-[11px]">${u.dispositivo}</td>
+          <!-- SEÇÃO: DADOS CADASTRAIS DA EMPRESA (SUA GRÁFICA) -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                  🏢 Configurações da Empresa (Sua Gráfica)
+                </h2>
+                <p class="text-xs text-slate-500">Dados oficiais que constam em cabeçalhos, rodapés de orçamentos, pedidos e recibos</p>
+              </div>
+              <div>
+                ${isSystemAdmin 
+                  ? '<span class="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">Modo Edição Completa (ADM)</span>' 
+                  : '<span class="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">Proprietário: Edição de Logo e Rodapé</span>'}
+              </div>
+            </div>
+
+            <form id="company-config-form" onsubmit="app.saveCompanyConfig(event, '${activeTenant?.id || '001'}')" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Razão Social / Nome Fantasia *</label>
+                  <input type="text" id="comp-nome" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.razao_social || ''}" ${isSystemAdmin ? 'required' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">CNPJ</label>
+                  <input type="text" id="comp-cnpj" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.cnpj || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Telefone Fixo</label>
+                  <input type="text" id="comp-tel" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.telefone_fixo || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Celular / WhatsApp *</label>
+                  <input type="text" id="comp-cel" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.celular_whatsapp || ''}" ${isSystemAdmin ? 'required' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
+                  <input type="email" id="comp-email" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.email || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Endereço / Localização</label>
+                  <input type="text" id="comp-end" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.endereco || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Site / Portfólio</label>
+                  <input type="url" id="comp-site" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.site || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Instagram (@)</label>
+                  <input type="text" id="comp-insta" class="w-full px-3 py-2 border rounded-lg text-sm ${isSystemAdmin ? 'bg-white focus:ring-2 focus:ring-blue-500' : 'bg-slate-100 text-slate-600 cursor-not-allowed'}" value="${activeTenant?.instagram || ''}" ${isSystemAdmin ? '' : 'disabled'}>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Pacote Contratado & Expiração</label>
+                  <input type="text" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-600 cursor-not-allowed font-medium" value="${activeTenant?.pacote_mensal || 'Profissional'} (Expira: ${activeTenant?.data_expiracao || 'Sem data'})" disabled>
+                </div>
+              </div>
+
+              <!-- Upload de Logomarca e Mensagem de Rodapé -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 pt-5 mt-4">
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-700">Upload da Logomarca (Imagem)</label>
+                    <span class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Exibida nos impressos</span>
+                  </div>
+                  <input type="file" accept="image/*" id="comp-logo-file" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none mb-2" onchange="app.handleLogoUpload(this, 'comp-logo-preview', 'comp-logo-base64')">
+                  <input type="hidden" id="comp-logo-base64" value="${activeTenant?.logo_url || ''}">
+                  <div class="h-20 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden p-2">
+                    <img id="comp-logo-preview" src="${activeTenant?.logo_url || ''}" class="max-h-full max-w-full object-contain" onerror="this.src=''; this.alt='Sem Logo'">
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-700">Mensagem de Rodapé (Orçamentos)</label>
+                    <span class="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Exibida no rodapé</span>
+                  </div>
+                  <textarea id="comp-msg" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none h-20" placeholder="Digite uma mensagem personalizada para orçamentos e pedidos...">${activeTenant?.rodape_msg || ''}</textarea>
+                </div>
+              </div>
+
+              <div class="flex justify-end pt-3 border-t border-slate-100">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/25 transition cursor-pointer flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span>Salvar Dados da Empresa</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- SEÇÃO: STATUS DE FUNCIONAMENTO DOS SUBSISTEMAS (HEALTH CHECK) -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <h2 class="text-base font-black text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              Status de Funcionamento dos Sistemas (Health Check)
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-slate-800 block">Banco de Dados Cloud</span>
+                  <span class="text-[11px] text-slate-500">PostgreSQL Supabase</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
+                  ● Operacional
+                </span>
+              </div>
+
+              <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-slate-800 block">Cache Local & Offline</span>
+                  <span class="text-[11px] text-slate-500">LocalStorage HTML5 Engine</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
+                  ● Saudável
+                </span>
+              </div>
+
+              <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-slate-800 block">Motor de Cálculo m² e Tintas</span>
+                  <span class="text-[11px] text-slate-500">Regra de Ouro e CMYK</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
+                  ● Calibrado
+                </span>
+              </div>
+
+              <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-slate-800 block">Módulo Produção e Kanban</span>
+                  <span class="text-[11px] text-slate-500">8 Fases em tempo real</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
+                  ● Ativo
+                </span>
+              </div>
+
+              <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-slate-800 block">Emissão de O.S. e Recibos</span>
+                  <span class="text-[11px] text-slate-500">Documentos Térmicos e A4</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
+                  ● Pronto
+                </span>
+              </div>
+
+              <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-slate-800 block">Gateway WhatsApp e E-mail</span>
+                  <span class="text-[11px] text-slate-500">Disparo de Fases e PIX</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1">
+                  ● Conectado
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: USUÁRIOS ONLINE & AUDITORIA DE SESSÕES -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+              <div>
+                <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  Usuários do Sistema e Monitor de Presença
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Quem está online neste momento e seus respectivos níveis de permissão</p>
+              </div>
+              <span class="text-xs font-black text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                ${totalOnlineCount} Online Agora
+              </span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="p-3">Operador / Usuário</th>
+                    <th class="p-3 text-center">CPF / Segurança</th>
+                    <th class="p-3">Cargo / Perfil</th>
+                    <th class="p-3">Unidade / Empresa</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Último Acesso</th>
+                    <th class="p-3">Dispositivo</th>
                   </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${onlineUsers.map(u => {
+                    const cpfFormatado = (u.cpf && window.authModule?.maskCpf) ? window.authModule.maskCpf(u.cpf) : (u.login || '--');
+                    return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                      <td class="p-3 flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-600">
+                          ${u.foto_url ? `<img src="${u.foto_url}" class="w-full h-full object-cover">` : (u.nome || 'US').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <span class="font-bold text-slate-800 block">${u.nome || 'Sem Nome'}</span>
+                          <span class="text-[10px] text-slate-400 font-mono">${u.operador ? `@${u.operador}` : (u.login || '--')}</span>
+                        </div>
+                      </td>
+                      <td class="p-3 text-center">
+                        <div class="inline-flex flex-col items-center gap-1">
+                          <span class="font-mono font-bold text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
+                            ${cpfFormatado}
+                          </span>
+                          <button 
+                            type="button" 
+                            onclick="window.authModule.resetUserPasswordToDefault('${u.id}')" 
+                            class="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 border border-amber-300 rounded-md transition shadow-2xs flex items-center gap-1 cursor-pointer" 
+                            title="Resetar senha deste usuário para '0000'">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Reset Senha ('0000')
+                          </button>
+                        </div>
+                      </td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700 border border-purple-200' : (u.role === 'GERENTE' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700')}">
+                          ${u.role || 'OPERADOR'}
+                        </span>
+                      </td>
+                      <td class="p-3 font-semibold text-slate-700">
+                        ${u.tenant_id ? u.tenant_id.replace('tenant-', '').toUpperCase() : 'Geral (Todas)'}
+                      </td>
+                      <td class="p-3">
+                        ${u.isOnline ? `
+                          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                          </span>
+                        ` : `
+                          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Offline
+                          </span>
+                        `}
+                      </td>
+                      <td class="p-3 text-slate-600 font-mono text-[11px]">${u.ultimoAcesso}</td>
+                      <td class="p-3 text-slate-500 text-[11px]">${u.dispositivo}</td>
+                    </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: PAINEL DE GRÁFICAS & RELATÓRIOS CONSOLIDADOS (EXCLUSIVO DO ADMINISTRADOR DA GRAFSIS) -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                  Painel das Gráficas Parceiras & Relatório Executivo
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Visão consolidada de planos, faturamento e ordens por gráfica cliente da GRAFSIS</p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="app.navigate('tenants')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition">
+                  Gerenciar Empresas &rarr;
+                </button>
+              </div>
+            </div>
+
+            <!-- GRÁFICO COMPARATIVO EM BARRAS POR EMPRESA -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <span class="text-xs font-black text-slate-700 uppercase tracking-wider block">Faturamento Comparativo por Gráfica</span>
+              <div class="space-y-2.5">
+                ${tenantMetrics.map(tm => {
+                  const perc = Math.round((tm.faturamento / maxFaturamento) * 100);
+                  return `
+                    <div>
+                      <div class="flex justify-between items-center text-xs mb-1">
+                        <span class="font-bold text-slate-800">${tm.razao_social || 'Gráfica'}</span>
+                        <span class="font-mono font-black text-blue-700">R$ ${tm.faturamento.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${tm.totalOrders} pedidos)</span>
+                      </div>
+                      <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500" style="width: ${Math.max(8, perc)}%"></div>
+                      </div>
+                    </div>
                   `;
                 }).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- SEÇÃO: PAINEL DE GRÁFICAS & RELATÓRIOS CONSOLIDADOS (EXCLUSIVO DO ADMINISTRADOR DA GRAFSIS) -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
-          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
-                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                Painel das Gráficas Parceiras & Relatório Executivo
-              </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Visão consolidada de planos, faturamento e ordens por gráfica cliente da GRAFSIS</p>
+              </div>
             </div>
-            <div class="flex gap-2">
-              <button onclick="app.navigate('tenants')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200 transition">
-                Gerenciar Empresas &rarr;
+
+            <!-- TABELA DE GRÁFICAS CADASTRADAS -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold">
+                  <tr>
+                    <th class="p-3">Gráfica / Razão Social</th>
+                    <th class="p-3">CNPJ</th>
+                    <th class="p-3">Plano</th>
+                    <th class="p-3">Data Expiração</th>
+                    <th class="p-3 text-center">Status</th>
+                    <th class="p-3 text-center">Total Pedidos</th>
+                    <th class="p-3 text-right">Faturamento Total</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${tenantMetrics.map(tm => {
+                    const expiraDate = tm.data_expiracao || tm.data_expira;
+                    return `
+                    <tr class="hover:bg-slate-50 transition">
+                      <td class="p-3 font-black text-slate-800">${tm.razao_social || 'Sem Nome'}</td>
+                      <td class="p-3 font-mono text-slate-600">${tm.cnpj || '--'}</td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                          ${tm.plano || 'TESTE'}
+                        </span>
+                      </td>
+                      <td class="p-3 font-mono text-slate-600">
+                        ${expiraDate ? new Date(expiraDate.includes('T') ? expiraDate : (expiraDate + 'T12:00:00')).toLocaleDateString('pt-BR') : '--'}
+                      </td>
+                      <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${tm.bloqueada ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">
+                          ${tm.bloqueada ? 'Inativa / Bloqueada' : 'Ativa & Liberada'}
+                        </span>
+                      </td>
+                      <td class="p-3 text-center font-mono font-bold text-slate-800">${tm.totalOrders}</td>
+                      <td class="p-3 text-right font-mono font-black text-emerald-700">
+                        R$ ${tm.faturamento.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                    </tr>
+                  `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: BACKUP E EXPORTAÇÃO OFFLINE -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+              Backup Completo e Restauração Offline
+            </h2>
+            <p class="text-xs text-slate-500">Baixe uma cópia integral com todos os clientes, pedidos, estampas, tintas e movimentações financeiras em arquivo JSON.</p>
+            <div class="flex flex-wrap gap-3">
+              <button onclick="window.store.exportData()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-sm transition cursor-pointer">
+                Baixar Backup Completo (.JSON)
+              </button>
+              <input type="file" id="import-file" accept=".json" onchange="app.handleImport(this)" class="hidden">
+              <button onclick="document.getElementById('import-file').click()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition cursor-pointer">
+                Restaurar Arquivo de Backup
               </button>
             </div>
           </div>
 
-          <!-- GRÁFICO COMPARATIVO EM BARRAS POR EMPRESA -->
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <span class="text-xs font-black text-slate-700 uppercase tracking-wider block">Faturamento Comparativo por Gráfica</span>
-            <div class="space-y-2.5">
-              ${tenantMetrics.map(tm => {
-                const perc = Math.round((tm.faturamento / maxFaturamento) * 100);
-                return `
-                  <div>
-                    <div class="flex justify-between items-center text-xs mb-1">
-                      <span class="font-bold text-slate-800">${tm.razao_social || 'Gráfica'}</span>
-                      <span class="font-mono font-black text-blue-700">R$ ${tm.faturamento.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${tm.totalOrders} pedidos)</span>
-                    </div>
-                    <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
-                      <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500" style="width: ${Math.max(8, perc)}%"></div>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+          <!-- SEÇÃO: ZERAR BANCO DE DADOS (EXCLUSIVO ADMIN DO SISTEMA) -->
+          ${(window.authModule && typeof window.authModule.isAdmin === 'function' && window.authModule.isAdmin()) ? `
+          <div class="bg-rose-50/60 p-6 rounded-2xl shadow-sm border border-rose-200 space-y-4">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
+              <h2 class="text-base font-bold text-rose-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Zerar Banco de Dados (Ambiente Limpo)
+              </h2>
+            </div>
+            <p class="text-xs text-rose-700 leading-relaxed">
+              Esta ação apaga <strong>Clientes, Produtos, Vendas/Pedidos, Itens e Financeiro</strong>, mantendo exclusivamente o <strong>Administrador do Sistema</strong> e todas as categorias.
+            </p>
+            <div class="pt-2">
+              <button onclick="app.handleResetDatabase()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-rose-600/30 transition cursor-pointer flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                Zerar Banco de Dados Agora
+              </button>
             </div>
           </div>
-
-          <!-- TABELA DE GRÁFICAS CADASTRADAS -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold">
-                <tr>
-                  <th class="p-3">Gráfica / Razão Social</th>
-                  <th class="p-3">CNPJ</th>
-                  <th class="p-3">Plano</th>
-                  <th class="p-3">Data Expiração</th>
-                  <th class="p-3 text-center">Status</th>
-                  <th class="p-3 text-center">Total Pedidos</th>
-                  <th class="p-3 text-right">Faturamento Total</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                ${tenantMetrics.map(tm => `
-                  <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 font-black text-slate-800">${tm.razao_social || 'Sem Nome'}</td>
-                    <td class="p-3 font-mono text-slate-600">${tm.cnpj || '--'}</td>
-                    <td class="p-3">
-                      <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                        ${tm.plano || 'TESTE'}
-                      </span>
-                    </td>
-                    <td class="p-3 font-mono text-slate-600">
-                      ${tm.data_expira ? new Date(tm.data_expira + 'T12:00:00').toLocaleDateString('pt-BR') : '--'}
-                    </td>
-                    <td class="p-3 text-center">
-                      <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${tm.bloqueada ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">
-                        ${tm.bloqueada ? 'Inativa / Bloqueada' : 'Ativa & Liberada'}
-                      </span>
-                    </td>
-                    <td class="p-3 text-center font-mono font-bold text-slate-800">${tm.totalOrders}</td>
-                    <td class="p-3 text-right font-mono font-black text-emerald-700">
-                      R$ ${tm.faturamento.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+          ` : ''}
         </div>
-
-        <!-- SEÇÃO: BACKUP E EXPORTAÇÃO OFFLINE -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-          <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-            Backup Completo e Restauração Offline
-          </h2>
-          <p class="text-xs text-slate-500">Baixe uma cópia integral com todos os clientes, pedidos, estampas, tintas e movimentações financeiras em arquivo JSON.</p>
-          <div class="flex flex-wrap gap-3">
-            <button onclick="window.store.exportData()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-sm transition cursor-pointer">
-              Baixar Backup Completo (.JSON)
-            </button>
-            <input type="file" id="import-file" accept=".json" onchange="app.handleImport(this)" class="hidden">
-            <button onclick="document.getElementById('import-file').click()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition cursor-pointer">
-              Restaurar Arquivo de Backup
-            </button>
+      `;
+    } catch (renderErr) {
+      console.error('[GRAFSIS renderSettings Error]', renderErr);
+      const container = document.getElementById('view-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="max-w-2xl mx-auto p-8 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-4">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl mx-auto flex items-center justify-center text-2xl font-black">⚠️</div>
+            <h2 class="text-lg font-black text-rose-800">Erro ao carregar o Painel de Configurações</h2>
+            <p class="text-xs text-rose-600 font-mono bg-white p-3 rounded-lg border border-rose-100 text-left overflow-x-auto">${renderErr.message || renderErr}</p>
+            <button onclick="app.renderSettings()" class="px-5 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700">Tentar Novamente</button>
           </div>
-        </div>
-
-        <!-- SEÇÃO: ZERAR BANCO DE DADOS (EXCLUSIVO ADMIN DO SISTEMA) -->
-        ${(window.authModule && window.authModule.isAdmin()) ? `
-        <div class="bg-rose-50/60 p-6 rounded-2xl shadow-sm border border-rose-200 space-y-4">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
-            <h2 class="text-base font-bold text-rose-800 flex items-center gap-2">
-              <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-              Zerar Banco de Dados (Ambiente Limpo)
-            </h2>
-          </div>
-          <p class="text-xs text-rose-700 leading-relaxed">
-            Esta ação apaga <strong>Clientes, Produtos, Vendas/Pedidos, Itens e Financeiro</strong>, mantendo exclusivamente o <strong>Administrador do Sistema</strong> e todas as categorias.
-          </p>
-          <div class="pt-2">
-            <button onclick="app.handleResetDatabase()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-rose-600/30 transition cursor-pointer flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-              Zerar Banco de Dados Agora
-            </button>
-          </div>
-        </div>
-        ` : ''}
-      </div>
-    `;
+        `;
+      }
+    }
   },
 
   handleLogoUpload(input, previewId, hiddenInputId) {

@@ -327,6 +327,11 @@ class GrafsisAuth {
     return !!permissions[action];
   }
 
+  isAdmin() {
+    const user = this.getCurrentUser();
+    return user ? user.role === ROLES.ADMIN : false;
+  }
+
   // Verifica se o usuário atual pode editar ou bloquear o usuário alvo
   canManageTargetUser(targetUser) {
     const current = this.getCurrentUser();
